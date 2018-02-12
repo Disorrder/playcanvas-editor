@@ -1,0 +1,16 @@
+doctype html 5
+html
+    head
+        meta(charset="utf-8")
+        //- link(rel="shortcut icon" href="favicon.ico" type="image/x-icon")
+        //- script(src="/config.js")
+        title Pc Editor
+
+    body
+        div#app
+            nav.navbar.navbar-expand.navbar-light.bg-light
+                //- ul.navbar-nav
+                    li.nav-item: router-link.nav-link(:to="{name: 'income'}") Income
+                    li.nav-item: router-link.nav-link(:to="{name: 'summary'}") Summary
+
+            router-view
