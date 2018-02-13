@@ -4,13 +4,14 @@ html
         meta(charset="utf-8")
         //- link(rel="shortcut icon" href="favicon.ico" type="image/x-icon")
         //- script(src="/config.js")
+        script(src="lib/playcanvas-latest.js")
         title Pc Editor
 
     body
-        div#app
-            nav.navbar.navbar-expand.navbar-light.bg-light
-                //- ul.navbar-nav
-                    li.nav-item: router-link.nav-link(:to="{name: 'income'}") Income
-                    li.nav-item: router-link.nav-link(:to="{name: 'summary'}") Summary
+        main#app.d-flex.flex-column
+            nav.navbar.navbar-expand.navbar-light.bg-light.py-0
+                ul.navbar-nav
+                    li.nav-item: router-link.nav-link(:to="{name: 'projects'}") Projects
+                    li.nav-item: router-link.nav-link(:to="{name: 'editor'}") Editor
 
             router-view

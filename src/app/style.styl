@@ -1,0 +1,64 @@
+body
+    min-height: 100vh
+    background: #FAFAFA
+    font-family: 'Times New Roman', sans-serif
+    // font-family: Arial, sans-serif
+    color: white
+
+[disabled]
+    cursor: not-allowed
+
+ul
+    list-style: none
+    padding-left: 0
+
+a, a:hover, a:active
+    color: inherit
+    // text-decoration: underline
+
+main
+    min-height 100%
+
+.flex-full
+    flex 1 1 auto
+
+.absolute-full
+    position absolute
+    top 0
+    left 0
+    right 0
+    bottom 0
+
+img.size-contains
+    max-width 100%
+    max-height 100%
+
+
+.ru-quotes
+    &:before
+        content: '“'
+    &:after
+        content: '”'
+
+
+.space-l, .space-lr
+    &:before
+        content: ' '
+.space-r, .space-lr
+    &:after
+        content: ' '
+
+.animated
+    transition all ease 0.2s
+
+// --- bacgrounds ---
+for i in (0..10)
+    .bg-{i}
+        background rgba( hue(#bed, i*360/10), 0.7 )
+        // background rgba( mix(#fff, #bed, 20*i), 0.5 )
+
+.bg-panel
+    background rgba(255, 255, 255, 0.2)
+
+.bg-tea
+    background rgba(187, 238, 221, 0.1)

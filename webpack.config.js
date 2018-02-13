@@ -13,6 +13,15 @@ const CopyWebpackPlugin   = require('copy-webpack-plugin');
 const HtmlWebpackPlugin   = require('html-webpack-plugin');
 const OpenBrowserPlugin = require('open-browser-webpack-plugin');
 
+// utils
+function chunksSortOrder(chunks) {
+    return function(a, b) {
+        var i = chunks.indexOf(a.names[0]);
+        var j = chunks.indexOf(b.names[0]);
+        return i - j;
+    }
+}
+
 // env variables
 process.env.WEBPACK = true;
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
@@ -35,6 +44,7 @@ module.exports = {
     context: path.resolve(cfg.path.app),
     watch: flags.watch,
     entry: {
+        vendor: `app/vendor.js`,
         main: `app/index.js`,
     },
     output: {
@@ -112,11 +122,11 @@ module.exports = {
             'NODE_ENV': JSON.stringify(process.env.NODE_ENV)
         }),
 
-        // new CopyWebpackPlugin([
-        //     { from: 'config.js' },
-        //     { from: 'favicon.*' },
-        //     { from: 'robots.txt' },
-        // ]),
+        new CopyWebpackPlugin([
+            { from: 'lib/*' },
+            // { from: 'favicon.*' },
+            // { from: 'robots.txt' },
+        ]),
 
         new webpack.ProvidePlugin({
            $: 'jquery',
