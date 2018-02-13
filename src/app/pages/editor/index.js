@@ -56,12 +56,30 @@ export default {
     mounted() {
         this.initApp();
         this.initScene();
+
+        console.log('ROOT obj', serializeEntity(this.app.root));
     }
 };
 
 // utils
 function serializeEntity(entity) {
+    var data = {
+        enabled: entity.enabled,
+        name: entity.name,
+        position: entity.getLocalPosition().toObject(),
+        rotation: entity.getEulerAngles().toObject(),
+        scale: entity.getLocalScale().toObject(),
+    };
 
+    if (entity.tags.size) {
+        data.tags = entity.tags._list;
+    }
+
+    if (entity.children.length) {
+        data.children = entity.children.map(serializeEntity);
+    }
+
+    return data;
 }
 
 function deserializeEntity(entity, data) {

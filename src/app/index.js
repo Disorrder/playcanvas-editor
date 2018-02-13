@@ -1,5 +1,7 @@
 import './style.styl';
 import './vendor';
+import './extensions';
+
 import Vue from 'vue';
 import VueRouter from 'vue-router';
 Vue.use(VueRouter);
