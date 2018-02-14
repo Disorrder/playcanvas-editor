@@ -8,7 +8,8 @@ Vue.use(VueRouter);
 
 var router = new VueRouter({
     routes: [
-        {name: 'scenes', path: '/scenes', component: require('app/pages/scenes').default},
+        {name: 'projects', path: '/projects', component: require('app/pages/projects').default},
+        {name: 'project', path: '/project/:id', component: require('app/pages/project').default},
         {name: 'editor', path: '/editor', component: require('app/pages/editor').default}
     ]
 });
@@ -21,4 +22,5 @@ $(() => {
             q: 'Hi there'
         }
     });
+    window.app = app;
 });

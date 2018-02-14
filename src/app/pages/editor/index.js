@@ -4,7 +4,7 @@ export default {
     template: require('./template.pug')(),
     data() {
         return {
-            qq: 'QQ'
+            path: '',
         }
     },
     methods: {
@@ -57,13 +57,24 @@ export default {
         this.initApp();
         this.initScene();
 
-        console.log('ROOT obj', serializeEntity(this.app.root));
+        console.log('SCEN obj', serializeScene(this.app.scene));
     }
 };
 
 // utils
+function serializeScene(scene) {
+    var data = {
+
+
+        root: serializeEntity(scene.root),
+    };
+
+    return data;
+}
+
 function serializeEntity(entity) {
     var data = {
+        _guid: entity.guid,
         enabled: entity.enabled,
         name: entity.name,
         position: entity.getLocalPosition().toObject(),

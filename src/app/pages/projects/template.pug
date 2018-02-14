@@ -1,0 +1,16 @@
+main#projects.container-fluid
+    h3 Projects
+    div.row-buttons
+        //- a.btn.btn-primary(@click="createProject") Создать
+        a.btn.btn-primary(@click="openProject") Open...
+            
+    hr
+    ul.project-list.list-group
+        li.list-group-item.d-flex.p-0(v-for="item in projects")
+            .btn.project-name.animated(@click="selectProject(item)") {{item.name}}
+            .btn.project-remove.animated(@click="removeProject(item)")
+                i.fa.fa-trash-o
+            
+            
+            
+    
