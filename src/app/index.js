@@ -19,7 +19,8 @@ $(() => {
         el: '#app',
         router,
         data: {
-            q: 'Hi there'
+            user: null,
+            projects: null,
         }
     });
     window.app = app;

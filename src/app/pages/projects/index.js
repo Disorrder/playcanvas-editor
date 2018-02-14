@@ -33,7 +33,6 @@ export default {
             this.selectProject(project);
         },
         selectProject(item) {
-            console.log('SELECT', item);
             this.$router.push({name: 'project', params: {id: item.name}});
         },
         removeProject(item) {
@@ -44,6 +43,5 @@ export default {
     },
     created() {
         this.projects = JSON.parse( localStorage.getItem('projects') ) || [];
-        console.log('????', this.projects);
     }
 };
