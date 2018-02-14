@@ -2,10 +2,15 @@ export default {
     template: require('./template.pug')(),
     data() {
         return {
-            qq: 'QQ'
+            lastScenes: []
         }
     },
     methods: {
+        createScene() {
 
+        },
+        openScene() {
+            
+        }
     }
 };

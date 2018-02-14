@@ -8,7 +8,7 @@ Vue.use(VueRouter);
 
 var router = new VueRouter({
     routes: [
-        {name: 'projects', path: '/projects', component: require('app/pages/projects').default},
+        {name: 'scenes', path: '/scenes', component: require('app/pages/scenes').default},
         {name: 'editor', path: '/editor', component: require('app/pages/editor').default}
     ]
 });
