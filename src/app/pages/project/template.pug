@@ -4,5 +4,5 @@ div#projects.container-fluid
     hr
     h3 Scenes
     div.scene-list.list-group
-        a.list-group-item.list-group-item-action(v-for="item in scenes" href="#" @click="selectScene(item)")
+        a.list-group-item.list-group-item-action(v-for="item in scenes" @click="selectScene(item)")
             span.scene-name {{item.name}}

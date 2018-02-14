@@ -1,15 +1,18 @@
 import './style.styl';
 
-import path from 'path';
 const fs = window.require('fs');
+const path = window.require('path');
 const {dialog} = window.require('electron').remote;
 
 export default {
     template: require('./template.pug')(),
     data() {
         return {
-            projects: null
+            // projects: null
         }
+    },
+    computed: {
+        projects() { return this.$parent.projects; },
     },
     methods: {
         createProject() {
@@ -32,8 +35,9 @@ export default {
             }
             this.selectProject(project);
         },
-        selectProject(item) {
-            this.$router.push({name: 'project', params: {id: item.name}});
+        selectProject(index) {
+            if (typeof index !== 'number') index = this.projects.indexOf(index);
+            this.$router.push({name: 'project', params: {id: index}});
         },
         removeProject(item) {
             var i = this.projects.indexOf(item);
@@ -42,6 +46,7 @@ export default {
         }
     },
     created() {
-        this.projects = JSON.parse( localStorage.getItem('projects') ) || [];
+        // this.projects = JSON.parse( localStorage.getItem('projects') ) || [];
+        this.$parent.projects = this.projects;
     }
 };

@@ -1,11 +1,16 @@
 import './style.styl';
 
+const fs = window.require('fs');
+
 export default {
     template: require('./template.pug')(),
     data() {
         return {
             path: '',
         }
+    },
+    computed: {
+        projects() { return this.$parent.projects; },
     },
     methods: {
         initApp() {
@@ -53,11 +58,25 @@ export default {
             });
         },
     },
+    created() {
+        this.project = this.$parent.projects.find((v) => v.name === this.$router.currentRoute.params.project);
+    },
     mounted() {
         this.initApp();
         this.initScene();
 
-        console.log('SCEN obj', serializeScene(this.app.scene));
+        setTimeout(() => {
+            console.log('SCEN obj', this.app, this.app.scene);
+            var data = {
+                name: '',
+                path: '',
+                scene: serializeScene(this.app.scene),
+                root: serializeEntity(this.app.root),
+            };
+            console.log(data, JSON.stringify(data, null, 4));
+            
+        })
+
     }
 };
 
@@ -65,8 +84,6 @@ export default {
 function serializeScene(scene) {
     var data = {
 
-
-        root: serializeEntity(scene.root),
     };
 
     return data;

@@ -10,7 +10,7 @@ var router = new VueRouter({
     routes: [
         {name: 'projects', path: '/projects', component: require('app/pages/projects').default},
         {name: 'project', path: '/project/:id', component: require('app/pages/project').default},
-        {name: 'editor', path: '/editor', component: require('app/pages/editor').default}
+        {name: 'editor', path: '/editor/:project/:scene', component: require('app/pages/editor').default}
     ]
 });
 
@@ -21,6 +21,10 @@ $(() => {
         data: {
             user: null,
             projects: null,
+            scenes: null,
+        },
+        created() {
+            this.projects = JSON.parse( localStorage.getItem('projects') ) || [];
         }
     });
     window.app = app;
