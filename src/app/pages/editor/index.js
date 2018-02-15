@@ -1,6 +1,7 @@
 import './style.styl';
 
 const fs = window.require('fs');
+const path = window.require('path');
 
 export default {
     template: require('./template.pug')(),
@@ -12,13 +13,16 @@ export default {
     computed: {
         projects() { return this.$parent.projects; },
         project() {
-            var id = this.$router.currentRoute.params.projectId;
+            var id = this.$route.params.projectId;
             return this.projects.find((v) => v.id === id);
         },
         scene() {
-            var id = this.$router.currentRoute.params.sceneId;
+            var id = this.$route.params.sceneId;
             return this.project.scenes.find((v) => v.id === id);
         },
+        sceneFilePath() {
+            return path.join(this.project.path, this.scene.path);
+        }
     },
     methods: {
         initApp() {
@@ -34,17 +38,27 @@ export default {
             });
         },
 
-        initScene() {
+        _initScene() {
             var app = this.app;
             // this.app.root.name = 'Root';
 
-            var editorRoot = new pc.Entity('EditorRoot');
+            var data = this.readSceneFile();
+            data = JSON.parse(data);
+            console.log(data, this.app.root);
+            deserializeEntity(data.root, this.app.root);
+        },
+
+        initScene() {
+            var app = this.app;
+            this.app.root.name = 'Root';
+
+            var editorRoot = new pc.Entity('Editor Root');
             app.root.addChild(editorRoot);
-            var sceneRoot = new pc.Entity('SceneRoot');
+            var sceneRoot = new pc.Entity('Root');
             app.root.addChild(sceneRoot);
 
             // editor
-            var camera = new pc.Entity('camera');
+            var camera = new pc.Entity('Perspective');
             camera.addComponent('camera', {
                 clearColor: new pc.Color(0.1, 0.1, 0.1)
             });
@@ -66,9 +80,16 @@ export default {
                 cube.rotate(10 * dt, 20 * dt, 30 * dt);
             });
         },
+        readSceneFile() {
+            return fs.readFileSync(this.sceneFilePath, 'utf8');
+        },
+        writeSceneFile(data) {
+            // console.log(data, JSON.stringify(data, null, 4));
+            return fs.writeFileSync(this.sceneFilePath, JSON.stringify(data, null, 2), 'utf8');
+        },
     },
     created() {
-        // this.project = this.$parent.projects.find((v) => v.name === this.$router.currentRoute.params.project);
+        // this.project = this.$parent.projects.find((v) => v.name === this.$route.params.project);
     },
     mounted() {
         this.initApp();
@@ -80,8 +101,8 @@ export default {
             scene: serializeScene(this.app.scene),
             root: serializeEntity(this.app.root),
         };
-        // console.log(data, JSON.stringify(data, null, 4));
-        fs.writeFileSync(this.scene.path, JSON.stringify(data, null, 4), 'utf8');
+        this.writeSceneFile(data);
+
     }
 };
 
@@ -115,6 +136,27 @@ function serializeEntity(entity) {
     return data;
 }
 
-function deserializeEntity(entity, data) {
+function deserializeEntity(data, entity) {
+    if (!entity) entity = new pc.Entity();
+
+    ['_guid', 'enabled', 'name'].forEach((v) => {
+        if (v in data) entity[v] = data[v];
+    });
+
+    if ('position' in data) entity.setLocalPosition(data.position);
+    if ('rotation' in data) entity.setEulerAngles(data.rotation);
+    if ('scale' in data) entity.setLocalScale(data.scale);
+    if ('tags' in data) entity.tags._list = data.tags;
+
+    if ('children' in data) {
+        data.children.forEach((v) => {
+            entity.addChild( deserializeEntity(v) );
+        });
+    }
+
+    return entity;
+}
+
+function deserializeScene() {
 
 }

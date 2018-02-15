@@ -1,145 +1,145 @@
 {
-    "name": "Untitled",
-    "scene": {},
-    "root": {
+  "name": "Untitled",
+  "scene": {},
+  "root": {
+    "enabled": true,
+    "name": "Root",
+    "position": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "rotation": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "scale": {
+      "x": 1,
+      "y": 1,
+      "z": 1
+    },
+    "children": [
+      {
         "enabled": true,
-        "name": "Untitled",
+        "name": "Editor Root",
         "position": {
-            "x": 0,
-            "y": 0,
-            "z": 0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "rotation": {
-            "x": 0,
-            "y": 0,
-            "z": 0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "scale": {
-            "x": 1,
-            "y": 1,
-            "z": 1
+          "x": 1,
+          "y": 1,
+          "z": 1
         },
         "children": [
-            {
-                "enabled": true,
-                "name": "EditorRoot",
-                "position": {
-                    "x": 0,
-                    "y": 0,
-                    "z": 0
-                },
-                "rotation": {
-                    "x": 0,
-                    "y": 0,
-                    "z": 0
-                },
-                "scale": {
-                    "x": 1,
-                    "y": 1,
-                    "z": 1
-                },
-                "children": [
-                    {
-                        "enabled": true,
-                        "name": "camera",
-                        "position": {
-                            "x": 0,
-                            "y": 0,
-                            "z": 3
-                        },
-                        "rotation": {
-                            "x": 0,
-                            "y": 0,
-                            "z": 0
-                        },
-                        "scale": {
-                            "x": 1,
-                            "y": 1,
-                            "z": 1
-                        }
-                    }
-                ]
+          {
+            "enabled": true,
+            "name": "Perspective",
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 3
             },
-            {
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          }
+        ]
+      },
+      {
+        "enabled": true,
+        "name": "Root",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "children": [
+          {
+            "enabled": true,
+            "name": "light",
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rotation": {
+              "x": 45,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          {
+            "enabled": true,
+            "name": "cube",
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "children": [
+              {
                 "enabled": true,
-                "name": "SceneRoot",
+                "name": "Untitled",
                 "position": {
-                    "x": 0,
-                    "y": 0,
-                    "z": 0
+                  "x": 0,
+                  "y": 0,
+                  "z": 0
                 },
                 "rotation": {
-                    "x": 0,
-                    "y": 0,
-                    "z": 0
+                  "x": 0,
+                  "y": 0,
+                  "z": 0
                 },
                 "scale": {
-                    "x": 1,
-                    "y": 1,
-                    "z": 1
-                },
-                "children": [
-                    {
-                        "enabled": true,
-                        "name": "light",
-                        "position": {
-                            "x": 0,
-                            "y": 0,
-                            "z": 0
-                        },
-                        "rotation": {
-                            "x": 45,
-                            "y": 0,
-                            "z": 0
-                        },
-                        "scale": {
-                            "x": 1,
-                            "y": 1,
-                            "z": 1
-                        }
-                    },
-                    {
-                        "enabled": true,
-                        "name": "cube",
-                        "position": {
-                            "x": 0,
-                            "y": 0,
-                            "z": 0
-                        },
-                        "rotation": {
-                            "x": 0,
-                            "y": 0,
-                            "z": 0
-                        },
-                        "scale": {
-                            "x": 1,
-                            "y": 1,
-                            "z": 1
-                        },
-                        "children": [
-                            {
-                                "enabled": true,
-                                "name": "Untitled",
-                                "position": {
-                                    "x": 0,
-                                    "y": 0,
-                                    "z": 0
-                                },
-                                "rotation": {
-                                    "x": 0,
-                                    "y": 0,
-                                    "z": 0
-                                },
-                                "scale": {
-                                    "x": 1,
-                                    "y": 1,
-                                    "z": 1
-                                }
-                            }
-                        ]
-                    }
-                ]
-            }
+                  "x": 1,
+                  "y": 1,
+                  "z": 1
+                }
+              }
+            ]
+          }
         ]
-    }
+      }
+    ]
+  }
 }
