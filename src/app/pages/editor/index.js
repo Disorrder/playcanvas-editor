@@ -6,11 +6,19 @@ export default {
     template: require('./template.pug')(),
     data() {
         return {
-            path: '',
+            // scene: '',
         }
     },
     computed: {
         projects() { return this.$parent.projects; },
+        project() {
+            var id = this.$router.currentRoute.params.projectId;
+            return this.projects.find((v) => v.id === id);
+        },
+        scene() {
+            var id = this.$router.currentRoute.params.sceneId;
+            return this.project.scenes.find((v) => v.id === id);
+        },
     },
     methods: {
         initApp() {
@@ -28,11 +36,12 @@ export default {
 
         initScene() {
             var app = this.app;
+            // this.app.root.name = 'Root';
 
-            var editorNode = new pc.Entity('Editor');
-            app.root.addChild(editorNode);
-            var sceneNode = new pc.Entity('Scene');
-            app.root.addChild(sceneNode);
+            var editorRoot = new pc.Entity('EditorRoot');
+            app.root.addChild(editorRoot);
+            var sceneRoot = new pc.Entity('SceneRoot');
+            app.root.addChild(sceneRoot);
 
             // editor
             var camera = new pc.Entity('camera');
@@ -40,17 +49,17 @@ export default {
                 clearColor: new pc.Color(0.1, 0.1, 0.1)
             });
             camera.setPosition(0, 0, 3);
-            editorNode.addChild(camera);
+            editorRoot.addChild(camera);
 
             // scene
             var light = new pc.Entity('light');
             light.addComponent('light');
             light.setEulerAngles(45, 0, 0);
-            sceneNode.addChild(light);
+            sceneRoot.addChild(light);
 
             var cube = new pc.Entity('cube');
             cube.addComponent('model', {type: 'box'});
-            sceneNode.addChild(cube);
+            sceneRoot.addChild(cube);
 
             // register a global update event
             app.on('update', function (dt) {
@@ -59,24 +68,20 @@ export default {
         },
     },
     created() {
-        this.project = this.$parent.projects.find((v) => v.name === this.$router.currentRoute.params.project);
+        // this.project = this.$parent.projects.find((v) => v.name === this.$router.currentRoute.params.project);
     },
     mounted() {
         this.initApp();
         this.initScene();
 
-        setTimeout(() => {
-            console.log('SCEN obj', this.app, this.app.scene);
-            var data = {
-                name: '',
-                path: '',
-                scene: serializeScene(this.app.scene),
-                root: serializeEntity(this.app.root),
-            };
-            console.log(data, JSON.stringify(data, null, 4));
-            
-        })
-
+        console.log('SCEN obj', this.app, this.app.scene);
+        var data = {
+            name: this.scene.name,
+            scene: serializeScene(this.app.scene),
+            root: serializeEntity(this.app.root),
+        };
+        // console.log(data, JSON.stringify(data, null, 4));
+        fs.writeFileSync(this.scene.path, JSON.stringify(data, null, 4), 'utf8');
     }
 };
 

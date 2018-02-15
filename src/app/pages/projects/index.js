@@ -27,17 +27,19 @@ export default {
             var project = this.projects.find((v) => v.path === folder);
             if (!project) {
                 project = {
+                    id: folder.hashCode().toString(36),
                     name: path.basename(folder),
                     path: folder,
+                    scnenes: [],
                 };
                 this.projects.push(project);
                 localStorage.setItem('projects', JSON.stringify(this.projects));
             }
             this.selectProject(project);
         },
-        selectProject(index) {
-            if (typeof index !== 'number') index = this.projects.indexOf(index);
-            this.$router.push({name: 'project', params: {id: index}});
+        selectProject(item) {
+            // if (typeof index !== 'number') index = this.projects.indexOf(index);
+            this.$router.push({name: 'project', params: {id: item.id}});
         },
         removeProject(item) {
             var i = this.projects.indexOf(item);
@@ -47,6 +49,6 @@ export default {
     },
     created() {
         // this.projects = JSON.parse( localStorage.getItem('projects') ) || [];
-        this.$parent.projects = this.projects;
+        // this.$parent.projects = this.projects;
     }
 };

@@ -7,7 +7,6 @@ export default {
     template: require('./template.pug')(),
     data() {
         return {
-            // projects: null,
             project: null,
             scenes: null,
         }
@@ -18,32 +17,36 @@ export default {
     methods: {
         getProject(id) {
             if (!id) id = this.$router.currentRoute.params.id;
-            return this.projects.find((v) => v.name === id);
+            return this.projects.find((v) => v.id === id);
         },
         selectScene(item) {
-            this.$router.push({name: 'editor', params: {project: this.project.name, scene: item.name}});
+            this.$router.push({name: 'editor', params: {project: this.project.id, scene: item.id}});
         }
     },
     created() {
-        // this.projects = JSON.parse( localStorage.getItem('projects') );
-        // this.project = this.getProject();
-        this.project = this.projects[this.$router.currentRoute.params.id];
+        this.project = this.getProject();
         this.project.lastOpened = Date.now();
-        localStorage.setItem('projects', JSON.stringify(this.projects));
 
         var scenes = glob.sync('**/*scene.json', {
             cwd: this.project.path,
             ignore: '**/node_modules/**',
         });
-        this.scenes = scenes.map((v) => {
+
+        this.project.scenes = scenes.map((v) => {
+            var id = v.hashCode().toString(36);
+
             var json = fs.readFileSync(v, 'utf8');
             json = JSON.parse(json);
             if (!json.name) json.name = 'Untitled';
+
             return {
+                id,
+                projectId: this.project.id,
                 name: json.name,
                 path: v,
             };
         });
-        console.log('jsons', this.scenes);
+        localStorage.setItem('projects', JSON.stringify(this.projects));
+        console.log('json', this.project);
     }
 };

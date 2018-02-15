@@ -1,5 +1,6 @@
 import './style.styl';
 import './vendor';
+import './utils';
 import './extensions';
 
 import Vue from 'vue';
@@ -10,7 +11,7 @@ var router = new VueRouter({
     routes: [
         {name: 'projects', path: '/projects', component: require('app/pages/projects').default},
         {name: 'project', path: '/project/:id', component: require('app/pages/project').default},
-        {name: 'editor', path: '/editor/:project/:scene', component: require('app/pages/editor').default}
+        {name: 'editor', path: '/editor/:projectId/:sceneId', component: require('app/pages/editor').default}
     ]
 });
 
