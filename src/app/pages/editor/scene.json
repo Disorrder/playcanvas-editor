@@ -1,145 +1,221 @@
 {
   "name": "Untitled",
-  "scene": {},
-  "root": {
-    "enabled": true,
-    "name": "Root",
-    "position": {
-      "x": 0,
-      "y": 0,
-      "z": 0
+  "entities": {
+    "26bc5619-7fef-48ef-9d8b-cb6ffc74cfee": {
+      "_guid": "26bc5619-7fef-48ef-9d8b-cb6ffc74cfee",
+      "resource_id": "26bc5619-7fef-48ef-9d8b-cb6ffc74cfee",
+      "enabled": true,
+      "name": "Root",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "tags": [],
+      "children": [
+        "79c7db7e-ed28-47f5-b5f4-b27cc433d971",
+        "7d19c39e-5e3e-479e-847b-728eb9846be2"
+      ],
+      "parent": null,
+      "components": {}
     },
-    "rotation": {
-      "x": 0,
-      "y": 0,
-      "z": 0
+    "79c7db7e-ed28-47f5-b5f4-b27cc433d971": {
+      "_guid": "79c7db7e-ed28-47f5-b5f4-b27cc433d971",
+      "resource_id": "79c7db7e-ed28-47f5-b5f4-b27cc433d971",
+      "enabled": true,
+      "name": "Editor Root",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "tags": [],
+      "children": [
+        "98aa1c47-1996-4879-8916-eda27d61093d"
+      ],
+      "parent": "26bc5619-7fef-48ef-9d8b-cb6ffc74cfee",
+      "components": {}
     },
-    "scale": {
-      "x": 1,
-      "y": 1,
-      "z": 1
-    },
-    "children": [
-      {
-        "enabled": true,
-        "name": "Editor Root",
-        "position": {
-          "x": 0,
-          "y": 0,
-          "z": 0
-        },
-        "rotation": {
-          "x": 0,
-          "y": 0,
-          "z": 0
-        },
-        "scale": {
-          "x": 1,
-          "y": 1,
-          "z": 1
-        },
-        "children": [
-          {
-            "enabled": true,
-            "name": "Perspective",
-            "position": {
-              "x": 0,
-              "y": 0,
-              "z": 3
-            },
-            "rotation": {
-              "x": 0,
-              "y": 0,
-              "z": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
-            }
-          }
-        ]
-      },
-      {
-        "enabled": true,
-        "name": "Root",
-        "position": {
-          "x": 0,
-          "y": 0,
-          "z": 0
-        },
-        "rotation": {
-          "x": 0,
-          "y": 0,
-          "z": 0
-        },
-        "scale": {
-          "x": 1,
-          "y": 1,
-          "z": 1
-        },
-        "children": [
-          {
-            "enabled": true,
-            "name": "light",
-            "position": {
-              "x": 0,
-              "y": 0,
-              "z": 0
-            },
-            "rotation": {
-              "x": 45,
-              "y": 0,
-              "z": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
-            }
-          },
-          {
-            "enabled": true,
-            "name": "cube",
-            "position": {
-              "x": 0,
-              "y": 0,
-              "z": 0
-            },
-            "rotation": {
-              "x": 0,
-              "y": 0,
-              "z": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
-            },
-            "children": [
-              {
-                "enabled": true,
-                "name": "Untitled",
-                "position": {
-                  "x": 0,
-                  "y": 0,
-                  "z": 0
-                },
-                "rotation": {
-                  "x": 0,
-                  "y": 0,
-                  "z": 0
-                },
-                "scale": {
-                  "x": 1,
-                  "y": 1,
-                  "z": 1
-                }
-              }
-            ]
-          }
-        ]
+    "98aa1c47-1996-4879-8916-eda27d61093d": {
+      "_guid": "98aa1c47-1996-4879-8916-eda27d61093d",
+      "resource_id": "98aa1c47-1996-4879-8916-eda27d61093d",
+      "enabled": true,
+      "name": "Perspective",
+      "position": [
+        0,
+        0,
+        3
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "tags": [],
+      "children": [],
+      "parent": "79c7db7e-ed28-47f5-b5f4-b27cc433d971",
+      "components": {
+        "camera": {
+          "enabled": true,
+          "clearColorBuffer": true,
+          "clearDepthBuffer": true,
+          "clearColor": [
+            0.10000000149011612,
+            0.10000000149011612,
+            0.10000000149011612,
+            1
+          ],
+          "projection": 0,
+          "frustumCulling": false,
+          "fov": 45,
+          "nearClip": 0.1,
+          "farClip": 1000,
+          "priority": 0,
+          "rect": [
+            0,
+            0,
+            1,
+            1
+          ]
+        }
       }
-    ]
-  }
+    },
+    "7d19c39e-5e3e-479e-847b-728eb9846be2": {
+      "_guid": "7d19c39e-5e3e-479e-847b-728eb9846be2",
+      "resource_id": "7d19c39e-5e3e-479e-847b-728eb9846be2",
+      "enabled": true,
+      "name": "Root",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "tags": [],
+      "children": [
+        "0a044003-076d-43f7-853c-a670930ef3dc",
+        "9531edb1-0c80-473c-8e03-24502a30d452"
+      ],
+      "parent": "26bc5619-7fef-48ef-9d8b-cb6ffc74cfee",
+      "components": {}
+    },
+    "0a044003-076d-43f7-853c-a670930ef3dc": {
+      "_guid": "0a044003-076d-43f7-853c-a670930ef3dc",
+      "resource_id": "0a044003-076d-43f7-853c-a670930ef3dc",
+      "enabled": true,
+      "name": "light",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        45,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "tags": [],
+      "children": [],
+      "parent": "7d19c39e-5e3e-479e-847b-728eb9846be2",
+      "components": {
+        "light": {}
+      }
+    },
+    "9531edb1-0c80-473c-8e03-24502a30d452": {
+      "_guid": "9531edb1-0c80-473c-8e03-24502a30d452",
+      "resource_id": "9531edb1-0c80-473c-8e03-24502a30d452",
+      "enabled": true,
+      "name": "cube",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "tags": [],
+      "children": [
+        null
+      ],
+      "parent": "7d19c39e-5e3e-479e-847b-728eb9846be2",
+      "components": {
+        "model": {
+          "enabled": true,
+          "type": "box",
+          "batchGroupId": -1
+        }
+      }
+    },
+    "undefined": {
+      "enabled": true,
+      "name": "Untitled",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "tags": [],
+      "children": [],
+      "parent": "9531edb1-0c80-473c-8e03-24502a30d452",
+      "components": {}
+    }
+  },
+  "settings": {}
 }

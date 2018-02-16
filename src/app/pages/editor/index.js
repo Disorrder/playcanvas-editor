@@ -3,6 +3,8 @@ import './style.styl';
 const fs = window.require('fs');
 const path = window.require('path');
 
+import {serializeScene, deserializeScene} from 'app/extensions/serialize';
+
 export default {
     template: require('./template.pug')(),
     data() {
@@ -38,17 +40,22 @@ export default {
             });
         },
 
-        _initScene() {
+        initScene() {
             var app = this.app;
-            // this.app.root.name = 'Root';
 
             var data = this.readSceneFile();
             data = JSON.parse(data);
+            // this.app.applySceneSettings(data.settings);
+            this.app.root = deserializeScene(this.app, data);
             console.log(data, this.app.root);
-            deserializeEntity(data.root, this.app.root);
+
+            // var cube = this.app.root.findByName('cube');
+            // app.on('update', function (dt) {
+            //     cube.rotate(10 * dt, 20 * dt, 30 * dt);
+            // });
         },
 
-        initScene() {
+        initScene_test() {
             var app = this.app;
             this.app.root.name = 'Root';
 
@@ -79,12 +86,15 @@ export default {
             app.on('update', function (dt) {
                 cube.rotate(10 * dt, 20 * dt, 30 * dt);
             });
+
+            // write to file
+            var data = serializeScene(this.app);
+            this.writeSceneFile(data);
         },
         readSceneFile() {
             return fs.readFileSync(this.sceneFilePath, 'utf8');
         },
         writeSceneFile(data) {
-            // console.log(data, JSON.stringify(data, null, 4));
             return fs.writeFileSync(this.sceneFilePath, JSON.stringify(data, null, 2), 'utf8');
         },
     },
@@ -94,69 +104,6 @@ export default {
     mounted() {
         this.initApp();
         this.initScene();
-
-        console.log('SCEN obj', this.app, this.app.scene);
-        var data = {
-            name: this.scene.name,
-            scene: serializeScene(this.app.scene),
-            root: serializeEntity(this.app.root),
-        };
-        this.writeSceneFile(data);
-
+        // this.initScene_test();
     }
 };
-
-// utils
-function serializeScene(scene) {
-    var data = {
-
-    };
-
-    return data;
-}
-
-function serializeEntity(entity) {
-    var data = {
-        _guid: entity.guid,
-        enabled: entity.enabled,
-        name: entity.name,
-        position: entity.getLocalPosition().toObject(),
-        rotation: entity.getEulerAngles().toObject(),
-        scale: entity.getLocalScale().toObject(),
-    };
-
-    if (entity.tags.size) {
-        data.tags = entity.tags._list;
-    }
-
-    if (entity.children.length) {
-        data.children = entity.children.map(serializeEntity);
-    }
-
-    return data;
-}
-
-function deserializeEntity(data, entity) {
-    if (!entity) entity = new pc.Entity();
-
-    ['_guid', 'enabled', 'name'].forEach((v) => {
-        if (v in data) entity[v] = data[v];
-    });
-
-    if ('position' in data) entity.setLocalPosition(data.position);
-    if ('rotation' in data) entity.setEulerAngles(data.rotation);
-    if ('scale' in data) entity.setLocalScale(data.scale);
-    if ('tags' in data) entity.tags._list = data.tags;
-
-    if ('children' in data) {
-        data.children.forEach((v) => {
-            entity.addChild( deserializeEntity(v) );
-        });
-    }
-
-    return entity;
-}
-
-function deserializeScene() {
-
-}
