@@ -35,18 +35,39 @@ export function serializeEntity(entity) {
 
     for (let name in entity.c) {
         let component = entity.c[name];
-        data.components[name] = {};
+        let cData = data.components[name] = {};
 
-        if (!componentSchemas[name]) continue;
-        componentSchemas[name].forEach((field) => {
-            var [field, type] = field.split(':');
-            var val = component[field];
-            if (type === 'vec') val = val.toArray();
-            data.components[name][field] = val;
-        });
+        for (let name in component.data) {
+            let val = component.data[name];
+            let t = typeof val;
+            if (t === 'boolean' || t === 'number' || t === 'string') cData[name] = val;
+        }
+
+
+        if (name === 'camera') {
+            Object.assign(cData, {
+                clearColor: component.clearColor.toArray(),
+                rect: component.rect.toArray(),
+            });
+        }
+        if (name === 'model') {
+            Object.assign(cData, {
+                material: component.material.id
+            });
+        }
+        if (name === 'light') {
+            Object.assign(cData, {
+                // material: component.material.id
+            });
+        }
     }
 
     return data;
+}
+
+function serializeComponents(entity) {
+    var data = {};
+
 }
 
 
@@ -56,9 +77,31 @@ export function deserializeScene(app, data) {
     return parent;
 }
 
-var componentSchemas = {
-    camera: ['enabled', 'clearColorBuffer', 'clearDepthBuffer', 'clearColor:vec', 'projection', 'frustumCulling', 'fov', 'nearClip', 'farClip', 'priority', 'rect:vec'],
-    model: ['enabled', 'type', 'batchGroupId', 'recieveShadows'],
+
+var __components = {
+    camera(c) {
+        var data = {};
+        var fields = ['enabled', 'clearColorBuffer', 'clearDepthBuffer', 'projection', 'frustumCulling', 'fov', 'nearClip', 'farClip', 'priority'];
+        fields.forEach((v) => {
+            data[v] = c[v];
+        });
+
+        data.clearColor = c.clearColor.toArray();
+        data.rect = c.rect.toArray();
+    },
+    model(c) {
+        var data = {};
+        var fields = ['enabled', 'type', 'batchGroupId', 'castShadows', 'castShadowsLightmap', 'recieveShadows', 'isStatic', 'lightmapped'];
+        fields.forEach((v) => {
+            data[v] = c[v];
+        });
+
+        data.material = c.material.id;
+    },
+    light(c) {
+        var data = {};
+        var fields = ['enabled', 'type', 'intensity', 'range', 'falloffMode', 'isStatic', 'bake', 'bakeDir', 'affectDynamic', 'affectLightmapped', 'castShadows'];
+    }
 }
 
 // -- utils --

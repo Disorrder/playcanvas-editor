@@ -1,9 +1,8 @@
 {
   "name": "Untitled",
   "entities": {
-    "26bc5619-7fef-48ef-9d8b-cb6ffc74cfee": {
-      "_guid": "26bc5619-7fef-48ef-9d8b-cb6ffc74cfee",
-      "resource_id": "26bc5619-7fef-48ef-9d8b-cb6ffc74cfee",
+    "a84b7a9f-1065-43e7-94a8-30a50a094e36": {
+      "resource_id": "a84b7a9f-1065-43e7-94a8-30a50a094e36",
       "enabled": true,
       "name": "Root",
       "position": [
@@ -23,15 +22,14 @@
       ],
       "tags": [],
       "children": [
-        "79c7db7e-ed28-47f5-b5f4-b27cc433d971",
-        "7d19c39e-5e3e-479e-847b-728eb9846be2"
+        "27acb7a1-a278-40aa-b02a-bd7be4764dc9",
+        "83cfe6e4-c7f8-43ff-9905-736c7434d9ef"
       ],
       "parent": null,
       "components": {}
     },
-    "79c7db7e-ed28-47f5-b5f4-b27cc433d971": {
-      "_guid": "79c7db7e-ed28-47f5-b5f4-b27cc433d971",
-      "resource_id": "79c7db7e-ed28-47f5-b5f4-b27cc433d971",
+    "27acb7a1-a278-40aa-b02a-bd7be4764dc9": {
+      "resource_id": "27acb7a1-a278-40aa-b02a-bd7be4764dc9",
       "enabled": true,
       "name": "Editor Root",
       "position": [
@@ -51,14 +49,13 @@
       ],
       "tags": [],
       "children": [
-        "98aa1c47-1996-4879-8916-eda27d61093d"
+        "989e95c9-fed9-4e2f-8491-27dfb92a9fd3"
       ],
-      "parent": "26bc5619-7fef-48ef-9d8b-cb6ffc74cfee",
+      "parent": "a84b7a9f-1065-43e7-94a8-30a50a094e36",
       "components": {}
     },
-    "98aa1c47-1996-4879-8916-eda27d61093d": {
-      "_guid": "98aa1c47-1996-4879-8916-eda27d61093d",
-      "resource_id": "98aa1c47-1996-4879-8916-eda27d61093d",
+    "989e95c9-fed9-4e2f-8491-27dfb92a9fd3": {
+      "resource_id": "989e95c9-fed9-4e2f-8491-27dfb92a9fd3",
       "enabled": true,
       "name": "Perspective",
       "position": [
@@ -78,24 +75,30 @@
       ],
       "tags": [],
       "children": [],
-      "parent": "79c7db7e-ed28-47f5-b5f4-b27cc433d971",
+      "parent": "27acb7a1-a278-40aa-b02a-bd7be4764dc9",
       "components": {
         "camera": {
-          "enabled": true,
           "clearColorBuffer": true,
           "clearDepthBuffer": true,
+          "clearStencilBuffer": true,
+          "nearClip": 0.1,
+          "farClip": 1000,
+          "fov": 45,
+          "orthoHeight": 100,
+          "projection": 0,
+          "priority": 0,
+          "enabled": true,
+          "frustumCulling": false,
+          "cullFaces": true,
+          "flipFaces": false,
+          "aspectRatio": 1.1570576540755466,
+          "isRendering": false,
           "clearColor": [
             0.10000000149011612,
             0.10000000149011612,
             0.10000000149011612,
             1
           ],
-          "projection": 0,
-          "frustumCulling": false,
-          "fov": 45,
-          "nearClip": 0.1,
-          "farClip": 1000,
-          "priority": 0,
           "rect": [
             0,
             0,
@@ -105,9 +108,8 @@
         }
       }
     },
-    "7d19c39e-5e3e-479e-847b-728eb9846be2": {
-      "_guid": "7d19c39e-5e3e-479e-847b-728eb9846be2",
-      "resource_id": "7d19c39e-5e3e-479e-847b-728eb9846be2",
+    "83cfe6e4-c7f8-43ff-9905-736c7434d9ef": {
+      "resource_id": "83cfe6e4-c7f8-43ff-9905-736c7434d9ef",
       "enabled": true,
       "name": "Root",
       "position": [
@@ -127,15 +129,14 @@
       ],
       "tags": [],
       "children": [
-        "0a044003-076d-43f7-853c-a670930ef3dc",
-        "9531edb1-0c80-473c-8e03-24502a30d452"
+        "cd5c1586-8294-4be4-8886-318202027fdb",
+        "a6b26384-8de2-4a59-8c12-56444344425e"
       ],
-      "parent": "26bc5619-7fef-48ef-9d8b-cb6ffc74cfee",
+      "parent": "a84b7a9f-1065-43e7-94a8-30a50a094e36",
       "components": {}
     },
-    "0a044003-076d-43f7-853c-a670930ef3dc": {
-      "_guid": "0a044003-076d-43f7-853c-a670930ef3dc",
-      "resource_id": "0a044003-076d-43f7-853c-a670930ef3dc",
+    "cd5c1586-8294-4be4-8886-318202027fdb": {
+      "resource_id": "cd5c1586-8294-4be4-8886-318202027fdb",
       "enabled": true,
       "name": "light",
       "position": [
@@ -155,14 +156,41 @@
       ],
       "tags": [],
       "children": [],
-      "parent": "7d19c39e-5e3e-479e-847b-728eb9846be2",
+      "parent": "83cfe6e4-c7f8-43ff-9905-736c7434d9ef",
       "components": {
-        "light": {}
+        "light": {
+          "enabled": true,
+          "type": "directional",
+          "intensity": 1,
+          "castShadows": false,
+          "shadowDistance": 40,
+          "shadowResolution": 1024,
+          "shadowBias": 0.05,
+          "normalOffsetBias": 0,
+          "range": 10,
+          "innerConeAngle": 40,
+          "outerConeAngle": 45,
+          "falloffMode": 0,
+          "shadowType": 0,
+          "vsmBlurSize": 11,
+          "vsmBlurMode": 1,
+          "vsmBias": 0.0025,
+          "cookieIntensity": 1,
+          "cookieFalloff": true,
+          "cookieChannel": "rgb",
+          "cookieAngle": 0,
+          "shadowUpdateMode": 2,
+          "mask": 1,
+          "affectDynamic": true,
+          "affectLightmapped": false,
+          "bake": false,
+          "bakeDir": true,
+          "isStatic": false
+        }
       }
     },
-    "9531edb1-0c80-473c-8e03-24502a30d452": {
-      "_guid": "9531edb1-0c80-473c-8e03-24502a30d452",
-      "resource_id": "9531edb1-0c80-473c-8e03-24502a30d452",
+    "a6b26384-8de2-4a59-8c12-56444344425e": {
+      "resource_id": "a6b26384-8de2-4a59-8c12-56444344425e",
       "enabled": true,
       "name": "cube",
       "position": [
@@ -184,12 +212,19 @@
       "children": [
         null
       ],
-      "parent": "7d19c39e-5e3e-479e-847b-728eb9846be2",
+      "parent": "83cfe6e4-c7f8-43ff-9905-736c7434d9ef",
       "components": {
         "model": {
           "enabled": true,
           "type": "box",
-          "batchGroupId": -1
+          "castShadows": true,
+          "receiveShadows": true,
+          "castShadowsLightmap": true,
+          "lightmapped": false,
+          "lightmapSizeMultiplier": 1,
+          "isStatic": false,
+          "batchGroupId": -1,
+          "material": 0
         }
       }
     },
@@ -213,7 +248,7 @@
       ],
       "tags": [],
       "children": [],
-      "parent": "9531edb1-0c80-473c-8e03-24502a30d452",
+      "parent": "a6b26384-8de2-4a59-8c12-56444344425e",
       "components": {}
     }
   },
