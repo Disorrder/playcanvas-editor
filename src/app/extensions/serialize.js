@@ -33,16 +33,25 @@ export function serializeEntity(entity) {
         data.parent = entity.parent._guid;
     }
 
+    if (entity.c && Object.keys(entity.c).length) {
+        data.components = serializeComponents(entity);
+    }
+
+    return data;
+}
+
+function serializeComponents(entity) {
+    var data = {};
+
     for (let name in entity.c) {
         let component = entity.c[name];
-        let cData = data.components[name] = {};
+        let cData = data[name] = {};
 
         for (let name in component.data) {
             let val = component.data[name];
             let t = typeof val;
             if (t === 'boolean' || t === 'number' || t === 'string') cData[name] = val;
         }
-
 
         if (name === 'camera') {
             Object.assign(cData, {
@@ -65,43 +74,11 @@ export function serializeEntity(entity) {
     return data;
 }
 
-function serializeComponents(entity) {
-    var data = {};
-
-}
-
 
 export function deserializeScene(app, data) {
     var parser = new pc.SceneParser(app);
     var parent = parser.parse(data);
     return parent;
-}
-
-
-var __components = {
-    camera(c) {
-        var data = {};
-        var fields = ['enabled', 'clearColorBuffer', 'clearDepthBuffer', 'projection', 'frustumCulling', 'fov', 'nearClip', 'farClip', 'priority'];
-        fields.forEach((v) => {
-            data[v] = c[v];
-        });
-
-        data.clearColor = c.clearColor.toArray();
-        data.rect = c.rect.toArray();
-    },
-    model(c) {
-        var data = {};
-        var fields = ['enabled', 'type', 'batchGroupId', 'castShadows', 'castShadowsLightmap', 'recieveShadows', 'isStatic', 'lightmapped'];
-        fields.forEach((v) => {
-            data[v] = c[v];
-        });
-
-        data.material = c.material.id;
-    },
-    light(c) {
-        var data = {};
-        var fields = ['enabled', 'type', 'intensity', 'range', 'falloffMode', 'isStatic', 'bake', 'bakeDir', 'affectDynamic', 'affectLightmapped', 'castShadows'];
-    }
 }
 
 // -- utils --

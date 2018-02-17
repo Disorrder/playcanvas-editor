@@ -82,11 +82,6 @@ export default {
             cube.addComponent('model', {type: 'box'});
             sceneRoot.addChild(cube);
 
-            // register a global update event
-            app.on('update', function (dt) {
-                cube.rotate(10 * dt, 20 * dt, 30 * dt);
-            });
-
             // write to file
             var data = serializeScene(this.app);
             this.writeSceneFile(data);
@@ -105,5 +100,10 @@ export default {
         this.initApp();
         this.initScene();
         // this.initScene_test();
+
+        // var cube = this.app.root.findByName('cube');
+        // this.app.on('update', function (dt) {
+        //     cube.rotate(10 * dt, 20 * dt, 30 * dt);
+        // });
     }
 };
