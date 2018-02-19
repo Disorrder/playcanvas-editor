@@ -1,4 +1,18 @@
 div#editor.flex-full.position-relative: .absolute-full
     canvas#canvas-3d
-    div#panel-left.ui-panel
-    div#panel-right.ui-panel
+    ui-dock.ui-dock-left
+        div hmm1
+        pc-entity(:entity="app.root")
+    ui-dock.ui-dock-right(aria-hidden="true")
+        div hmm2
+        
+        
+//- div#editor2.flex-full.d-flex.no-gutters
+    .col-left
+        #panel-left.ui-panel
+    .col.col-center
+        .ui-panel.position-relative
+            canvas#canvas-3d.absolute-full
+    .col-right
+        #panel-right.ui-panel
+    

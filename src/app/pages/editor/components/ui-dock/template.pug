@@ -1,0 +1,7 @@
+div.ui-dock.animated(:class="{'hidden': hidden}")
+    .ui-dock-inner.px-2
+        slot
+    .ui-dock-resize
+    .ui-dock-toggle(@click="toggle")
+        .ui-dock-toggle-btn.animated: i.fa(:class="toggleIcon")
+        

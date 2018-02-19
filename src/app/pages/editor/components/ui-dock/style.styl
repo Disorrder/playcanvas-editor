@@ -1,0 +1,107 @@
+$toggleSize = 25px
+$borderColor = #111
+
+.ui-dock
+    position absolute
+    top 0
+    width 250px
+    min-width 100px
+    max-width 50%
+    height 100%
+    z-index 10
+
+    .ui-dock-inner
+        width 100%
+        height 100%
+        background #3d3d3d
+        color #fff
+
+    .ui-dock-resize
+        position absolute
+        top 0
+        width 3px
+        height 100%
+
+    .ui-dock-toggle
+        position absolute
+        top 50%
+        width $toggleSize
+        height 2*$toggleSize
+        margin-top -1*$toggleSize
+        overflow hidden
+        z-index -1
+
+    .ui-dock-toggle-btn
+        position absolute
+        top 0
+        width $toggleSize
+        height 2*$toggleSize
+        background #3d3d3d
+        border 1px solid $borderColor
+        cursor pointer
+
+        & > i.fa
+            line-height inherit
+
+    // .ui-dock-toggle-area
+    //     position absolute
+    //     top 50%
+    //     width $toggleSize
+    //     height 4*$toggleSize
+    //     margin-top -2*$toggleSize
+    //     background #fff
+    //     z-index -2
+
+    // variants
+    &.ui-dock-left
+        left 0
+        border-right 1px solid $borderColor
+
+        .ui-dock-resize
+            right 0
+
+        .ui-dock-toggle
+            left 100%
+        .ui-dock-toggle-btn
+            left -100%
+            border-radius 0 $toggleSize $toggleSize 0
+            border-left 0
+            text-align left
+            line-height 1.9*$toggleSize
+            padding 0 10%
+
+        &:hover, &.ui-dock-hover
+            .ui-dock-toggle-btn
+                left 0
+
+        &.hidden
+            transform translateX(-100%)
+
+
+    &.ui-dock-right
+        right 0
+        border-left 1px solid $borderColor
+
+        .ui-dock-resize
+            right 0
+
+        .ui-dock-toggle
+            right 100%
+        .ui-dock-toggle-btn
+            right -100%
+            border-radius $toggleSize 0 0 $toggleSize
+            border-right 0
+            text-align right
+            line-height 1.9*$toggleSize
+            padding 0 15%
+
+        &:hover, &.ui-dock-hover
+            .ui-dock-toggle-btn
+                right 0
+
+        &.hidden
+            transform translateX(100%)
+
+    // states
+    &.hidden
+        background transparent

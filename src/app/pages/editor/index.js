@@ -1,4 +1,5 @@
 import './style.styl';
+import './components';
 
 const fs = window.require('fs');
 const path = window.require('path');
@@ -9,6 +10,7 @@ export default {
     template: require('./template.pug')(),
     data() {
         return {
+            app: {},
             // scene: '',
         }
     },
@@ -24,6 +26,9 @@ export default {
         },
         sceneFilePath() {
             return path.join(this.project.path, this.scene.path);
+        },
+        rootNode() {
+            return this.app.root;
         }
     },
     methods: {
