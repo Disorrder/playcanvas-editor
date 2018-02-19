@@ -1,6 +1,6 @@
-div.pc-entity(:class="{opened: opened}" :name="entity.name" :guid="entity._guid")
-    div.pc-entity-item.d-flex.align-items-stretch(@doubleclick="toggle")
-        div.pc-entity-toggle.d-flex.align-items-center.justify-content-center(@click="toggle")
+div.pc-entity(:class="{opened: opened}" :data-name="entity.name" :data-guid="entity._guid")
+    div.pc-entity-item.d-flex.align-items-stretch(@dblclick="toggle")
+        div.pc-entity-toggle.d-flex.align-items-center.justify-content-center(@click.stop="toggle")
             i.fa.fa-chevron-right(v-if="isFolder && !opened")
             i.fa.fa-chevron-down(v-if="isFolder && opened")
         div.pc-entity-name.pr-2 {{entity.name}}

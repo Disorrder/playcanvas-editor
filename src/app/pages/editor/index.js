@@ -11,7 +11,8 @@ export default {
     data() {
         return {
             app: {},
-            // scene: '',
+            // selectedEntities: [],
+            selectedEntity: null
         }
     },
     computed: {
@@ -97,6 +98,17 @@ export default {
         writeSceneFile(data) {
             return fs.writeFileSync(this.sceneFilePath, JSON.stringify(data, null, 2), 'utf8');
         },
+
+        // left col
+        selectEntity(entity) {
+            if (this.selectedEntity === entity) {
+                this.selectedEntity = null;
+                this.$refs.rightDock.opened = false;
+            } else {
+                this.selectedEntity = entity;
+                this.$refs.rightDock.opened = true;
+            }
+        },
     },
     created() {
         // this.project = this.$parent.projects.find((v) => v.name === this.$route.params.project);
@@ -105,6 +117,17 @@ export default {
         this.initApp();
         this.initScene();
         // this.initScene_test();
+
+        console.log('ref rd', this.$refs.rightDock);
+        $(this.$refs.leftDock.$el).on('click', '.pc-entity-item', (e) => {
+            var el = e.currentTarget.parentNode;
+            var entity = el.__vue__.entity;
+            this.selectEntity(entity);
+
+            console.log('lmb', el, entity);
+        });
+
+
 
         // var cube = this.app.root.findByName('cube');
         // this.app.on('update', function (dt) {

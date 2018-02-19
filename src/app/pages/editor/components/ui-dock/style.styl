@@ -56,6 +56,7 @@ $borderColor = #111
     &.ui-dock-left
         left 0
         border-right 1px solid $borderColor
+        transform translateX(-100%)
 
         .ui-dock-resize
             right 0
@@ -74,13 +75,14 @@ $borderColor = #111
             .ui-dock-toggle-btn
                 left 0
 
-        &.hidden
-            transform translateX(-100%)
+        &.opened
+            transform translateX(0)
 
 
     &.ui-dock-right
         right 0
         border-left 1px solid $borderColor
+        transform translateX(100%)
 
         .ui-dock-resize
             right 0
@@ -99,9 +101,9 @@ $borderColor = #111
             .ui-dock-toggle-btn
                 right 0
 
-        &.hidden
-            transform translateX(100%)
+        &.opened
+            transform translateX(0)
 
     // states
-    &.hidden
+    &.opened
         background transparent

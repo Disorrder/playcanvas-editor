@@ -9,20 +9,22 @@ var icons = {
 
 import Vue from 'vue';
 Vue.component('ui-dock', {
-    props: ['aria-hidden'],
+    props: {
+        ariaOpened: Boolean
+    },
     template: require('./template.pug')(),
     data() {
         return {
             position: null,
-            hidden: this.ariaHidden,
+            opened: this.ariaOpened == null ? true : this.ariaOpened,
         }
     },
     computed: {
         toggleIcon() {
             if (!this.position) return '';
-            if (this.position === 'left') return this.hidden ? icons.right : icons.left;
-            if (this.position === 'right') return this.hidden ? icons.left : icons.right;
-            console.warn('ToggleIcon:', this.position, this.hidden);
+            if (this.position === 'left') return this.opened ? icons.left : icons.right;
+            if (this.position === 'right') return this.opened ? icons.right : icons.left;
+            console.warn('ToggleIcon:', this.position, this.opened);
             return '';
         },
         // position() {
@@ -31,12 +33,12 @@ Vue.component('ui-dock', {
     },
     methods: {
         toggle() {
-            this.hidden = !this.hidden;
+            this.opened = !this.opened;
         }
     },
     mounted() {
-        console.log(this.$el, this.$el.classList.contains('hidden'), this.ariaHidden);
-        // this.hidden = this.ariaHidden || this.$el.classList.contains('hidden');
+        console.log(this.$el, this.$el.classList.contains('opened'), this.ariaOpened);
+        // this.opened = this.ariaOpened || this.$el.classList.contains('opened');
 
         if (this.$el.classList.contains('ui-dock-left')) console.log('left!'), this.position = 'left';
         if (this.$el.classList.contains('ui-dock-right')) console.log('left!'), this.position = 'right';
