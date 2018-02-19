@@ -11,8 +11,6 @@ export default {
     data() {
         return {
             app: {},
-            // selectedEntities: [],
-            selectedEntity: null
         }
     },
     computed: {
@@ -30,6 +28,9 @@ export default {
         },
         rootNode() {
             return this.app.root;
+        },
+        selected() {
+            return this.$store.state.editor.selected;
         }
     },
     methods: {
@@ -101,13 +102,13 @@ export default {
 
         // left col
         selectEntity(entity) {
-            if (this.selectedEntity === entity) {
-                this.selectedEntity = null;
-                this.$refs.rightDock.opened = false;
+            var i = this.selected.indexOf(entity);
+            if (~i) {
+                this.$store.commit('editor/deselectOne', entity);
             } else {
-                this.selectedEntity = entity;
-                this.$refs.rightDock.opened = true;
+                this.$store.commit('editor/selectOne', entity);
             }
+            this.$refs.rightDock.opened = !!this.selected.length;
         },
     },
     created() {

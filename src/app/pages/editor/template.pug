@@ -5,7 +5,7 @@ div#editor.flex-full.position-relative: .absolute-full
         pc-entity(:entity="rootNode" v-if="rootNode")
     ui-dock.ui-dock-right(ref="rightDock" :aria-opened="false")
         //- pc-entity-inspector
-        div(v-if="selectedEntity") {{selectedEntity.name}}
+        div(v-if="selected.length") {{selected[0].name}}
         
         
 //- div#editor2.flex-full.d-flex.no-gutters

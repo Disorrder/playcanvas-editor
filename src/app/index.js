@@ -4,20 +4,13 @@ import './utils';
 import './extensions';
 
 import Vue from 'vue';
-import VueRouter from 'vue-router';
-Vue.use(VueRouter);
-
-var router = new VueRouter({
-    routes: [
-        {name: 'projects', path: '/projects', component: require('app/pages/projects').default},
-        {name: 'project', path: '/project/:id', component: require('app/pages/project').default},
-        {name: 'editor', path: '/editor/:projectId/:sceneId', component: require('app/pages/editor').default}
-    ]
-});
+import store from './store';
+import router from './router';
 
 $(() => {
     var app = new Vue({
         el: '#app',
+        store,
         router,
         data: {
             user: null,
