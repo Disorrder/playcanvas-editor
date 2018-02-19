@@ -1,0 +1,9 @@
+div.pc-entity(:class="{opened: opened}" :name="entity.name" :guid="entity._guid")
+    div.pc-entity-item.d-flex.align-items-stretch(@doubleclick="toggle")
+        div.pc-entity-toggle.d-flex.align-items-center.justify-content-center(@click="toggle")
+            i.fa.fa-chevron-right(v-if="isFolder && !opened")
+            i.fa.fa-chevron-down(v-if="isFolder && opened")
+        div.pc-entity-name.pr-2 {{entity.name}}
+    div.pc-entity-children.pl-2(v-if="opened")
+        pc-entity(v-for="item in entity.children" :key="item.name" :entity="item")
+        

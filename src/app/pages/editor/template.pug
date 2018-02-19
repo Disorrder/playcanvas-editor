@@ -1,10 +1,10 @@
 div#editor.flex-full.position-relative: .absolute-full
     canvas#canvas-3d
     ui-dock.ui-dock-left
-        div hmm1
-        pc-entity(:entity="app.root")
+        div.text-center.px-4.mb-2 {{project.name}}
+        pc-entity(:entity="rootNode" v-if="rootNode")
     ui-dock.ui-dock-right(aria-hidden="true")
-        div hmm2
+        div Dock 2
         
         
 //- div#editor2.flex-full.d-flex.no-gutters
