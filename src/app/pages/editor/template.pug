@@ -4,8 +4,8 @@ div#editor.flex-full.position-relative: .absolute-full
         div.text-center.px-4.mb-2 {{project.name}}
         pc-entity(:entity="rootNode" v-if="rootNode")
     ui-dock.ui-dock-right(ref="rightDock" :aria-opened="false")
-        //- pc-entity-inspector
-        div(v-if="selected.length") {{selected[0].name}}
+        pc-entity-inspector(v-if="selected.length" :entity="selected[0]")
+        //- div(v-if="selected.length") {{selected[0].name}}
         
         
 //- div#editor2.flex-full.d-flex.no-gutters

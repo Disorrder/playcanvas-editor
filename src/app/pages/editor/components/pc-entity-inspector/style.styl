@@ -1,0 +1,34 @@
+.pc-entity-inspector
+    
+    .entity-attr
+        display flex
+        // justify-content
+        align-items center
+        height 2em
+        line-height 1.5em
+
+        .attr-name
+            width 20%
+            min-width 100px
+            padding 0 0.25rem
+            margin-bottom 0
+            color #ddd
+
+        .attr-value
+            color #ddd
+            margin 0 0.25rem
+
+        input[type="text"].attr-value
+            padding 0 0.5rem
+            background #2c393c
+            border 0
+            border-bottom 2px solid #888
+
+            &:hover
+                background #20292b
+                border-bottom-color #aaa
+
+            &:focus
+                outline 0
+                background #20292b
+                border-bottom-color orange

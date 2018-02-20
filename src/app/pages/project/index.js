@@ -1,4 +1,3 @@
-// import glob from 'glob';
 const glob = window.require('globby');
 const fs = window.require('fs');
 const path = window.require('path');
@@ -47,6 +46,5 @@ export default {
             };
         });
         localStorage.setItem('projects', JSON.stringify(this.projects));
-        console.log('json', this.project);
     }
 };

@@ -1,0 +1,11 @@
+.pc-entity-inspector(:data-name="entity.name" :data-guid="entity._guid")
+    header.ui-header Entity
+    .entity-attr.entity-attr-boolean
+        label.attr-name Enabled
+        input.attr-value(:value="entity.enabled" type="checkbox")
+    .entity-attr.entity-attr-string
+        label.attr-name Name
+        input.attr-value.animated(:value="entity.name" type="text")
+            
+        
+        
