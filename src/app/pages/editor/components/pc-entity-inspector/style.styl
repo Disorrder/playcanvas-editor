@@ -1,5 +1,5 @@
 .pc-entity-inspector
-    
+
     .entity-attr
         display flex
         // justify-content
@@ -16,9 +16,12 @@
 
         .attr-value
             color #ddd
-            margin 0 0.25rem
+            margin 0 0.125rem
+            flex 1 1 auto
 
-        input[type="text"].attr-value
+        .attr-value > input[type="text"]
+            width 100%
+            color inherit
             padding 0 0.5rem
             background #2c393c
             border 0

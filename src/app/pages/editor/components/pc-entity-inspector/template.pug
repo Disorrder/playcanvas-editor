@@ -1,11 +1,27 @@
 .pc-entity-inspector(:data-name="entity.name" :data-guid="entity._guid")
     header.ui-header Entity
-    .entity-attr.entity-attr-boolean
-        label.attr-name Enabled
-        input.attr-value(:value="entity.enabled" type="checkbox")
-    .entity-attr.entity-attr-string
-        label.attr-name Name
-        input.attr-value.animated(:value="entity.name" type="text")
+    .px-2
+        .entity-attr.entity-attr-boolean
+            label.attr-name Enabled
+            .attr-value: input(:value="entity.enabled" type="checkbox")
+        .entity-attr.entity-attr-string
+            label.attr-name Name
+            .attr-value: input.animated(v-model="entity.name" type="text")
+                
+        .entity-attr.entity-attr-vec
+            label.attr-name Position
+            .attr-value: input.animated(v-model="position.x" type="text")
+            .attr-value: input.animated(v-model="position.y" type="text")
+            .attr-value: input.animated(v-model="position.z" type="text")
+        //- .entity-attr.entity-attr-vec
+        //-     label.attr-name Rotation
+        //-     .attr-value: input.animated(v-model="rotation.x" type="text")
+        //-     .attr-value: input.animated(v-model="rotation.y" type="text")
+        //-     .attr-value: input.animated(v-model="rotation.z" type="text")
+        //- .entity-attr.entity-attr-vec
+        //-     label.attr-name Scale
+        //-     .attr-value: input.animated(v-model="scale.x" type="text")
+        //-     .attr-value: input.animated(v-model="scale.y" type="text")
+        //-     .attr-value: input.animated(v-model="scale.z" type="text")
+
             
-        
-        

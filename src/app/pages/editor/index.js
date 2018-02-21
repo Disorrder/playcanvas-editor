@@ -129,7 +129,6 @@ export default {
         });
 
 
-
         // var cube = this.app.root.findByName('cube');
         // this.app.on('update', function (dt) {
         //     cube.rotate(10 * dt, 20 * dt, 30 * dt);
