@@ -8,36 +8,29 @@ Vue.component('pc-entity-inspector', {
     template: require('./template.pug')(),
     data() {
         return {
+
         }
     },
     computed: {
-        position: {
-            get() {
-                return this.entity.getLocalPosition().toObject();
-                // var v = this.entity.getLocalPosition().toObject();
-                // v.x = Math.round(v.x * 1000) / 1000;
-                // v.y = Math.round(v.y * 1000) / 1000;
-                // v.z = Math.round(v.z * 1000) / 1000;
-                // console.log('get', v);
-                // return v;
-            },
-            set(v) {
-                console.log('set', v);
-                this.entity.setLocalPosition(v.x, v.y, v.z);
-            }
-        }
-        // position() { return this.entity.getLocalPosition().toArray().map(v => Math.round(v*1000)/1000) },
-        // rotation() { return this.entity.getEulerAngles().toArray().map(v => Math.round(v*1000)/1000) },
-        // scale() { return this.entity.getLocalScale().toArray().map(v => Math.round(v*1000)/1000) },
+        position() { return this.entity.getLocalPosition(); },
+        rotation() { return this.entity.getEulerAngles(); },
+        scale() { return this.entity.getLocalScale(); },
     },
     watch: {
-        // position(val) {
-        //     console.log('w', val);
-        //     val.forEach((v, i) => val[i] = Math.round(v*1000)/1000);
-        //     console.log('w2', val);
-        // }
+        entity(val) {
+            console.log('w ent', val);
+        }
     },
     methods: {
+        setPosition() {
+            this.entity.setLocalPosition(this.position);
+        },
+        setRotation() {
+            this.entity.setEulerAngles(this.rotation);
+        },
+        setScale() {
+            this.entity.setLocalScale(this.scale);
+        },
         translate(val) {},
         rotate(val) {},
         zoom(val) {},
@@ -47,6 +40,6 @@ Vue.component('pc-entity-inspector', {
 
     },
     mounted() {
-        console.log('insp', this.entity, this.position);
+
     }
 });

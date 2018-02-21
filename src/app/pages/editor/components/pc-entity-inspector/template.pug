@@ -10,18 +10,18 @@
                 
         .entity-attr.entity-attr-vec
             label.attr-name Position
-            .attr-value: input.animated(v-model="position.x" type="text")
-            .attr-value: input.animated(v-model="position.y" type="text")
-            .attr-value: input.animated(v-model="position.z" type="text")
-        //- .entity-attr.entity-attr-vec
-        //-     label.attr-name Rotation
-        //-     .attr-value: input.animated(v-model="rotation.x" type="text")
-        //-     .attr-value: input.animated(v-model="rotation.y" type="text")
-        //-     .attr-value: input.animated(v-model="rotation.z" type="text")
-        //- .entity-attr.entity-attr-vec
-        //-     label.attr-name Scale
-        //-     .attr-value: input.animated(v-model="scale.x" type="text")
-        //-     .attr-value: input.animated(v-model="scale.y" type="text")
-        //-     .attr-value: input.animated(v-model="scale.z" type="text")
+            .attr-value: input.animated(v-model="position.x" @blur="setPosition" type="text")
+            .attr-value: input.animated(v-model="position.y" @blur="setPosition" type="text")
+            .attr-value: input.animated(v-model="position.z" @blur="setPosition" type="text")
+        .entity-attr.entity-attr-vec
+            label.attr-name Rotation
+            .attr-value: input.animated(v-model="rotation.x" @blur="setRotation" type="text")
+            .attr-value: input.animated(v-model="rotation.y" @blur="setRotation" type="text")
+            .attr-value: input.animated(v-model="rotation.z" @blur="setRotation" type="text")
+        .entity-attr.entity-attr-vec
+            label.attr-name Scale
+            .attr-value: input.animated(v-model="scale.x" @blur="setScale" type="text")
+            .attr-value: input.animated(v-model="scale.y" @blur="setScale" type="text")
+            .attr-value: input.animated(v-model="scale.z" @blur="setScale" type="text")
 
             
