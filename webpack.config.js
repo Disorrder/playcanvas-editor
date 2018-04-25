@@ -23,8 +23,11 @@ function chunksSortOrder(chunks) {
 }
 
 // env variables
+const process = require('process');
+var argv = require('minimist')(process.argv.slice(2));
+if (!argv.mode) argv.mode = 'development';
+
 process.env.WEBPACK = true;
-process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 function isDev() { return process.env.NODE_ENV == 'development' }
 function isProd() { return process.env.NODE_ENV == 'production' }
 function isMac() { return os.platform() == 'darwin' }
@@ -38,9 +41,10 @@ var flags = {
     openBrowser: process.argv.some((v) => ~v.indexOf('webpack-dev-server.js') || ~v.indexOf('--open-browser')),
 }
 
-console.log('Builder is running in', process.env.NODE_ENV, 'mode.', process.argv, flags);
+console.log('Builder is running in', argv.mode, 'mode.');
 
 module.exports = {
+    mode: argv.mode,
     context: path.resolve(cfg.path.app),
     watch: flags.watch,
     entry: {
@@ -49,7 +53,7 @@ module.exports = {
     },
     output: {
         path: path.resolve(__dirname, cfg.path.build),
-        // publicPath: cfg.path.build,
+        // publicPath: '/',
         filename: '[name].js',
         library: '[name]'
     },
@@ -95,6 +99,11 @@ module.exports = {
         ],
         noParse: /\.min\.js$/
     },
+    optimization: {
+        splitChunks: {
+            chunks: 'all',
+        }
+    },
     plugins: [
         flags.notify ? new WebpackNotifierPlugin({excludeWarnings: true}) : new Function(),
         flags.clean ? new CleanWebpackPlugin([cfg.path.build]) : new Function(),
@@ -113,11 +122,6 @@ module.exports = {
             // chunksSortMode: chunksSortOrder(['vendor', 'main']),
         }),
 
-        new webpack.optimize.CommonsChunkPlugin({
-            name: 'commons',
-            filename: 'commons.js'
-        }),
-
         new webpack.DefinePlugin({
             'NODE_ENV': JSON.stringify(process.env.NODE_ENV)
         }),
@@ -129,9 +133,9 @@ module.exports = {
         ]),
 
         new webpack.ProvidePlugin({
-           $: 'jquery',
-           jQuery: 'jquery',
-           'window.jQuery': 'jquery',
+           // $: 'jquery',
+           // jQuery: 'jquery',
+           // 'window.jQuery': 'jquery',
            Popper: ['popper.js', 'default'],
            _: 'lodash',
         })
