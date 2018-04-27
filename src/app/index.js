@@ -13,6 +13,7 @@ $(() => {
         store,
         router,
         data: {
+            theme: 'light',
             user: null,
             projects: null,
             scenes: null,

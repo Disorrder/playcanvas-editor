@@ -1,0 +1,9 @@
+#main
+    //- v-navigation-drawer(app)
+    v-toolbar(app)
+        v-toolbar-items
+            router-link(:to="{name: 'home'}") HOME
+            router-link(:to="{name: 'projects'}") Projects
+    v-content(dark)
+        router-view
+    v-footer(app)

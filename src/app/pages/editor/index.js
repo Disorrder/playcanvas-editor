@@ -10,11 +10,17 @@ export default {
     template: require('./template.pug')(),
     data() {
         return {
+            leftPanel: {
+                opened: true,
+            },
+            rightPanel: {
+                opened: false,
+            },
             app: {},
         }
     },
     computed: {
-        projects() { return this.$parent.projects; },
+        projects() { return this.$root.projects; },
         project() {
             var id = this.$route.params.projectId;
             return this.projects.find((v) => v.id === id);
@@ -112,7 +118,11 @@ export default {
         },
     },
     created() {
-        // this.project = this.$parent.projects.find((v) => v.name === this.$route.params.project);
+        // this.project = this.$root.projects.find((v) => v.name === this.$route.params.project);
+        this.$root.theme = 'dark';
+    },
+    beforeDestroy() {
+        this.$root.theme = 'light';
     },
     mounted() {
         this.initApp();

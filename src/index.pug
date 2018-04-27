@@ -5,13 +5,20 @@ html
         //- link(rel="shortcut icon" href="favicon.ico" type="image/x-icon")
         //- script(src="/config.js")
         script(src="lib/playcanvas-latest.js")
+        link(rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons")
         title Pc Editor
 
     body
-        #app.d-flex.flex-column(style="min-height: 100%;")
-            nav.navbar.navbar-expand.navbar-light.bg-light.py-0
-                ul.navbar-nav
-                    li.nav-item: router-link.nav-link(:to="{name: 'projects'}") Projects
-                    li.nav-item: router-link.nav-link(:to="{name: 'editor'}") Editor
-
+        //- SEPARATE EXAMPLE
+        #app: v-app
             router-view
+                
+        //- BASIC EXAMPLE
+        //- #app: v-app
+        //-     //- v-navigation-drawer(app)
+        //-     v-toolbar(app)
+        //-         router-link(:to="{name: 'home'}") HOME
+        //-         router-link(:to="{name: 'projects'}") Projects
+        //-     v-content
+        //-         router-view
+        //-     //- v-footer(app)

@@ -11,7 +11,7 @@ export default {
         }
     },
     computed: {
-        projects() { return this.$parent.projects; },
+        projects() { return this.$root.projects; },
     },
     methods: {
         getProject(id) {

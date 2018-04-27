@@ -1,0 +1,27 @@
+#editor.theme--dark
+    v-toolbar(app clipped-left)
+        router-link(:to="{name: 'projects'}") HOME
+    
+    v-navigation-drawer(app v-model="leftPanel.opened" clipped stateless)
+    //- ui-dock.ui-dock-left(ref="leftDock" :aria-opened="true")
+    //-     div.text-center.px-4.mb-2 {{project.name}}
+    //-     pc-entity(:entity="rootNode" v-if="rootNode")
+
+    v-content
+        //- router-view
+        v-toolbar(_app clipped-left)
+            router-link(:to="{name: 'projects'}") HOME
+        .absolute-full: canvas#canvas-3d
+        //- div#editor.flex-full.position-relative: .absolute-full
+            //- ui-dock.ui-dock-left(ref="leftDock" :aria-opened="true")
+            //-     div.text-center.px-4.mb-2 {{project.name}}
+            //-     pc-entity(:entity="rootNode" v-if="rootNode")
+            //- ui-dock.ui-dock-right(ref="rightDock" :aria-opened="false")
+            //-     pc-entity-inspector(v-if="selected.length" :entity="selected[0]")
+            //-     //- div(v-if="selected.length") {{selected[0].name}}
+            
+    //- v-navigation-drawer(app v-model="rightPanel.opened")
+        
+                        
+    v-footer(app)
+    
