@@ -1,3 +1,5 @@
+import './style.styl';
+
 const glob = window.require('globby');
 const fs = window.require('fs');
 const path = window.require('path');

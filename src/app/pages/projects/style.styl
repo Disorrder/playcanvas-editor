@@ -1,24 +1,11 @@
+$root = '../../../'
+@require $root + 'app/mixins.styl'
+
 #projects
     .project-list
-        .btn
-            border 0
-            border-radius 0
-            text-align left
-
-        .project-name
-            flex 1 1 auto
-
-            &:hover
-                background var(--light)
-
-        .project-remove
-            flex 0 1 auto
-            border-left 1px solid var(--light)
-            font-size 1.2em
-
-            & > i.fa
-                line-height 1.3em
-
-            &:hover
-                background var(--light)
-                color var(--danger)
+        .card
+            elevationTransition()
+            
+            &:hover:not([disbled])
+                cursor pointer
+                elevation(6, true)

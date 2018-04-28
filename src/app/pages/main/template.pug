@@ -1,9 +1,10 @@
 #main
     //- v-navigation-drawer(app)
-    v-toolbar(app)
+    v-toolbar(app height="36")
         v-toolbar-items
-            router-link(:to="{name: 'home'}") HOME
-            router-link(:to="{name: 'projects'}") Projects
+            v-btn(:to="{name: 'projects'}" exact) Home
+            //- v-btn(:to="{name: 'home'}" exact) Home
+            //- v-btn(:to="{name: 'projects'}") Projects
     v-content(dark)
         router-view
-    v-footer(app)
+    //- v-footer(app)

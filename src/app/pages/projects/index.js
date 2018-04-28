@@ -12,7 +12,7 @@ export default {
         }
     },
     computed: {
-        projects() { return this.$root.projects; },
+        projects() { return this.$root.projects.concat([this.$root.projects[0],this.$root.projects[0],this.$root.projects[0],this.$root.projects[0],this.$root.projects[0],this.$root.projects[0],]); },
     },
     methods: {
         createProject() {
@@ -38,6 +38,7 @@ export default {
             this.selectProject(project);
         },
         selectProject(item) {
+            console.log('CLICK', item);
             // if (typeof index !== 'number') index = this.projects.indexOf(index);
             this.$router.push({name: 'project', params: {id: item.id}});
         },

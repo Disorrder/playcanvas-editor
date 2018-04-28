@@ -1,2 +1,11 @@
-#projects
-    //
+$root = '../../../'
+@require $root + 'app/mixins.styl'
+
+#project
+    .scene-list
+        .card
+            elevationTransition()
+
+            &:hover:not([disbled])
+                cursor pointer
+                elevation(6, true)

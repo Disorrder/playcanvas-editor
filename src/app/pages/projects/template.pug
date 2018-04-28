@@ -1,16 +1,13 @@
-#projects.container-fluid
+v-container#projects(grid-list-md)
     h3 Projects
     div.row-buttons
         //- a.btn.btn-primary(@click="createProject") Создать
-        a.btn.btn-primary(@click="openProject") Open...
+        v-btn(@click="openProject") Open...
             
     hr
-    ul.project-list.list-group
-        li.list-group-item.d-flex.p-0(v-for="item in projects")
-            .btn.project-name.animated(@click="selectProject(item)") {{item.name}}
-            .btn.project-remove.animated(@click="removeProject(item)")
-                i.fa.fa-trash-o
-            
-            
-            
-    
+    v-layout.project-list(row wrap)
+        v-flex(xs3 v-for="item, i in projects" :_key="item.id")
+            v-card.project-card(@click.native="selectProject(item)")
+                v-card-title {{item.name}}
+            //- v-btn.project-card.card(@click ="selectProject(item)")
+                v-btn-title {{item.name}}
