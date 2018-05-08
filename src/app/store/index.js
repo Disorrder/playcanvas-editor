@@ -57,6 +57,10 @@ var store = new Vuex.Store({
             });
             localStorage.projects = JSON.stringify(state.projects);
         },
+        deleteProject(state, val) {
+            state.projects.delete(val);
+            localStorage.projects = JSON.stringify(state.projects);
+        },
         saveProjects(state, val) {
             state.projects = val;
             localStorage.projects = JSON.stringify(state.projects);

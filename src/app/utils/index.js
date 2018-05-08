@@ -12,3 +12,10 @@ String.prototype.hashCode = function() {
     }
 	return hash;
 }
+
+// Array
+Array.prototype.delete = function(v) {
+	var i = this.indexOf(v);
+	if (~i) this.splice(i, 1);
+	return this;
+}

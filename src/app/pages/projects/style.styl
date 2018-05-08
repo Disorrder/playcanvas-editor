@@ -5,7 +5,23 @@ $root = '../../../'
     .project-list
         .card
             elevationTransition()
-            
+
             &:hover:not([disbled])
                 cursor pointer
                 elevation(6, true)
+
+                & .btn-delete
+                    opacity 1
+
+            .btn-delete
+                display inline-block
+                position absolute
+                top 1rem
+                right 0
+                width 1em
+                height 1em
+                opacity 0
+                color red
+
+                &:hover
+                    background rgba(black, 0.5)

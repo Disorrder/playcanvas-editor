@@ -43,18 +43,14 @@ export default {
             this.selectProject(project);
         },
         selectProject(item) {
-            console.log('CLICK', item);
-            // if (typeof index !== 'number') index = this.projects.indexOf(index);
             this.$router.push({name: 'project', params: {id: item.id}});
         },
-        removeProject(item) {
-            var i = this.projects.indexOf(item);
-            this.projects.splice(i, 1);
-            localStorage.setItem('projects', JSON.stringify(this.projects));
+        deleteProject(item) {
+            console.log('DEL');
+            this.$store.commit('deleteProject', item);
         }
     },
     created() {
-        // this.projects = JSON.parse( localStorage.getItem('projects') ) || [];
-        // this.$parent.projects = this.projects;
+
     }
 };

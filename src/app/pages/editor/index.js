@@ -20,7 +20,7 @@ export default {
         }
     },
     computed: {
-        projects() { return this.$root.projects; },
+        projects() { return this.$store.state.projects; },
         project() {
             var id = this.$route.params.projectId;
             return this.projects.find((v) => v.id === id);
