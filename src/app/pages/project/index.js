@@ -13,7 +13,10 @@ export default {
         }
     },
     computed: {
-        projects() { return this.$root.projects; },
+        projects() { return this.$store.state.projects; },
+        // project() {
+        //     return this.getProject();
+        // }
     },
     methods: {
         getProject(id) {
@@ -47,6 +50,7 @@ export default {
                 path: v,
             };
         });
-        localStorage.setItem('projects', JSON.stringify(this.projects));
+
+        this.$store.commit('updateProject', this.project);
     }
 };

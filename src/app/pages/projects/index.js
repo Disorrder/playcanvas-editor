@@ -8,11 +8,17 @@ export default {
     template: require('./template.pug')(),
     data() {
         return {
-            // projects: null
+
         }
     },
     computed: {
-        projects() { return this.$root.projects.concat([this.$root.projects[0],this.$root.projects[0],this.$root.projects[0],this.$root.projects[0],this.$root.projects[0],this.$root.projects[0],]); },
+        projects() { return this.$store.state.projects; },
+        sortedProjects() {
+            // сначала недавно открытые
+            return this.projects.sort((a, b) => {
+                return b.lastOpened - a.lastOpened;
+            });
+        }
     },
     methods: {
         createProject() {
@@ -32,8 +38,7 @@ export default {
                     path: folder,
                     scnenes: [],
                 };
-                this.projects.push(project);
-                localStorage.setItem('projects', JSON.stringify(this.projects));
+                this.$store.commit('addProject', project);
             }
             this.selectProject(project);
         },

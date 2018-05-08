@@ -14,12 +14,9 @@ $(() => {
         router,
         data: {
             theme: 'light',
-            user: null,
-            projects: null,
-            scenes: null,
         },
         created() {
-            this.projects = JSON.parse( localStorage.getItem('projects') ) || [];
+            
         }
     });
     window.app = app;
