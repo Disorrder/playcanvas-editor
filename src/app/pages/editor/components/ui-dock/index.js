@@ -1,10 +1,10 @@
 import './style.styl';
 
 var icons = {
-    top: 'fa-chevron-top',
-    left: 'fa-chevron-left',
-    right: 'fa-chevron-right',
-    bottom: 'fa-chevron-bottom',
+    top: 'keyboard_arrow_top',
+    left: 'keyboard_arrow_left',
+    right: 'keyboard_arrow_right',
+    bottom: 'keyboard_arrow_bottom',
 };
 
 import Vue from 'vue';

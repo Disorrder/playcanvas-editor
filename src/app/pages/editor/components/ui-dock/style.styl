@@ -40,8 +40,9 @@ $borderColor = #111
         border 1px solid $borderColor
         cursor pointer
 
-        & > i.fa
-            line-height inherit
+        display flex
+        align-items center
+        justify-content center
 
     // .ui-dock-toggle-area
     //     position absolute
@@ -71,6 +72,9 @@ $borderColor = #111
             line-height 1.9*$toggleSize
             padding 0 10%
 
+            & > i.icon
+                margin-left -5px
+
         &:hover, &.ui-dock-hover
             .ui-dock-toggle-btn
                 left 0
@@ -96,6 +100,9 @@ $borderColor = #111
             text-align right
             line-height 1.9*$toggleSize
             padding 0 15%
+
+            & > i.icon
+                margin-right -5px
 
         &:hover, &.ui-dock-hover
             .ui-dock-toggle-btn

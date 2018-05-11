@@ -9,6 +9,8 @@ v-container#projects(grid-list-md)
         v-flex(xs3 v-for="item, i in sortedProjects" :key="item.id")
             v-card.project-card(@click.native="selectProject(item)")
                 v-card-title {{item.name}}
-                v-icon.btn-delete(@click.stop="deleteProject(item)") remove circle outline
+                v-icon.btn-delete(@click.stop="deleteProject(item)") delete
+                //- v-icon.btn-delete(@click.stop="deleteProject(item)") remove_circle_outline
+            
             //- v-btn.project-card.card(@click="selectProject(item)")
                 v-btn-title {{item.name}}

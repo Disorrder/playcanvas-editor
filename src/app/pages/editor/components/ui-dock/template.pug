@@ -3,5 +3,5 @@ div.ui-dock.animated(:class="{'opened': opened}")
         slot
     .ui-dock-resize
     .ui-dock-toggle(@click="toggle")
-        .ui-dock-toggle-btn.animated: i.fa(:class="toggleIcon")
+        .ui-dock-toggle-btn.animated: v-icon {{toggleIcon}}
         
