@@ -99,7 +99,7 @@ module.exports = {
         }),
 
         new CopyWebpackPlugin([
-            { from: 'config.js' },
+            // { from: 'config.js' },
             { from: 'favicon.*' },
         ]),
     ]

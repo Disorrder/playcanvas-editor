@@ -17,6 +17,10 @@ export default {
                 opened: false,
             },
             app: {},
+
+            // scene
+            activeCamera: null,
+            _event: {},
         }
     },
     computed: {
@@ -42,7 +46,12 @@ export default {
     methods: {
         initApp() {
             var canvas = document.getElementById('canvas-3d');
-            var app = new pc.Application(canvas, {});
+            var app = new pc.Application(canvas, {
+                // elementInput: new pc.ElementInput(canvas),
+                mouse: new pc.Mouse(canvas),
+                touch: !!('ontouchstart' in window) ? new pc.TouchDevice(canvas) : null,
+                keyboard: new pc.Keyboard(window),
+            });
             this.app = app;
 
             app.start();
@@ -62,10 +71,9 @@ export default {
             this.app.root = deserializeScene(this.app, data);
             console.log(data, this.app.root);
 
-            // var cube = this.app.root.findByName('cube');
-            // app.on('update', function (dt) {
-            //     cube.rotate(10 * dt, 20 * dt, 30 * dt);
-            // });
+            this.activeCamera = this.app.root.findByPath('Editor Root/Perspective');
+
+            this.raycaster = new pc.Raycaster();
         },
 
         initScene_test() {
@@ -116,6 +124,32 @@ export default {
             }
             this.$refs.rightDock.opened = !!this.selected.length;
         },
+
+        // canvas
+        initEvents() {
+            this._event = {};
+            this.app.mouse.on(pc.EVENT_MOUSEDOWN, this.onMouseDown, this);
+            this.app.mouse.on(pc.EVENT_MOUSEUP, this.onMouseDown, this);
+            // $('#canvas-3d')
+            //     .on('mousedown', )
+        },
+
+        onMouseDown(e) {
+            if (e.button == pc.MOUSEBUTTON_LEFT) {
+                this.raycaster.update();
+                this.raycaster.ray.origin.copy(this.activeCamera.getPosition());
+                this.raycaster.ray.direction.copy(this.activeCamera.forward);
+                let res = this.raycaster.castAll();
+                console.log('MD', e, e.button, res);
+            }
+        },
+
+        onMouseUp(e) {
+            if (e.button == pc.MOUSEBUTTON_LEFT) {
+                console.log('MU', e, e.button);
+                this.raycaster.castAll();
+            }
+        },
     },
     created() {
         // this.project = this.$root.projects.find((v) => v.name === this.$route.params.project);
@@ -128,6 +162,7 @@ export default {
         this.initApp();
         this.initScene();
         // this.initScene_test();
+        this.initEvents();
 
         console.log('ref rd', this.$refs.rightDock);
         $(this.$refs.leftDock.$el).on('click', '.pc-entity-item', (e) => {

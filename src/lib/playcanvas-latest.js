@@ -1,9 +1,37 @@
-/*
- PlayCanvas Engine v0.223.0-dev revision 7ef3055
+;(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define([], factory);
+    } else if (typeof module === 'object' && module.exports) {
+        try {
+            var JSDOM = require("jsdom").JSDOM;
+            var DOM = new JSDOM();
+            var window = DOM.window;
+            var navigator = window.navigator;
+            module.exports = factory(window, navigator);
+        } catch (error) {
+            module.exports = factory();
+        }
+    } else {
+        root.pc = factory(root, root.navigator);
+  }
+}(this, function (_window, _navigator) {
+  window = _window || window;
+  navigator = _navigator || navigator;
+
+  /*
+ PlayCanvas Engine v1.2.0-dev revision 37125f4
  http://playcanvas.com
- Copyright 2011-2017 PlayCanvas Ltd. All rights reserved.
+ Copyright 2011-2018 PlayCanvas Ltd. All rights reserved.
 */
-var pc = {version:"0.223.0-dev", revision:"7ef3055", config:{}, common:{}, apps:{}, data:{}, unpack:function() {
+var _typeLookup = function() {
+  var result = {};
+  var names = ["Array", "Object", "Function", "Date", "RegExp", "Float32Array"];
+  for (var i = 0;i < names.length;i++) {
+    result["[object " + names[i] + "]"] = names[i].toLowerCase();
+  }
+  return result;
+}();
+var pc = {version:"1.2.0-dev", revision:"37125f4", config:{}, common:{}, apps:{}, data:{}, unpack:function() {
   console.warn("pc.unpack has been deprecated and will be removed shortly. Please update your code.");
 }, makeArray:function(arr) {
   var i, ret = [], length = arr.length;
@@ -39,14 +67,6 @@ var pc = {version:"0.223.0-dev", revision:"7ef3055", config:{}, common:{}, apps:
   var a;
   return o !== a;
 }};
-var _typeLookup = function() {
-  var result = {};
-  var names = ["Array", "Object", "Function", "Date", "RegExp", "Float32Array"];
-  for (var i = 0;i < names.length;i++) {
-    result["[object " + names[i] + "]"] = names[i].toLowerCase();
-  }
-  return result;
-}();
 if (typeof exports !== "undefined") {
   exports.pc = pc;
 }
@@ -103,9 +123,8 @@ if (!String.prototype.includes) {
     }
     if (start + search.length > this.length) {
       return false;
-    } else {
-      return this.indexOf(search, start) !== -1;
     }
+    return this.indexOf(search, start) !== -1;
   };
 }
 ;(function() {
@@ -182,7 +201,7 @@ pc.extend(pc, function() {
     c[3] = a === undefined ? 1 : a;
     return this;
   }, fromString:function(hex) {
-    var i = parseInt(hex.replace("#", "0x"));
+    var i = parseInt(hex.replace("#", "0x"), 16);
     var bytes;
     if (hex.length > 7) {
       bytes = pc.math.intToBytes32(i);
@@ -193,9 +212,9 @@ pc.extend(pc, function() {
     this.set(bytes[0] / 255, bytes[1] / 255, bytes[2] / 255, bytes[3] / 255);
     return this;
   }, toString:function(alpha) {
-    var s = "#" + ((1 << 24) + (parseInt(this.r * 255) << 16) + (parseInt(this.g * 255) << 8) + parseInt(this.b * 255)).toString(16).slice(1);
+    var s = "#" + ((1 << 24) + (Math.round(this.r * 255) << 16) + (Math.round(this.g * 255) << 8) + Math.round(this.b * 255)).toString(16).slice(1);
     if (alpha === true) {
-      var a = parseInt(this.a * 255).toString(16);
+      var a = Math.round(this.a * 255).toString(16);
       if (this.a < 16 / 255) {
         s += "0" + a;
       } else {
@@ -251,6 +270,20 @@ pc.extend(pc, function() {
   }};
   return {Timer:Timer, now:!window.performance || !window.performance.now || !window.performance.timing ? Date.now : function() {
     return window.performance.now();
+  }};
+}());
+pc.extend(pc, function() {
+  return {hashCode:function(str) {
+    var hash = 0;
+    if (str.length === 0) {
+      return hash;
+    }
+    for (var i = 0;i < str.length;i++) {
+      var char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash;
+    }
+    return hash;
   }};
 }());
 pc.extend(pc, function() {
@@ -341,7 +374,7 @@ pc.extend(pc, function() {
 pc.extend(pc, function() {
   var log = {write:function(text) {
     console.log(text);
-  }, open:function(text) {
+  }, open:function() {
     pc.log.write("Powered by PlayCanvas " + pc.version + " " + pc.revision);
   }, info:function(text) {
     console.info("INFO:    " + text);
@@ -357,7 +390,6 @@ pc.extend(pc, function() {
   }, assert:function(condition, text) {
     if (condition === false) {
       pc.log.write("ASSERT:  " + text);
-      alert("ASSERT failed: " + text);
     }
   }};
   return {log:log};
@@ -368,21 +400,6 @@ var logWARNING = pc.log.warning;
 var logERROR = pc.log.error;
 var logALERT = pc.log.alert;
 var logASSERT = pc.log.assert;
-Function.prototype.extendsFrom = function(Super) {
-  var Self, Func;
-  var Temp = function() {
-  };
-  Self = this;
-  Func = function() {
-    Super.apply(this, arguments);
-    Self.apply(this, arguments);
-    this.constructor = Self;
-  };
-  Func._super = Super.prototype;
-  Temp.prototype = Super.prototype;
-  Func.prototype = new Temp;
-  return Func;
-};
 pc.extend(pc, function() {
   return {inherits:function(Self, Super) {
     var Temp = function() {
@@ -433,9 +450,8 @@ pc.path = function() {
     var ext = path.split("?")[0].split(".").pop();
     if (ext !== path) {
       return "." + ext;
-    } else {
-      return "";
     }
+    return "";
   }, isRelativePath:function(s) {
     return s.charAt(0) !== "/" && s.match(/:\/\//) === null;
   }, extractPath:function(s) {
@@ -623,7 +639,7 @@ pc.events = {attach:function(target) {
   this.on(name, callback, scope);
   return this;
 }, hasEvent:function(name) {
-  return this._callbacks && this._callbacks[name] && this._callbacks[name].length !== 0;
+  return this._callbacks && this._callbacks[name] && this._callbacks[name].length !== 0 || false;
 }};
 pc.extend(pc, function() {
   var TagsCache = function(key) {
@@ -679,7 +695,7 @@ pc.extend(pc, function() {
     var index = {};
     var items = [];
     var i, n, t;
-    var item, tag, tags, tagsRest, list, missingIndex;
+    var item, tag, tags, tagsRest, missingIndex;
     var sort = function(a, b) {
       return self._index[a].list.length - self._index[b].list.length;
     };
@@ -1760,13 +1776,13 @@ pc.extend(pc, function() {
     r[14] = -temp1 * zfar / temp4;
     r[15] = 0;
     return this;
-  }, setPerspective:function(fovy, aspect, znear, zfar, fovIsHorizontal) {
+  }, setPerspective:function(fov, aspect, znear, zfar, fovIsHorizontal) {
     var xmax, ymax;
     if (!fovIsHorizontal) {
-      ymax = znear * Math.tan(fovy * Math.PI / 360);
+      ymax = znear * Math.tan(fov * Math.PI / 360);
       xmax = ymax * aspect;
     } else {
-      xmax = znear * Math.tan(fovy * Math.PI / 360);
+      xmax = znear * Math.tan(fov * Math.PI / 360);
       ymax = xmax / aspect;
     }
     return this.setFrustum(-xmax, xmax, -ymax, ymax, znear, zfar);
@@ -1818,7 +1834,7 @@ pc.extend(pc, function() {
     m[14] = 0;
     m[15] = 1;
     return this;
-  }, setTranslate:function(tx, ty, tz) {
+  }, setTranslate:function(x, y, z) {
     var m = this.data;
     m[0] = 1;
     m[1] = 0;
@@ -1832,24 +1848,24 @@ pc.extend(pc, function() {
     m[9] = 0;
     m[10] = 1;
     m[11] = 0;
-    m[12] = tx;
-    m[13] = ty;
-    m[14] = tz;
+    m[12] = x;
+    m[13] = y;
+    m[14] = z;
     m[15] = 1;
     return this;
-  }, setScale:function(sx, sy, sz) {
+  }, setScale:function(x, y, z) {
     var m = this.data;
-    m[0] = sx;
+    m[0] = x;
     m[1] = 0;
     m[2] = 0;
     m[3] = 0;
     m[4] = 0;
-    m[5] = sy;
+    m[5] = y;
     m[6] = 0;
     m[7] = 0;
     m[8] = 0;
     m[9] = 0;
-    m[10] = sz;
+    m[10] = z;
     m[11] = 0;
     m[12] = 0;
     m[13] = 0;
@@ -2018,11 +2034,9 @@ pc.extend(pc, function() {
     var m0 = m[0];
     var m1 = m[1];
     var m2 = m[2];
-    var m3 = m[3];
     var m4 = m[4];
     var m5 = m[5];
     var m6 = m[6];
-    var m7 = m[7];
     var m8 = m[8];
     var m9 = m[9];
     var m10 = m[10];
@@ -2037,7 +2051,6 @@ pc.extend(pc, function() {
     a33 = m5 * m0 - m1 * m4;
     det = m0 * a11 + m1 * a12 + m2 * a13;
     if (det === 0) {
-      console.warn("pc.Mat4#invertTo3x3: Matrix not invertible");
       return this;
     }
     idet = 1 / det;
@@ -2182,8 +2195,8 @@ pc.extend(pc, function() {
     this.z = rhs.z;
     this.w = rhs.w;
     return this;
-  }, equals:function(that) {
-    return this.x === that.x && this.y === that.y && this.z === that.z && this.w === that.w;
+  }, equals:function(rhs) {
+    return this.x === rhs.x && this.y === rhs.y && this.z === rhs.z && this.w === rhs.w;
   }, getAxisAngle:function(axis) {
     var rad = Math.acos(this.w) * 2;
     var s = Math.sin(rad / 2);
@@ -2494,6 +2507,7 @@ pc.extend(pc, function() {
       return a[0] - b[0];
     });
   }, value:function(time) {
+    var i, len;
     var keys = this.keys;
     if (!keys.length) {
       return 0;
@@ -2509,7 +2523,7 @@ pc.extend(pc, function() {
     var leftValue = keys.length ? keys[0][1] : 0;
     var rightTime = 1;
     var rightValue = 0;
-    for (var i = 0, len = keys.length;i < len;i++) {
+    for (i = 0, len = keys.length;i < len;i++) {
       if (keys[i][0] === time) {
         return keys[i][1];
       }
@@ -2552,9 +2566,8 @@ pc.extend(pc, function() {
         p3 = p2 + (p3 - p2) * dt1 / dt2;
         if (this.type === CURVE_CATMULL) {
           return this._interpolateCatmullRom(p0, p1, p2, p3, interpolation);
-        } else {
-          return this._interpolateCardinal(p0, p1, p2, p3, interpolation, this.tension);
         }
+        return this._interpolateCardinal(p0, p1, p2, p3, interpolation, this.tension);
       }
     }
     return pc.math.lerp(leftValue, rightValue, interpolation);
@@ -2688,7 +2701,6 @@ pc.extend(pc, function() {
   var tmpVecC = new pc.Vec3;
   var tmpVecD = new pc.Vec3;
   var tmpVecE = new pc.Vec3;
-  var tmpVecF = new pc.Vec3;
   var BoundingBox = function BoundingBox(center, halfExtents) {
     this.center = center || new pc.Vec3(0, 0, 0);
     this.halfExtents = halfExtents || new pc.Vec3(.5, .5, .5);
@@ -2789,7 +2801,6 @@ pc.extend(pc, function() {
     var absDiff = tmpVecD;
     var absDir = tmpVecE;
     var rayDir = ray.direction;
-    var i;
     diff.sub2(ray.origin, this.center);
     absDiff.set(Math.abs(diff.x), Math.abs(diff.y), Math.abs(diff.z));
     prod.mul2(diff, rayDir);
@@ -2818,9 +2829,8 @@ pc.extend(pc, function() {
   }, intersectsRay:function(ray, point) {
     if (point) {
       return this._intersectsRay(ray, point);
-    } else {
-      return this._fastIntersectsRay(ray);
     }
+    return this._fastIntersectsRay(ray);
   }, setMinMax:function(min, max) {
     this.center.add2(max, min).scale(.5);
     this.halfExtents.sub2(max, min).scale(.5);
@@ -2927,7 +2937,6 @@ pc.extend(pc, function() {
   var tmpVecB = new pc.Vec3;
   var tmpVecC = new pc.Vec3;
   var tmpVecD = new pc.Vec3;
-  var diffBetweenPoints = new pc.Vec3;
   function BoundingSphere(center, radius) {
     this.center = center || new pc.Vec3(0, 0, 0);
     this.radius = radius === undefined ? .5 : radius;
@@ -3140,9 +3149,8 @@ pc.extend(pc, function() {
       var result = this._aabb._intersectsRay(tmpRay, point);
       tmpMat4.copy(this._modelTransform).invert().transformPoint(point, point);
       return result;
-    } else {
-      return this._aabb._fastIntersectsRay(tmpRay);
     }
+    return this._aabb._fastIntersectsRay(tmpRay);
   }, containsPoint:function(point) {
     this._modelTransform.transformPoint(point, tmpVec3);
     return this._aabb.containsPoint(tmpVec3);
@@ -3160,13 +3168,13 @@ pc.extend(pc, function() {
   return {OrientedBox:OrientedBox};
 }());
 (function() {
-  var enums = {ADDRESS_REPEAT:0, ADDRESS_CLAMP_TO_EDGE:1, ADDRESS_MIRRORED_REPEAT:2, BLENDMODE_ZERO:0, BLENDMODE_ONE:1, BLENDMODE_SRC_COLOR:2, BLENDMODE_ONE_MINUS_SRC_COLOR:3, BLENDMODE_DST_COLOR:4, BLENDMODE_ONE_MINUS_DST_COLOR:5, BLENDMODE_SRC_ALPHA:6, BLENDMODE_SRC_ALPHA_SATURATE:7, BLENDMODE_ONE_MINUS_SRC_ALPHA:8, BLENDMODE_DST_ALPHA:9, BLENDMODE_ONE_MINUS_DST_ALPHA:10, BLENDEQUATION_ADD:0, BLENDEQUATION_SUBTRACT:1, BLENDEQUATION_REVERSE_SUBTRACT:2, BLENDEQUATION_MIN:3, BLENDEQUATION_MAX:4, BUFFER_STATIC:0,
-  BUFFER_DYNAMIC:1, BUFFER_STREAM:2, BUFFER_GPUDYNAMIC:3, CLEARFLAG_COLOR:1, CLEARFLAG_DEPTH:2, CLEARFLAG_STENCIL:4, CUBEFACE_POSX:0, CUBEFACE_NEGX:1, CUBEFACE_POSY:2, CUBEFACE_NEGY:3, CUBEFACE_POSZ:4, CUBEFACE_NEGZ:5, CULLFACE_NONE:0, CULLFACE_BACK:1, CULLFACE_FRONT:2, CULLFACE_FRONTANDBACK:3, TYPE_INT8:0, TYPE_UINT8:1, TYPE_INT16:2, TYPE_UINT16:3, TYPE_INT32:4, TYPE_UINT32:5, TYPE_FLOAT32:6, FILTER_NEAREST:0, FILTER_LINEAR:1, FILTER_NEAREST_MIPMAP_NEAREST:2, FILTER_NEAREST_MIPMAP_LINEAR:3, FILTER_LINEAR_MIPMAP_NEAREST:4,
-  FILTER_LINEAR_MIPMAP_LINEAR:5, FUNC_NEVER:0, FUNC_LESS:1, FUNC_EQUAL:2, FUNC_LESSEQUAL:3, FUNC_GREATER:4, FUNC_NOTEQUAL:5, FUNC_GREATEREQUAL:6, FUNC_ALWAYS:7, INDEXFORMAT_UINT8:0, INDEXFORMAT_UINT16:1, INDEXFORMAT_UINT32:2, PIXELFORMAT_A8:0, PIXELFORMAT_L8:1, PIXELFORMAT_L8_A8:2, PIXELFORMAT_R5_G6_B5:3, PIXELFORMAT_R5_G5_B5_A1:4, PIXELFORMAT_R4_G4_B4_A4:5, PIXELFORMAT_R8_G8_B8:6, PIXELFORMAT_R8_G8_B8_A8:7, PIXELFORMAT_DXT1:8, PIXELFORMAT_DXT3:9, PIXELFORMAT_DXT5:10, PIXELFORMAT_RGB16F:11, PIXELFORMAT_RGBA16F:12,
-  PIXELFORMAT_RGB32F:13, PIXELFORMAT_RGBA32F:14, PIXELFORMAT_R32F:15, PIXELFORMAT_DEPTH:16, PIXELFORMAT_DEPTHSTENCIL:17, PIXELFORMAT_111110F:18, PIXELFORMAT_SRGB:19, PIXELFORMAT_SRGBA:20, PIXELFORMAT_ETC1:21, PIXELFORMAT_PVRTC_2BPP_RGB_1:22, PIXELFORMAT_PVRTC_2BPP_RGBA_1:23, PIXELFORMAT_PVRTC_4BPP_RGB_1:24, PIXELFORMAT_PVRTC_4BPP_RGBA_1:25, PRIMITIVE_POINTS:0, PRIMITIVE_LINES:1, PRIMITIVE_LINELOOP:2, PRIMITIVE_LINESTRIP:3, PRIMITIVE_TRIANGLES:4, PRIMITIVE_TRISTRIP:5, PRIMITIVE_TRIFAN:6, SEMANTIC_POSITION:"POSITION",
-  SEMANTIC_NORMAL:"NORMAL", SEMANTIC_TANGENT:"TANGENT", SEMANTIC_BLENDWEIGHT:"BLENDWEIGHT", SEMANTIC_BLENDINDICES:"BLENDINDICES", SEMANTIC_COLOR:"COLOR", SEMANTIC_TEXCOORD0:"TEXCOORD0", SEMANTIC_TEXCOORD1:"TEXCOORD1", SEMANTIC_TEXCOORD2:"TEXCOORD2", SEMANTIC_TEXCOORD3:"TEXCOORD3", SEMANTIC_TEXCOORD4:"TEXCOORD4", SEMANTIC_TEXCOORD5:"TEXCOORD5", SEMANTIC_TEXCOORD6:"TEXCOORD6", SEMANTIC_TEXCOORD7:"TEXCOORD7", SEMANTIC_ATTR0:"ATTR0", SEMANTIC_ATTR1:"ATTR1", SEMANTIC_ATTR2:"ATTR2", SEMANTIC_ATTR3:"ATTR3",
-  SEMANTIC_ATTR4:"ATTR4", SEMANTIC_ATTR5:"ATTR5", SEMANTIC_ATTR6:"ATTR6", SEMANTIC_ATTR7:"ATTR7", SEMANTIC_ATTR8:"ATTR8", SEMANTIC_ATTR9:"ATTR9", SEMANTIC_ATTR10:"ATTR10", SEMANTIC_ATTR11:"ATTR11", SEMANTIC_ATTR12:"ATTR12", SEMANTIC_ATTR13:"ATTR13", SEMANTIC_ATTR14:"ATTR14", SEMANTIC_ATTR15:"ATTR15", SHADERTAG_MATERIAL:1, STENCILOP_KEEP:0, STENCILOP_ZERO:1, STENCILOP_REPLACE:2, STENCILOP_INCREMENT:3, STENCILOP_INCREMENTWRAP:4, STENCILOP_DECREMENT:5, STENCILOP_DECREMENTWRAP:6, STENCILOP_INVERT:7,
-  TEXTURELOCK_READ:1, TEXTURELOCK_WRITE:2, TEXHINT_NONE:0, TEXHINT_SHADOWMAP:1, TEXHINT_ASSET:2, TEXHINT_LIGHTMAP:3, UNIFORMTYPE_BOOL:0, UNIFORMTYPE_INT:1, UNIFORMTYPE_FLOAT:2, UNIFORMTYPE_VEC2:3, UNIFORMTYPE_VEC3:4, UNIFORMTYPE_VEC4:5, UNIFORMTYPE_IVEC2:6, UNIFORMTYPE_IVEC3:7, UNIFORMTYPE_IVEC4:8, UNIFORMTYPE_BVEC2:9, UNIFORMTYPE_BVEC3:10, UNIFORMTYPE_BVEC4:11, UNIFORMTYPE_MAT2:12, UNIFORMTYPE_MAT3:13, UNIFORMTYPE_MAT4:14, UNIFORMTYPE_TEXTURE2D:15, UNIFORMTYPE_TEXTURECUBE:16, UNIFORMTYPE_FLOATARRAY:17,
+  var enums = {ADDRESS_REPEAT:0, ADDRESS_CLAMP_TO_EDGE:1, ADDRESS_MIRRORED_REPEAT:2, BLENDMODE_ZERO:0, BLENDMODE_ONE:1, BLENDMODE_SRC_COLOR:2, BLENDMODE_ONE_MINUS_SRC_COLOR:3, BLENDMODE_DST_COLOR:4, BLENDMODE_ONE_MINUS_DST_COLOR:5, BLENDMODE_SRC_ALPHA:6, BLENDMODE_SRC_ALPHA_SATURATE:7, BLENDMODE_ONE_MINUS_SRC_ALPHA:8, BLENDMODE_DST_ALPHA:9, BLENDMODE_ONE_MINUS_DST_ALPHA:10, BLENDEQUATION_ADD:0, BLENDEQUATION_SUBTRACT:1, BLENDEQUATION_REVERSE_SUBTRACT:2, BLENDEQUATION_MIN:3, BLENDEQUATION_MAX:4, BUFFER_STATIC:0, 
+  BUFFER_DYNAMIC:1, BUFFER_STREAM:2, BUFFER_GPUDYNAMIC:3, CLEARFLAG_COLOR:1, CLEARFLAG_DEPTH:2, CLEARFLAG_STENCIL:4, CUBEFACE_POSX:0, CUBEFACE_NEGX:1, CUBEFACE_POSY:2, CUBEFACE_NEGY:3, CUBEFACE_POSZ:4, CUBEFACE_NEGZ:5, CULLFACE_NONE:0, CULLFACE_BACK:1, CULLFACE_FRONT:2, CULLFACE_FRONTANDBACK:3, TYPE_INT8:0, TYPE_UINT8:1, TYPE_INT16:2, TYPE_UINT16:3, TYPE_INT32:4, TYPE_UINT32:5, TYPE_FLOAT32:6, FILTER_NEAREST:0, FILTER_LINEAR:1, FILTER_NEAREST_MIPMAP_NEAREST:2, FILTER_NEAREST_MIPMAP_LINEAR:3, FILTER_LINEAR_MIPMAP_NEAREST:4, 
+  FILTER_LINEAR_MIPMAP_LINEAR:5, FUNC_NEVER:0, FUNC_LESS:1, FUNC_EQUAL:2, FUNC_LESSEQUAL:3, FUNC_GREATER:4, FUNC_NOTEQUAL:5, FUNC_GREATEREQUAL:6, FUNC_ALWAYS:7, INDEXFORMAT_UINT8:0, INDEXFORMAT_UINT16:1, INDEXFORMAT_UINT32:2, PIXELFORMAT_A8:0, PIXELFORMAT_L8:1, PIXELFORMAT_L8_A8:2, PIXELFORMAT_R5_G6_B5:3, PIXELFORMAT_R5_G5_B5_A1:4, PIXELFORMAT_R4_G4_B4_A4:5, PIXELFORMAT_R8_G8_B8:6, PIXELFORMAT_R8_G8_B8_A8:7, PIXELFORMAT_DXT1:8, PIXELFORMAT_DXT3:9, PIXELFORMAT_DXT5:10, PIXELFORMAT_RGB16F:11, PIXELFORMAT_RGBA16F:12, 
+  PIXELFORMAT_RGB32F:13, PIXELFORMAT_RGBA32F:14, PIXELFORMAT_R32F:15, PIXELFORMAT_DEPTH:16, PIXELFORMAT_DEPTHSTENCIL:17, PIXELFORMAT_111110F:18, PIXELFORMAT_SRGB:19, PIXELFORMAT_SRGBA:20, PIXELFORMAT_ETC1:21, PIXELFORMAT_PVRTC_2BPP_RGB_1:22, PIXELFORMAT_PVRTC_2BPP_RGBA_1:23, PIXELFORMAT_PVRTC_4BPP_RGB_1:24, PIXELFORMAT_PVRTC_4BPP_RGBA_1:25, PRIMITIVE_POINTS:0, PRIMITIVE_LINES:1, PRIMITIVE_LINELOOP:2, PRIMITIVE_LINESTRIP:3, PRIMITIVE_TRIANGLES:4, PRIMITIVE_TRISTRIP:5, PRIMITIVE_TRIFAN:6, SEMANTIC_POSITION:"POSITION", 
+  SEMANTIC_NORMAL:"NORMAL", SEMANTIC_TANGENT:"TANGENT", SEMANTIC_BLENDWEIGHT:"BLENDWEIGHT", SEMANTIC_BLENDINDICES:"BLENDINDICES", SEMANTIC_COLOR:"COLOR", SEMANTIC_TEXCOORD0:"TEXCOORD0", SEMANTIC_TEXCOORD1:"TEXCOORD1", SEMANTIC_TEXCOORD2:"TEXCOORD2", SEMANTIC_TEXCOORD3:"TEXCOORD3", SEMANTIC_TEXCOORD4:"TEXCOORD4", SEMANTIC_TEXCOORD5:"TEXCOORD5", SEMANTIC_TEXCOORD6:"TEXCOORD6", SEMANTIC_TEXCOORD7:"TEXCOORD7", SEMANTIC_ATTR0:"ATTR0", SEMANTIC_ATTR1:"ATTR1", SEMANTIC_ATTR2:"ATTR2", SEMANTIC_ATTR3:"ATTR3", 
+  SEMANTIC_ATTR4:"ATTR4", SEMANTIC_ATTR5:"ATTR5", SEMANTIC_ATTR6:"ATTR6", SEMANTIC_ATTR7:"ATTR7", SEMANTIC_ATTR8:"ATTR8", SEMANTIC_ATTR9:"ATTR9", SEMANTIC_ATTR10:"ATTR10", SEMANTIC_ATTR11:"ATTR11", SEMANTIC_ATTR12:"ATTR12", SEMANTIC_ATTR13:"ATTR13", SEMANTIC_ATTR14:"ATTR14", SEMANTIC_ATTR15:"ATTR15", SHADERTAG_MATERIAL:1, STENCILOP_KEEP:0, STENCILOP_ZERO:1, STENCILOP_REPLACE:2, STENCILOP_INCREMENT:3, STENCILOP_INCREMENTWRAP:4, STENCILOP_DECREMENT:5, STENCILOP_DECREMENTWRAP:6, STENCILOP_INVERT:7, 
+  TEXTURELOCK_READ:1, TEXTURELOCK_WRITE:2, TEXHINT_NONE:0, TEXHINT_SHADOWMAP:1, TEXHINT_ASSET:2, TEXHINT_LIGHTMAP:3, UNIFORMTYPE_BOOL:0, UNIFORMTYPE_INT:1, UNIFORMTYPE_FLOAT:2, UNIFORMTYPE_VEC2:3, UNIFORMTYPE_VEC3:4, UNIFORMTYPE_VEC4:5, UNIFORMTYPE_IVEC2:6, UNIFORMTYPE_IVEC3:7, UNIFORMTYPE_IVEC4:8, UNIFORMTYPE_BVEC2:9, UNIFORMTYPE_BVEC3:10, UNIFORMTYPE_BVEC4:11, UNIFORMTYPE_MAT2:12, UNIFORMTYPE_MAT3:13, UNIFORMTYPE_MAT4:14, UNIFORMTYPE_TEXTURE2D:15, UNIFORMTYPE_TEXTURECUBE:16, UNIFORMTYPE_FLOATARRAY:17, 
   UNIFORMTYPE_TEXTURE2D_SHADOW:18, UNIFORMTYPE_TEXTURECUBE_SHADOW:19, UNIFORMTYPE_TEXTURE3D:20};
   pc.extend(pc, enums);
   pc.gfx = {};
@@ -3372,31 +3380,33 @@ pc.extend(pc, function() {
     this.numBytes = format.size * numVertices;
     graphicsDevice._vram.vb += this.numBytes;
     this.device = graphicsDevice;
-    var gl = this.device.gl;
-    this.bufferId = gl.createBuffer();
-    if (initialData && this.setData(initialData)) {
-      return;
+    if (initialData) {
+      this.setData(initialData);
     } else {
       this.storage = new ArrayBuffer(this.numBytes);
     }
+    this.device.buffers.push(this);
   };
   VertexBuffer.prototype = {destroy:function() {
-    if (!this.bufferId) {
-      return;
-    }
     var device = this.device;
-    var gl = device.gl;
-    gl.deleteBuffer(this.bufferId);
-    device._vram.vb -= this.storage.byteLength;
-    this.bufferId = null;
-    device.boundBuffer = null;
-    device.vertexBuffers.length = 0;
-    device.vbOffsets.length = 0;
-    device.attributesInvalidated = true;
-    for (var loc in device.enabledAttributes) {
-      gl.disableVertexAttribArray(loc);
+    var idx = device.buffers.indexOf(this);
+    if (idx !== -1) {
+      device.buffers.splice(idx, 1);
     }
-    device.enabledAttributes = {};
+    if (this.bufferId) {
+      var gl = device.gl;
+      gl.deleteBuffer(this.bufferId);
+      device._vram.vb -= this.storage.byteLength;
+      this.bufferId = null;
+      device.boundBuffer = null;
+      device.vertexBuffers.length = 0;
+      device.vbOffsets.length = 0;
+      device.attributesInvalidated = true;
+      for (var loc in device.enabledAttributes) {
+        gl.disableVertexAttribArray(loc);
+      }
+      device.enabledAttributes = {};
+    }
   }, getFormat:function() {
     return this.format;
   }, getUsage:function() {
@@ -3407,6 +3417,9 @@ pc.extend(pc, function() {
     return this.storage;
   }, unlock:function() {
     var gl = this.device.gl;
+    if (!this.bufferId) {
+      this.bufferId = gl.createBuffer();
+    }
     var glUsage;
     switch(this.usage) {
       case pc.BUFFER_STATIC:
@@ -3446,7 +3459,6 @@ pc.extend(pc, function() {
     this.numIndices = numIndices;
     this.device = graphicsDevice;
     var gl = this.device.gl;
-    this.bufferId = gl.createBuffer();
     var bytesPerIndex;
     if (format === pc.INDEXFORMAT_UINT8) {
       bytesPerIndex = 1;
@@ -3464,23 +3476,28 @@ pc.extend(pc, function() {
     }
     this.bytesPerIndex = bytesPerIndex;
     this.numBytes = this.numIndices * bytesPerIndex;
-    if (initialData && this.setData(initialData)) {
-      return;
+    if (initialData) {
+      this.setData(initialData);
     } else {
       this.storage = new ArrayBuffer(this.numBytes);
     }
     graphicsDevice._vram.ib += this.numBytes;
+    this.device.buffers.push(this);
   };
   IndexBuffer.prototype = {destroy:function() {
-    if (!this.bufferId) {
-      return;
+    var device = this.device;
+    var idx = device.buffers.indexOf(this);
+    if (idx !== -1) {
+      device.buffers.splice(idx, 1);
     }
-    var gl = this.device.gl;
-    gl.deleteBuffer(this.bufferId);
-    this.device._vram.ib -= this.storage.byteLength;
-    this.bufferId = null;
-    if (this.device.indexBuffer === this) {
-      this.device.indexBuffer = null;
+    if (this.bufferId) {
+      var gl = this.device.gl;
+      gl.deleteBuffer(this.bufferId);
+      this.device._vram.ib -= this.storage.byteLength;
+      this.bufferId = null;
+      if (this.device.indexBuffer === this) {
+        this.device.indexBuffer = null;
+      }
     }
   }, getFormat:function() {
     return this.format;
@@ -3490,6 +3507,9 @@ pc.extend(pc, function() {
     return this.storage;
   }, unlock:function() {
     var gl = this.device.gl;
+    if (!this.bufferId) {
+      this.bufferId = gl.createBuffer();
+    }
     var glUsage;
     switch(this.usage) {
       case pc.BUFFER_STATIC:
@@ -3534,8 +3554,8 @@ pc.extend(pc, function() {
     }
     this._outputBuffer = new pc.VertexBuffer(inputBuffer.device, inputBuffer.format, inputBuffer.numVertices, usage, inputBuffer.storage);
   };
-  TransformFeedback.createShader = function(device, vsCode, name) {
-    return pc.shaderChunks.createShaderFromCode(device, vsCode, null, name, true);
+  TransformFeedback.createShader = function(graphicsDevice, vsCode, name) {
+    return pc.shaderChunks.createShaderFromCode(graphicsDevice, vsCode, null, name, true);
   };
   TransformFeedback.prototype = {destroy:function() {
     this._outputBuffer.destroy();
@@ -3620,20 +3640,11 @@ pc.extend(pc, function() {
     }
     this._compressed = this._format === pc.PIXELFORMAT_DXT1 || this._format === pc.PIXELFORMAT_DXT3 || this._format === pc.PIXELFORMAT_DXT5 || this._format >= pc.PIXELFORMAT_ETC1;
     this._invalid = false;
-    this._levels = this._cubemap ? [[null, null, null, null, null, null]] : [null];
-    this._levelsUpdated = this._cubemap ? [[true, true, true, true, true, true]] : [true];
     this._lockedLevel = -1;
-    this._needsUpload = true;
-    this._needsMipmapsUpload = this._mipmaps;
-    this._mipmapsUploaded = false;
-    this._minFilterDirty = true;
-    this._magFilterDirty = true;
-    this._addressUDirty = true;
-    this._addressVDirty = true;
-    this._addressWDirty = this._volume;
-    this._anisotropyDirty = true;
-    this._compareModeDirty = true;
+    this._levels = this._cubemap ? [[null, null, null, null, null, null]] : [null];
+    this.dirtyAll();
     this._gpuSize = 0;
+    this.device.textures.push(this);
   };
   Object.defineProperty(Texture.prototype, "minFilter", {get:function() {
     return this._minFilter;
@@ -3748,14 +3759,31 @@ pc.extend(pc, function() {
       this._needsUpload = true;
     }
   }});
-  pc.extend(Texture.prototype, {bind:function() {
-  }, destroy:function() {
+  pc.extend(Texture.prototype, {destroy:function() {
+    var device = this.device;
+    var idx = device.textures.indexOf(this);
+    if (idx !== -1) {
+      device.textures.splice(idx, 1);
+    }
     if (this._glTextureId) {
       var gl = this.device.gl;
       gl.deleteTexture(this._glTextureId);
       this.device._vram.tex -= this._gpuSize;
       this._glTextureId = null;
     }
+  }, dirtyAll:function() {
+    this._glTextureId = undefined;
+    this._levelsUpdated = this._cubemap ? [[true, true, true, true, true, true]] : [true];
+    this._needsUpload = true;
+    this._needsMipmapsUpload = this._mipmaps;
+    this._mipmapsUploaded = false;
+    this._minFilterDirty = true;
+    this._magFilterDirty = true;
+    this._addressUDirty = true;
+    this._addressVDirty = true;
+    this._addressWDirty = this._volume;
+    this._anisotropyDirty = true;
+    this._compareModeDirty = true;
   }, lock:function(options) {
     options = options || {level:0, face:0, mode:pc.TEXTURELOCK_WRITE};
     if (options.level === undefined) {
@@ -3814,7 +3842,6 @@ pc.extend(pc, function() {
       }
     }
     return this._levels[options.level];
-  }, recover:function() {
   }, setSource:function(source) {
     var i;
     var invalid = false;
@@ -3994,7 +4021,9 @@ pc.extend(pc, function() {
 }());
 pc.extend(pc, function() {
   var defaultOptions = {depth:true, face:0};
-  var RenderTarget = function(options, _arg2, _arg3) {
+  var RenderTarget = function(options) {
+    var _arg2 = arguments[1];
+    var _arg3 = arguments[2];
     if (options instanceof pc.GraphicsDevice) {
       this._colorBuffer = _arg2;
       options = _arg3;
@@ -4034,7 +4063,12 @@ pc.extend(pc, function() {
     if (!this._device) {
       return;
     }
-    var gl = this._device.gl;
+    var device = this._device;
+    var idx = device.targets.indexOf(this);
+    if (idx !== -1) {
+      device.targets.splice(idx, 1);
+    }
+    var gl = device.gl;
     if (this._glFrameBuffer) {
       gl.deleteFramebuffer(this._glFrameBuffer);
       this._glFrameBuffer = null;
@@ -4093,18 +4127,10 @@ pc.extend(pc, function() {
     return this._face;
   }});
   Object.defineProperty(RenderTarget.prototype, "width", {get:function() {
-    if (this._colorBuffer) {
-      return this._colorBuffer.width;
-    } else {
-      return this._depthBuffer.width;
-    }
+    return this._colorBuffer ? this._colorBuffer.width : this._depthBuffer.width;
   }});
   Object.defineProperty(RenderTarget.prototype, "height", {get:function() {
-    if (this._colorBuffer) {
-      return this._colorBuffer.height;
-    } else {
-      return this._depthBuffer.height;
-    }
+    return this._colorBuffer ? this._colorBuffer.height : this._depthBuffer.height;
   }});
   return {RenderTarget:RenderTarget};
 }());
@@ -4145,22 +4171,25 @@ pc.extend(pc, function() {
     return program;
   }
   var Shader = function(graphicsDevice, definition) {
-    this._refCount = 0;
     this.device = graphicsDevice;
     this.definition = definition;
+    this._refCount = 0;
+    this.compile();
+    this.device.shaders.push(this);
+  };
+  Shader.prototype = {compile:function() {
     this.ready = false;
     var gl = this.device.gl;
-    this.vshader = createShader(gl, gl.VERTEX_SHADER, definition.vshader);
-    this.fshader = createShader(gl, gl.FRAGMENT_SHADER, definition.fshader);
+    this.vshader = createShader(gl, gl.VERTEX_SHADER, this.definition.vshader);
+    this.fshader = createShader(gl, gl.FRAGMENT_SHADER, this.definition.fshader);
     this.program = createProgram(gl, this.vshader, this.fshader);
-    graphicsDevice._shaderStats.vsCompiled++;
-    graphicsDevice._shaderStats.fsCompiled++;
-    graphicsDevice._shaderStats.linked++;
-    if (definition.tag === pc.SHADERTAG_MATERIAL) {
-      graphicsDevice._shaderStats.materialShaders++;
+    this.device._shaderStats.vsCompiled++;
+    this.device._shaderStats.fsCompiled++;
+    this.device._shaderStats.linked++;
+    if (this.definition.tag === pc.SHADERTAG_MATERIAL) {
+      this.device._shaderStats.materialShaders++;
     }
-  };
-  Shader.prototype = {link:function() {
+  }, link:function() {
     var gl = this.device.gl;
     var retValue = true;
     if (this.device.webgl2 && this.definition.useTransformFeedback) {
@@ -4239,8 +4268,13 @@ pc.extend(pc, function() {
     this.ready = true;
     return retValue;
   }, destroy:function() {
+    var device = this.device;
+    var idx = device.shaders.indexOf(this);
+    if (idx !== -1) {
+      device.shaders.splice(idx, 1);
+    }
     if (this.program) {
-      var gl = this.device.gl;
+      var gl = device.gl;
       gl.deleteProgram(this.program);
       this.program = null;
       this.device.removeShaderFromCache(this);
@@ -4313,8 +4347,6 @@ pc.extend(pc, function() {
 }());
 pc.extend(pc, function() {
   var EVENT_RESIZE = "resizecanvas";
-  var uniformValue;
-  var scopeX, scopeY, scopeZ, scopeW;
   function UnsupportedBrowserError(message) {
     this.name = "UnsupportedBrowserError";
     this.message = message || "";
@@ -4325,12 +4357,6 @@ pc.extend(pc, function() {
     this.message = message || "";
   }
   ContextCreationError.prototype = Error.prototype;
-  var _contextLostHandler = function() {
-    logWARNING("Context lost.");
-  };
-  var _contextRestoredHandler = function() {
-    logINFO("Context restored.");
-  };
   var _downsampleImage = function(image, size) {
     var srcW = image.width;
     var srcH = image.height;
@@ -4378,7 +4404,7 @@ pc.extend(pc, function() {
       _pixelFormat2Size[pc.PIXELFORMAT_SRGBA] = 4;
     }
     var mips = 1;
-    if (tex._pot && (tex._mipmaps || tex._minFilter === gl.NEAREST_MIPMAP_NEAREST || tex._minFilter === gl.NEAREST_MIPMAP_LINEAR || tex._minFilter === gl.LINEAR_MIPMAP_NEAREST || tex._minFilter === gl.LINEAR_MIPMAP_LINEAR) && !(tex._compressed && tex._levels.length === 1)) {
+    if (tex._pot && (tex._mipmaps || tex._minFilter === pc.FILTER_NEAREST_MIPMAP_NEAREST || tex._minFilter === pc.FILTER_NEAREST_MIPMAP_LINEAR || tex._minFilter === pc.FILTER_LINEAR_MIPMAP_NEAREST || tex._minFilter === pc.FILTER_LINEAR_MIPMAP_LINEAR) && !(tex._compressed && tex._levels.length === 1)) {
       mips = Math.round(Math.log2(Math.max(tex._width, tex._height)) + 1);
     }
     var mipWidth = tex._width;
@@ -4418,7 +4444,7 @@ pc.extend(pc, function() {
     }
     return size;
   }
-  function testRenderable(gl, ext, pixelFormat) {
+  function testRenderable(gl, pixelFormat) {
     var __texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, __texture);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -4440,93 +4466,84 @@ pc.extend(pc, function() {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     return true;
   }
+  function testUnsignedByteAttribute(gl) {
+    var storage = new ArrayBuffer(16);
+    var bufferId = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, bufferId);
+    gl.bufferData(gl.ARRAY_BUFFER, storage, gl.STATIC_DRAW);
+    gl.getError();
+    gl.vertexAttribPointer(0, 4, gl.UNSIGNED_BYTE, false, 4, 0);
+    var supported = gl.getError() === 0;
+    gl.deleteBuffer(bufferId);
+    return supported;
+  }
   var GraphicsDevice = function(canvas, options) {
-    this.gl = undefined;
+    var i;
     this.canvas = canvas;
     this.shader = null;
     this.indexBuffer = null;
     this.vertexBuffers = [];
     this.vbOffsets = [];
-    this.precision = "highp";
     this._enableAutoInstancing = false;
     this.autoInstancingMaxObjects = 16384;
     this.attributesInvalidated = true;
     this.boundBuffer = null;
     this.instancedAttribs = {};
     this.enabledAttributes = {};
+    this.transformFeedbackBuffer = null;
+    this.activeFramebuffer = null;
+    this.activeTexture = 0;
     this.textureUnits = [];
-    this.commitFunction = {};
     this._maxPixelRatio = 1;
+    this.renderTarget = null;
+    this.feedback = null;
     this._width = 0;
     this._height = 0;
     this.updateClientRect();
     if (!window.WebGLRenderingContext) {
       throw new pc.UnsupportedBrowserError;
     }
-    if (canvas) {
-      var preferWebGl2 = options && options.preferWebGl2 !== undefined ? options.preferWebGl2 : true;
-      var names = preferWebGl2 ? ["webgl2", "experimental-webgl2", "webgl", "experimental-webgl"] : ["webgl", "experimental-webgl"];
-      var context = null;
-      options = options || {};
-      options.stencil = true;
-      for (var i = 0;i < names.length;i++) {
-        try {
-          context = canvas.getContext(names[i], options);
-        } catch (e) {
-        }
-        if (context) {
-          this.webgl2 = preferWebGl2 && i < 2;
-          break;
-        }
+    this.shaders = [];
+    this.buffers = [];
+    this.textures = [];
+    this.targets = [];
+    this.contextLost = false;
+    canvas.addEventListener("webglcontextlost", function(event) {
+      event.preventDefault();
+      this.contextLost = true;
+      this.fire("devicelost");
+    }.bind(this), false);
+    canvas.addEventListener("webglcontextrestored", function() {
+      this.initializeContext();
+      this.contextLost = false;
+      this.fire("devicerestored");
+    }.bind(this), false);
+    var preferWebGl2 = options && options.preferWebGl2 !== undefined ? options.preferWebGl2 : true;
+    var names = preferWebGl2 ? ["webgl2", "experimental-webgl2", "webgl", "experimental-webgl"] : ["webgl", "experimental-webgl"];
+    var gl = null;
+    options = options || {};
+    options.stencil = true;
+    for (i = 0;i < names.length;i++) {
+      try {
+        gl = canvas.getContext(names[i], options);
+      } catch (e) {
       }
-      this.gl = context;
+      if (gl) {
+        this.webgl2 = preferWebGl2 && i < 2;
+        break;
+      }
     }
-    if (!this.gl) {
+    if (!gl) {
       throw new pc.ContextCreationError;
     }
-    var gl = this.gl;
+    this.gl = gl;
+    this.initializeExtensions();
+    this.initializeCapabilities();
+    this.initializeRenderState();
     (function() {
-      var i;
-      canvas.addEventListener("webglcontextlost", _contextLostHandler, false);
-      canvas.addEventListener("webglcontextrestored", _contextRestoredHandler, false);
-      this.canvas = canvas;
-      this.shader = null;
-      this.indexBuffer = null;
-      this.vertexBuffers = [];
-      this.vbOffsets = [];
-      this.precision = "highp";
-      this.maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
-      this.maxCubeMapSize = gl.getParameter(gl.MAX_CUBE_MAP_TEXTURE_SIZE);
-      this.maxRenderBufferSize = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE);
-      if (gl.getShaderPrecisionFormat) {
-        var vertexShaderPrecisionHighpFloat = gl.getShaderPrecisionFormat(gl.VERTEX_SHADER, gl.HIGH_FLOAT);
-        var vertexShaderPrecisionMediumpFloat = gl.getShaderPrecisionFormat(gl.VERTEX_SHADER, gl.MEDIUM_FLOAT);
-        var vertexShaderPrecisionLowpFloat = gl.getShaderPrecisionFormat(gl.VERTEX_SHADER, gl.LOW_FLOAT);
-        var fragmentShaderPrecisionHighpFloat = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT);
-        var fragmentShaderPrecisionMediumpFloat = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.MEDIUM_FLOAT);
-        var fragmentShaderPrecisionLowpFloat = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.LOW_FLOAT);
-        var vertexShaderPrecisionHighpInt = gl.getShaderPrecisionFormat(gl.VERTEX_SHADER, gl.HIGH_INT);
-        var vertexShaderPrecisionMediumpInt = gl.getShaderPrecisionFormat(gl.VERTEX_SHADER, gl.MEDIUM_INT);
-        var vertexShaderPrecisionLowpInt = gl.getShaderPrecisionFormat(gl.VERTEX_SHADER, gl.LOW_INT);
-        var fragmentShaderPrecisionHighpInt = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_INT);
-        var fragmentShaderPrecisionMediumpInt = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.MEDIUM_INT);
-        var fragmentShaderPrecisionLowpInt = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.LOW_INT);
-        var highpAvailable = vertexShaderPrecisionHighpFloat.precision > 0 && fragmentShaderPrecisionHighpFloat.precision > 0;
-        var mediumpAvailable = vertexShaderPrecisionMediumpFloat.precision > 0 && fragmentShaderPrecisionMediumpFloat.precision > 0;
-        if (!highpAvailable) {
-          if (mediumpAvailable) {
-            this.precision = "mediump";
-            console.warn("WARNING: highp not supported, using mediump");
-          } else {
-            this.precision = "lowp";
-            console.warn("WARNING: highp and mediump not supported, using lowp");
-          }
-        }
-      }
-      this.maxPrecision = this.precision;
       this.defaultClearOptions = {color:[0, 0, 0, 1], depth:1, stencil:0, flags:pc.CLEARFLAG_COLOR | pc.CLEARFLAG_DEPTH};
       this.glAddress = [gl.REPEAT, gl.CLAMP_TO_EDGE, gl.MIRRORED_REPEAT];
-      this.glBlendEquation = [gl.FUNC_ADD, gl.FUNC_SUBTRACT, gl.FUNC_REVERSE_SUBTRACT];
+      this.glBlendEquation = [gl.FUNC_ADD, gl.FUNC_SUBTRACT, gl.FUNC_REVERSE_SUBTRACT, this.webgl2 ? gl.MIN : this.extBlendMinmax ? this.extBlendMinmax.MIN_EXT : gl.FUNC_ADD, this.webgl2 ? gl.MAX : this.extBlendMinmax ? this.extBlendMinmax.MAX_EXT : gl.FUNC_ADD];
       this.glBlendFunction = [gl.ZERO, gl.ONE, gl.SRC_COLOR, gl.ONE_MINUS_SRC_COLOR, gl.DST_COLOR, gl.ONE_MINUS_DST_COLOR, gl.SRC_ALPHA, gl.SRC_ALPHA_SATURATE, gl.ONE_MINUS_SRC_ALPHA, gl.DST_ALPHA, gl.ONE_MINUS_DST_ALPHA];
       this.glComparison = [gl.NEVER, gl.LESS, gl.EQUAL, gl.LEQUAL, gl.GREATER, gl.NOTEQUAL, gl.GEQUAL, gl.ALWAYS];
       this.glStencilOp = [gl.KEEP, gl.ZERO, gl.REPLACE, gl.INCR, gl.INCR_WRAP, gl.DECR, gl.DECR_WRAP, gl.INVERT];
@@ -4535,96 +4552,9 @@ pc.extend(pc, function() {
       this.glFilter = [gl.NEAREST, gl.LINEAR, gl.NEAREST_MIPMAP_NEAREST, gl.NEAREST_MIPMAP_LINEAR, gl.LINEAR_MIPMAP_NEAREST, gl.LINEAR_MIPMAP_LINEAR];
       this.glPrimitive = [gl.POINTS, gl.LINES, gl.LINE_LOOP, gl.LINE_STRIP, gl.TRIANGLES, gl.TRIANGLE_STRIP, gl.TRIANGLE_FAN];
       this.glType = [gl.BYTE, gl.UNSIGNED_BYTE, gl.SHORT, gl.UNSIGNED_SHORT, gl.INT, gl.UNSIGNED_INT, gl.FLOAT];
-      this.unmaskedRenderer = null;
-      this.unmaskedVendor = null;
-      this.extRendererInfo = gl.getExtension("WEBGL_debug_renderer_info");
-      if (this.extRendererInfo) {
-        this.unmaskedRenderer = gl.getParameter(this.extRendererInfo.UNMASKED_RENDERER_WEBGL);
-        this.unmaskedVendor = gl.getParameter(this.extRendererInfo.UNMASKED_VENDOR_WEBGL);
-      }
-      if (this.webgl2) {
-        this.extTextureFloat = true;
-        this.extTextureHalfFloat = true;
-        this.extTextureHalfFloatLinear = true;
-        this.extUintElement = true;
-        this.extTextureLod = true;
-        this.extStandardDerivatives = true;
-        gl.hint(gl.FRAGMENT_SHADER_DERIVATIVE_HINT, gl.NICEST);
-        this.extInstancing = true;
-        this.extDrawBuffers = true;
-        this.maxDrawBuffers = gl.getParameter(gl.MAX_DRAW_BUFFERS);
-        this.maxColorAttachments = gl.getParameter(gl.MAX_COLOR_ATTACHMENTS);
-        this.feedback = gl.createTransformFeedback();
-        this.maxVolumeSize = gl.getParameter(gl.MAX_3D_TEXTURE_SIZE);
-        this.extBlendMinmax = true;
-        this.glBlendEquation.push(gl.MIN);
-        this.glBlendEquation.push(gl.MAX);
-      } else {
-        this.extTextureFloat = gl.getExtension("OES_texture_float");
-        this.extTextureHalfFloat = gl.getExtension("OES_texture_half_float");
-        this.extTextureHalfFloatLinear = gl.getExtension("OES_texture_half_float_linear");
-        this.extUintElement = gl.getExtension("OES_element_index_uint");
-        this.extTextureLod = gl.getExtension("EXT_shader_texture_lod");
-        this.extStandardDerivatives = gl.getExtension("OES_standard_derivatives");
-        if (this.extStandardDerivatives) {
-          gl.hint(this.extStandardDerivatives.FRAGMENT_SHADER_DERIVATIVE_HINT_OES, gl.NICEST);
-        }
-        this.extInstancing = gl.getExtension("ANGLE_instanced_arrays");
-        this.extDrawBuffers = gl.getExtension("EXT_draw_buffers");
-        this.maxDrawBuffers = this.extDrawBuffers ? gl.getParameter(this.extDrawBuffers.MAX_DRAW_BUFFERS_EXT) : 1;
-        this.maxColorAttachments = this.extDrawBuffers ? gl.getParameter(this.extDrawBuffers.MAX_COLOR_ATTACHMENTS_EXT) : 1;
-        this.maxVolumeSize = 1;
-        this.extBlendMinmax = gl.getExtension("EXT_blend_minmax");
-        if (this.extBlendMinmax) {
-          this.glBlendEquation.push(this.extBlendMinmax.MIN_EXT);
-          this.glBlendEquation.push(this.extBlendMinmax.MAX_EXT);
-        } else {
-          this.glBlendEquation.push(gl.FUNC_ADD);
-          this.glBlendEquation.push(gl.FUNC_ADD);
-        }
-      }
-      this.extTextureFloatLinear = gl.getExtension("OES_texture_float_linear");
-      this.maxVertexTextures = gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS);
-      this.supportsBoneTextures = this.extTextureFloat && this.maxVertexTextures > 0;
-      this.fragmentUniformsCount = gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS);
-      this.samplerCount = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
-      this.useTexCubeLod = this.extTextureLod && this.samplerCount < 16;
-      this.extTextureFilterAnisotropic = gl.getExtension("EXT_texture_filter_anisotropic");
-      if (!this.extTextureFilterAnisotropic) {
-        this.extTextureFilterAnisotropic = gl.getExtension("WEBKIT_EXT_texture_filter_anisotropic");
-      }
-      this.extCompressedTextureS3TC = gl.getExtension("WEBGL_compressed_texture_s3tc");
-      if (!this.extCompressedTextureS3TC) {
-        this.extCompressedTextureS3TC = gl.getExtension("WEBKIT_WEBGL_compressed_texture_s3tc");
-      }
-      if (this.extCompressedTextureS3TC && _isIE()) {
-        this.extCompressedTextureS3TC = false;
-      }
-      if (this.extCompressedTextureS3TC) {
-        var formats = gl.getParameter(gl.COMPRESSED_TEXTURE_FORMATS);
-        for (i = 0;i < formats.length;i++) {
-          switch(formats[i]) {
-            case this.extCompressedTextureS3TC.COMPRESSED_RGB_S3TC_DXT1_EXT:
-              break;
-            case this.extCompressedTextureS3TC.COMPRESSED_RGBA_S3TC_DXT1_EXT:
-              break;
-            case this.extCompressedTextureS3TC.COMPRESSED_RGBA_S3TC_DXT3_EXT:
-              break;
-            case this.extCompressedTextureS3TC.COMPRESSED_RGBA_S3TC_DXT5_EXT:
-              break;
-            default:
-              break;
-          }
-        }
-      }
-      this.extCompressedTextureETC1 = gl.getExtension("WEBGL_compressed_texture_etc1");
-      this.extCompressedTexturePVRTC = gl.getExtension("WEBGL_compressed_texture_pvrtc") || gl.getExtension("WEBKIT_WEBGL_compressed_texture_pvrtc");
-      var contextAttribs = gl.getContextAttributes();
-      this.supportsMsaa = contextAttribs.antialias;
-      this.supportsStencil = contextAttribs.stencil;
-      this.renderTarget = null;
-      this.scope = new pc.ScopeSpace("Device");
-      this.commitFunction = {};
+      var scopeX, scopeY, scopeZ, scopeW;
+      var uniformValue;
+      this.commitFunction = [];
       this.commitFunction[pc.UNIFORMTYPE_BOOL] = function(uniform, value) {
         if (uniform.value !== value) {
           gl.uniform1i(uniform.locationId, value);
@@ -4725,31 +4655,15 @@ pc.extend(pc, function() {
       this.commitFunction[pc.UNIFORMTYPE_FLOATARRAY] = function(uniform, value) {
         gl.uniform1fv(uniform.locationId, value);
       };
-      this.setBlending(false);
-      this.setBlendFunction(pc.BLENDMODE_ONE, pc.BLENDMODE_ZERO);
-      this.setBlendEquation(pc.BLENDEQUATION_ADD);
-      this.setColorWrite(true, true, true, true);
-      this.cullMode = pc.CULLFACE_NONE;
-      this.setCullMode(pc.CULLFACE_BACK);
-      this.setDepthTest(true);
-      this.setDepthFunc(pc.FUNC_LESSEQUAL);
-      this.setDepthWrite(true);
-      this.setStencilTest(false);
-      this.setStencilFunc(pc.FUNC_ALWAYS, 0, 255);
-      this.setStencilOperation(pc.STENCILOP_KEEP, pc.STENCILOP_KEEP, pc.STENCILOP_KEEP, 255);
-      this.setAlphaToCoverage(false);
-      this.setTransformFeedbackBuffer(null);
-      this.setRaster(true);
-      this.setDepthBias(false);
-      this.setClearDepth(1);
-      this.setClearColor(0, 0, 0, 0);
-      this.setClearStencil(0);
-      gl.enable(gl.SCISSOR_TEST);
+      this.scope = new pc.ScopeSpace("Device");
       this.programLib = new pc.ProgramLibrary(this);
       for (var generator in pc.programlib) {
         this.programLib.register(generator, pc.programlib[generator]);
       }
-      var numUniforms = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS);
+      pc.events.attach(this);
+      this.supportsBoneTextures = this.extTextureFloat && this.maxVertexTextures > 0;
+      this.useTexCubeLod = this.extTextureLod && this.samplerCount < 16;
+      var numUniforms = this.vertexUniformsCount;
       numUniforms -= 4 * 4;
       numUniforms -= 8;
       numUniforms -= 1;
@@ -4758,21 +4672,10 @@ pc.extend(pc, function() {
       this.boneLimit = Math.min(this.boneLimit, 128);
       if (this.unmaskedRenderer === "Mali-450 MP") {
         this.boneLimit = 34;
-      } else {
-        if (this.unmaskedRenderer === "Apple A8 GPU") {
-          this.forceCpuParticles = true;
-        }
       }
-      pc.events.attach(this);
-      this.vx = this.vy = this.vw = this.vh = 0;
-      this.sx = this.sy = this.sw = this.sh = 0;
-      this.boundBuffer = null;
-      this.instancedAttribs = {};
-      this.activeFramebuffer = null;
-      this.activeTexture = 0;
-      this.textureUnits = [];
-      this.attributesInvalidated = true;
-      this.enabledAttributes = {};
+      if (this.unmaskedRenderer === "Apple A8 GPU") {
+        this.forceCpuParticles = true;
+      }
       this._drawCallsPerFrame = 0;
       this._shaderSwitchesPerFrame = 0;
       this._primsPerFrame = [];
@@ -4782,29 +4685,21 @@ pc.extend(pc, function() {
       this._renderTargetCreationTime = 0;
       this._vram = {tex:0, vb:0, ib:0};
       this._shaderStats = {vsCompiled:0, fsCompiled:0, linked:0, materialShaders:0, compileTime:0};
-      var bufferId = gl.createBuffer();
-      var storage = new ArrayBuffer(16);
-      gl.bindBuffer(gl.ARRAY_BUFFER, bufferId);
-      gl.bufferData(gl.ARRAY_BUFFER, storage, gl.STATIC_DRAW);
-      gl.getError();
-      gl.vertexAttribPointer(0, 4, gl.UNSIGNED_BYTE, false, 4, 0);
-      this.supportsUnsignedByte = gl.getError() === 0;
-      gl.deleteBuffer(bufferId);
+      this.supportsUnsignedByte = testUnsignedByteAttribute(gl);
       this.constantTexSource = this.scope.resolve("source");
-      gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
       if (!pc._benchmarked) {
         if (this.extTextureFloat) {
           if (this.webgl2) {
-            this.extTextureFloatRenderable = gl.getExtension("EXT_color_buffer_float");
+            this.extTextureFloatRenderable = this.extColorBufferFloat;
           } else {
-            this.extTextureFloatRenderable = testRenderable(gl, this.extTextureFloat, gl.FLOAT);
+            this.extTextureFloatRenderable = testRenderable(gl, gl.FLOAT);
           }
         }
         if (this.extTextureHalfFloat) {
           if (this.webgl2) {
-            this.extTextureHalfFloatRenderable = this.extTextureFloatRenderable;
+            this.extTextureHalfFloatRenderable = this.extColorBufferFloat;
           } else {
-            this.extTextureHalfFloatRenderable = testRenderable(gl, this.extTextureHalfFloat, this.extTextureHalfFloat.HALF_FLOAT_OES);
+            this.extTextureHalfFloatRenderable = testRenderable(gl, this.extTextureHalfFloat.HALF_FLOAT_OES);
           }
         }
         if (this.extTextureFloatRenderable) {
@@ -4847,7 +4742,187 @@ pc.extend(pc, function() {
       }
     }).call(this);
   };
-  GraphicsDevice.prototype = {updateClientRect:function() {
+  GraphicsDevice.prototype = {getPrecision:function() {
+    var gl = this.gl;
+    var precision = "highp";
+    if (gl.getShaderPrecisionFormat) {
+      var vertexShaderPrecisionHighpFloat = gl.getShaderPrecisionFormat(gl.VERTEX_SHADER, gl.HIGH_FLOAT);
+      var vertexShaderPrecisionMediumpFloat = gl.getShaderPrecisionFormat(gl.VERTEX_SHADER, gl.MEDIUM_FLOAT);
+      var fragmentShaderPrecisionHighpFloat = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT);
+      var fragmentShaderPrecisionMediumpFloat = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.MEDIUM_FLOAT);
+      var highpAvailable = vertexShaderPrecisionHighpFloat.precision > 0 && fragmentShaderPrecisionHighpFloat.precision > 0;
+      var mediumpAvailable = vertexShaderPrecisionMediumpFloat.precision > 0 && fragmentShaderPrecisionMediumpFloat.precision > 0;
+      if (!highpAvailable) {
+        if (mediumpAvailable) {
+          precision = "mediump";
+        } else {
+          precision = "lowp";
+        }
+      }
+    }
+    return precision;
+  }, initializeExtensions:function() {
+    var gl = this.gl;
+    if (this.webgl2) {
+      this.extBlendMinmax = true;
+      this.extDrawBuffers = true;
+      this.extInstancing = true;
+      this.extStandardDerivatives = true;
+      this.extTextureFloat = true;
+      this.extTextureHalfFloat = true;
+      this.extTextureHalfFloatLinear = true;
+      this.extTextureLod = true;
+      this.extUintElement = true;
+    } else {
+      this.extBlendMinmax = gl.getExtension("EXT_blend_minmax");
+      this.extDrawBuffers = gl.getExtension("EXT_draw_buffers");
+      this.extInstancing = gl.getExtension("ANGLE_instanced_arrays");
+      this.extStandardDerivatives = gl.getExtension("OES_standard_derivatives");
+      this.extTextureFloat = gl.getExtension("OES_texture_float");
+      this.extTextureHalfFloat = gl.getExtension("OES_texture_half_float");
+      this.extTextureHalfFloatLinear = gl.getExtension("OES_texture_half_float_linear");
+      this.extTextureLod = gl.getExtension("EXT_shader_texture_lod");
+      this.extUintElement = gl.getExtension("OES_element_index_uint");
+    }
+    this.extRendererInfo = gl.getExtension("WEBGL_debug_renderer_info");
+    this.extTextureFloatLinear = gl.getExtension("OES_texture_float_linear");
+    this.extColorBufferFloat = gl.getExtension("EXT_color_buffer_float");
+    this.extTextureFilterAnisotropic = gl.getExtension("EXT_texture_filter_anisotropic") || gl.getExtension("WEBKIT_EXT_texture_filter_anisotropic");
+    this.extCompressedTextureETC1 = gl.getExtension("WEBGL_compressed_texture_etc1");
+    this.extCompressedTexturePVRTC = gl.getExtension("WEBGL_compressed_texture_pvrtc") || gl.getExtension("WEBKIT_WEBGL_compressed_texture_pvrtc");
+    this.extCompressedTextureS3TC = gl.getExtension("WEBGL_compressed_texture_s3tc") || gl.getExtension("WEBKIT_WEBGL_compressed_texture_s3tc");
+    if (this.extCompressedTextureS3TC && _isIE()) {
+      this.extCompressedTextureS3TC = null;
+    }
+  }, initializeCapabilities:function() {
+    var gl = this.gl;
+    this.maxPrecision = this.precision = this.getPrecision();
+    var contextAttribs = gl.getContextAttributes();
+    this.supportsMsaa = contextAttribs.antialias;
+    this.supportsStencil = contextAttribs.stencil;
+    this.maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+    this.maxCubeMapSize = gl.getParameter(gl.MAX_CUBE_MAP_TEXTURE_SIZE);
+    this.maxRenderBufferSize = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE);
+    this.samplerCount = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
+    this.maxVertexTextures = gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS);
+    this.vertexUniformsCount = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS);
+    this.fragmentUniformsCount = gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS);
+    this.unmaskedRenderer = this.extRendererInfo ? gl.getParameter(this.extRendererInfo.UNMASKED_RENDERER_WEBGL) : "";
+    this.unmaskedVendor = this.extRendererInfo ? gl.getParameter(this.extRendererInfo.UNMASKED_VENDOR_WEBGL) : "";
+    if (this.webgl2) {
+      this.maxDrawBuffers = gl.getParameter(gl.MAX_DRAW_BUFFERS);
+      this.maxColorAttachments = gl.getParameter(gl.MAX_COLOR_ATTACHMENTS);
+      this.maxVolumeSize = gl.getParameter(gl.MAX_3D_TEXTURE_SIZE);
+    } else {
+      this.maxDrawBuffers = this.extDrawBuffers ? gl.getParameter(this.extDrawBuffers.MAX_DRAW_BUFFERS_EXT) : 1;
+      this.maxColorAttachments = this.extDrawBuffers ? gl.getParameter(this.extDrawBuffers.MAX_COLOR_ATTACHMENTS_EXT) : 1;
+      this.maxVolumeSize = 1;
+    }
+  }, initializeRenderState:function() {
+    var gl = this.gl;
+    this.blending = false;
+    gl.disable(gl.BLEND);
+    this.blendSrc = pc.BLENDMODE_ONE;
+    this.blendDst = pc.BLENDMODE_ZERO;
+    this.blendSrcAlpha = pc.BLENDMODE_ONE;
+    this.blendDstAlpha = pc.BLENDMODE_ZERO;
+    this.separateAlphaBlend = false;
+    this.blendEquation = pc.BLENDEQUATION_ADD;
+    this.blendAlphaEquation = pc.BLENDEQUATION_ADD;
+    this.separateAlphaEquation = false;
+    gl.blendFunc(gl.ONE, gl.ZERO);
+    gl.blendEquation(gl.FUNC_ADD);
+    this.writeRed = true;
+    this.writeGreen = true;
+    this.writeBlue = true;
+    this.writeAlpha = true;
+    gl.colorMask(true, true, true, true);
+    this.cullMode = pc.CULLFACE_BACK;
+    gl.enable(gl.CULL_FACE);
+    gl.cullFace(gl.BACK);
+    this.depthTest = true;
+    gl.enable(gl.DEPTH_TEST);
+    this.depthFunc = pc.FUNC_LESSEQUAL;
+    gl.depthFunc(gl.LEQUAL);
+    this.depthWrite = true;
+    gl.depthMask(true);
+    this.stencil = false;
+    gl.disable(gl.STENCIL_TEST);
+    this.stencilFuncFront = this.stencilFuncBack = pc.FUNC_ALWAYS;
+    this.stencilRefFront = this.stencilRefBack = 0;
+    this.stencilMaskFront = this.stencilMaskBack = 255;
+    gl.stencilFunc(gl.ALWAYS, 0, 255);
+    this.stencilFailFront = this.stencilFailBack = pc.STENCILOP_KEEP;
+    this.stencilZfailFront = this.stencilZfailBack = pc.STENCILOP_KEEP;
+    this.stencilZpassFront = this.stencilZpassBack = pc.STENCILOP_KEEP;
+    this.stencilWriteMaskFront = 255;
+    this.stencilWriteMaskBack = 255;
+    gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
+    gl.stencilMask(255);
+    this.alphaToCoverage = false;
+    if (this.webgl2) {
+      gl.disable(gl.SAMPLE_ALPHA_TO_COVERAGE);
+      gl.disable(gl.RASTERIZER_DISCARD);
+    }
+    this.raster = true;
+    this.depthBiasEnabled = false;
+    gl.disable(gl.POLYGON_OFFSET_FILL);
+    this.clearDepth = 1;
+    gl.clearDepth(1);
+    this.clearRed = 0;
+    this.clearBlue = 0;
+    this.clearGreen = 0;
+    this.clearAlpha = 0;
+    gl.clearColor(0, 0, 0, 0);
+    this.clearStencil = 0;
+    gl.clearStencil(0);
+    this.vx = this.vy = this.vw = this.vh = 0;
+    this.sx = this.sy = this.sw = this.sh = 0;
+    if (this.webgl2) {
+      gl.hint(gl.FRAGMENT_SHADER_DERIVATIVE_HINT, gl.NICEST);
+    } else {
+      if (this.extStandardDerivatives) {
+        gl.hint(this.extStandardDerivatives.FRAGMENT_SHADER_DERIVATIVE_HINT_OES, gl.NICEST);
+      }
+    }
+    gl.enable(gl.SCISSOR_TEST);
+    gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+  }, initializeContext:function() {
+    this.initializeExtensions();
+    this.initializeCapabilities();
+    this.initializeRenderState();
+    var i, len;
+    for (i = 0, len = this.shaders.length;i < len;i++) {
+      this.shaders[i].compile();
+    }
+    this.shader = null;
+    for (i = 0, len = this.buffers.length;i < len;i++) {
+      this.buffers[i].bufferId = undefined;
+      this.buffers[i].unlock();
+    }
+    this.boundBuffer = null;
+    this.indexBuffer = null;
+    this.attributesInvalidated = true;
+    this.enabledAttributes = {};
+    this.vertexBuffers = [];
+    for (i = 0, len = this.textures.length;i < len;i++) {
+      var texture = this.textures[i];
+      texture.dirtyAll();
+    }
+    this.activeTexture = 0;
+    this.textureUnits = [];
+    for (i = 0, len = this.targets.length;i < len;i++) {
+      this.targets[i]._glFrameBuffer = undefined;
+      this.targets[i]._glDepthBuffer = undefined;
+      this.targets[i]._glResolveFrameBuffer = undefined;
+      this.targets[i]._glMsaaColorBuffer = undefined;
+      this.targets[i]._glMsaaDepthBuffer = undefined;
+    }
+    this.renderTarget = null;
+    this.activeFramebuffer = null;
+    this.feedback = null;
+    this.transformFeedbackBuffer = null;
+  }, updateClientRect:function() {
     this.clientRect = this.canvas.getBoundingClientRect();
   }, setViewport:function(x, y, w, h) {
     if (this.vx !== x || this.vy !== y || this.vw !== w || this.vh !== h) {
@@ -4897,16 +4972,21 @@ pc.extend(pc, function() {
     }
   }, copyRenderTarget:function(source, dest, color, depth) {
     var gl = this.gl;
-    var shaderCopy = false;
     if (!this.webgl2 && depth) {
       return false;
     }
     if (color) {
-      if (!source._colorBuffer || !dest._colorBuffer) {
-        return false;
-      }
-      if (source._colorBuffer._format !== dest._colorBuffer._format) {
-        return false;
+      if (!dest) {
+        if (!source._colorBuffer) {
+          return false;
+        }
+      } else {
+        if (!source._colorBuffer || !dest._colorBuffer) {
+          return false;
+        }
+        if (source._colorBuffer._format !== dest._colorBuffer._format) {
+          return false;
+        }
       }
     }
     if (depth) {
@@ -4917,7 +4997,7 @@ pc.extend(pc, function() {
         return false;
       }
     }
-    if (this.webgl2) {
+    if (this.webgl2 && dest) {
       var prevRt = this.renderTarget;
       this.renderTarget = dest;
       this.updateBegin();
@@ -5013,6 +5093,7 @@ pc.extend(pc, function() {
             }
           }
         }
+        this.targets.push(target);
       } else {
         this.setFramebuffer(target._glFrameBuffer);
       }
@@ -5073,12 +5154,12 @@ pc.extend(pc, function() {
         break;
       case pc.PIXELFORMAT_R8_G8_B8:
         texture._glFormat = gl.RGB;
-        texture._glInternalFormat = gl.RGB;
+        texture._glInternalFormat = this.webgl2 ? gl.RGB8 : gl.RGB;
         texture._glPixelType = gl.UNSIGNED_BYTE;
         break;
       case pc.PIXELFORMAT_R8_G8_B8_A8:
         texture._glFormat = gl.RGBA;
-        texture._glInternalFormat = gl.RGBA;
+        texture._glInternalFormat = this.webgl2 ? gl.RGBA8 : gl.RGBA;
         texture._glPixelType = gl.UNSIGNED_BYTE;
         break;
       case pc.PIXELFORMAT_DXT1:
@@ -5608,6 +5689,9 @@ pc.extend(pc, function() {
     if (this.webgl2) {
       var gl = this.gl;
       if (tf) {
+        if (!this.feedback) {
+          this.feedback = gl.createTransformFeedback();
+        }
         gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, this.feedback);
       } else {
         gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
@@ -5884,7 +5968,7 @@ pc.extend(pc, function() {
 }());
 pc.extend(pc, function() {
   var shaderChunks = {};
-  var attrib2Semantic = {vertex_position:pc.SEMANTIC_POSITION, vertex_normal:pc.SEMANTIC_NORMAL, vertex_tangent:pc.SEMANTIC_TANGENT, vertex_texCoord0:pc.SEMANTIC_TEXCOORD0, vertex_texCoord1:pc.SEMANTIC_TEXCOORD1, vertex_texCoord2:pc.SEMANTIC_TEXCOORD2, vertex_texCoord3:pc.SEMANTIC_TEXCOORD3, vertex_texCoord4:pc.SEMANTIC_TEXCOORD4, vertex_texCoord5:pc.SEMANTIC_TEXCOORD5, vertex_texCoord6:pc.SEMANTIC_TEXCOORD6, vertex_texCoord7:pc.SEMANTIC_TEXCOORD7, vertex_color:pc.SEMANTIC_COLOR, vertex_boneIndices:pc.SEMANTIC_BLENDINDICES,
+  var attrib2Semantic = {vertex_position:pc.SEMANTIC_POSITION, vertex_normal:pc.SEMANTIC_NORMAL, vertex_tangent:pc.SEMANTIC_TANGENT, vertex_texCoord0:pc.SEMANTIC_TEXCOORD0, vertex_texCoord1:pc.SEMANTIC_TEXCOORD1, vertex_texCoord2:pc.SEMANTIC_TEXCOORD2, vertex_texCoord3:pc.SEMANTIC_TEXCOORD3, vertex_texCoord4:pc.SEMANTIC_TEXCOORD4, vertex_texCoord5:pc.SEMANTIC_TEXCOORD5, vertex_texCoord6:pc.SEMANTIC_TEXCOORD6, vertex_texCoord7:pc.SEMANTIC_TEXCOORD7, vertex_color:pc.SEMANTIC_COLOR, vertex_boneIndices:pc.SEMANTIC_BLENDINDICES, 
   vertex_boneWeights:pc.SEMANTIC_BLENDWEIGHT};
   shaderChunks.collectAttribs = function(vsCode) {
     var attribs = {};
@@ -5958,8 +6042,8 @@ pc.extend(pc, function() {
     var x, y, w, h;
     var sx, sy, sw, sh;
     if (!rect) {
-      w = target !== null ? target.width : device.width;
-      h = target !== null ? target.height : device.height;
+      w = target ? target.width : device.width;
+      h = target ? target.height : device.height;
       x = 0;
       y = 0;
     } else {
@@ -6006,11 +6090,6 @@ pc.extend(pc, function() {
   return {drawQuadWithShader:drawQuadWithShader, destroyPostEffectQuad:destroyPostEffectQuad};
 }());
 pc.extend(pc, function() {
-  function fixChrome() {
-    var endTime = Date.now() + 10;
-    while (Date.now() < endTime) {
-    }
-  }
   function syncToCpu(device, targ, face) {
     var tex = targ._colorBuffer;
     if (tex.format != pc.PIXELFORMAT_R8_G8_B8_A8) {
@@ -6034,7 +6113,6 @@ pc.extend(pc, function() {
     var method = options.method;
     var samples = options.samples;
     var cpuSync = options.cpuSync;
-    var chromeFix = options.chromeFix;
     if (cpuSync && !sourceCubemap._levels[0]) {
       console.error("ERROR: prefilter: cubemap must have _levels");
       return;
@@ -6069,9 +6147,6 @@ pc.extend(pc, function() {
         params.y = 0;
         constantTexSource.setValue(sourceCubemap);
         constantParams.setValue(params.data);
-        if (chromeFix) {
-          fixChrome();
-        }
         pc.drawQuadWithShader(device, targ, shader2);
         syncToCpu(device, targ, face);
       }
@@ -6093,9 +6168,6 @@ pc.extend(pc, function() {
           params.w = rgbmSource ? 3 : 0;
           constantTexSource.setValue(sourceCubemap);
           constantParams.setValue(params.data);
-          if (chromeFix) {
-            fixChrome();
-          }
           pc.drawQuadWithShader(device, targ, shader2);
           if (i === steps - 1 && cpuSync) {
             syncToCpu(device, targ, face);
@@ -6114,9 +6186,6 @@ pc.extend(pc, function() {
         params.w = 2;
         constantTexSource.setValue(sourceCubemap);
         constantParams.setValue(params.data);
-        if (chromeFix) {
-          fixChrome();
-        }
         pc.drawQuadWithShader(device, targ, shader2);
         syncToCpu(device, targ, face);
       }
@@ -6147,9 +6216,6 @@ pc.extend(pc, function() {
             params.w = rgbmSource ? 3 : pass;
             constantTexSource.setValue(i === 0 ? sourceCubemap : method === 0 ? cmapsList[0][i - 1] : cmapsList[-1][i - 1]);
             constantParams.setValue(params.data);
-            if (chromeFix) {
-              fixChrome();
-            }
             pc.drawQuadWithShader(device, targ, shader);
             if (cpuSync) {
               syncToCpu(device, targ, face);
@@ -6417,7 +6483,7 @@ pc.shaderChunks.TBNfastPS = "void getTBN() {\n    dTBN = mat3(dTangentW, dBinorm
 pc.shaderChunks.alphaTestPS = "uniform float alpha_ref;\nvoid alphaTest(float a) {\n    if (a < alpha_ref) discard;\n}\n";
 pc.shaderChunks.ambientConstantPS = "\nvoid addAmbient() {\n    dDiffuseLight += light_globalAmbient;\n}\n";
 pc.shaderChunks.ambientPrefilteredCubePS = "#ifndef PMREM4\n#define PMREM4\nuniform samplerCube texture_prefilteredCubeMap4;\n#endif\nvoid addAmbient() {\n    vec3 fixedReflDir = fixSeamsStatic(dNormalW, 1.0 - 1.0 / 4.0);\n    fixedReflDir.x *= -1.0;\n    dDiffuseLight += processEnvironment($DECODE(textureCube(texture_prefilteredCubeMap4, fixedReflDir)).rgb);\n}\n";
-pc.shaderChunks.ambientPrefilteredCubeLodPS = "#ifndef PMREM4\n#define PMREM4\nuniform samplerCube texture_prefilteredCubeMap128;\n#endif\nvoid addAmbient() {\n    vec3 fixedReflDir = fixSeamsStatic(dNormalW, 1.0 - 1.0 / 4.0);\n    fixedReflDir.x *= -1.0;\n    dDiffuseLight += processEnvironment($DECODE( textureCubeLodEXT(texture_prefilteredCubeMap128, fixedReflDir, 5.0) ).rgb);\n}\n";
+pc.shaderChunks.ambientPrefilteredCubeLodPS = "#ifndef PMREM4\n#define PMREM4\n#extension GL_EXT_shader_texture_lod : enable\nuniform samplerCube texture_prefilteredCubeMap128;\n#endif\nvoid addAmbient() {\n    vec3 fixedReflDir = fixSeamsStatic(dNormalW, 1.0 - 1.0 / 4.0);\n    fixedReflDir.x *= -1.0;\n    dDiffuseLight += processEnvironment($DECODE( textureCubeLodEXT(texture_prefilteredCubeMap128, fixedReflDir, 5.0) ).rgb);\n}\n";
 pc.shaderChunks.ambientSHPS = "uniform vec3 ambientSH[9];\nvoid addAmbient() {\n    vec3 n = dNormalW;\n    vec3 color =\n                        ambientSH[0] +\n                        ambientSH[1] * n.x +\n                        ambientSH[2] * n.y +\n                        ambientSH[3] * n.z +\n                        ambientSH[4] * n.x * n.z +\n                        ambientSH[5] * n.z * n.y +\n                        ambientSH[6] * n.y * n.x +\n                        ambientSH[7] * (3.0 * n.z * n.z - 1.0) +\n                        ambientSH[8] * (n.x * n.x - n.y * n.y);\n    dDiffuseLight += processEnvironment(max(color, vec3(0.0)));\n}\n";
 pc.shaderChunks.aoPS = "#ifdef MAPTEXTURE\nuniform sampler2D texture_aoMap;\n#endif\nvoid applyAO() {\n    dAo = 1.0;\n    #ifdef MAPTEXTURE\n        dAo *= texture2D(texture_aoMap, $UV).$CH;\n    #endif\n    #ifdef MAPVERTEX\n        dAo *= saturate(vVertexColor.$VC);\n    #endif\n    dDiffuseLight *= dAo;\n}\n";
 pc.shaderChunks.aoSpecOccPS = "uniform float material_occludeSpecularIntensity;\nvoid occludeSpecular() {\n    // approximated specular occlusion from AO\n    float specPow = exp2(dGlossiness * 11.0);\n    // http://research.tri-ace.com/Data/cedec2011_RealtimePBR_Implementation_e.pptx\n    float specOcc = saturate(pow(dot(dNormalW, dViewDirW) + dAo, 0.01*specPow) - 1.0 + dAo);\n    specOcc = mix(1.0, specOcc, material_occludeSpecularIntensity);\n    dSpecularLight *= specOcc;\n    dReflection *= specOcc;\n}\n";
@@ -6459,11 +6525,11 @@ pc.shaderChunks.fogNonePS = "vec3 addFog(vec3 color) {\n    return color;\n}\n";
 pc.shaderChunks.fresnelSchlickPS = "// Schlick's approximation\nuniform float material_fresnelFactor; // unused\nvoid getFresnel() {\n    float fresnel = 1.0 - max(dot(dNormalW, dViewDirW), 0.0);\n    float fresnel2 = fresnel * fresnel;\n    fresnel *= fresnel2 * fresnel2;\n    fresnel *= dGlossiness * dGlossiness;\n    dSpecularity = dSpecularity + (1.0 - dSpecularity) * fresnel;\n}\n";
 pc.shaderChunks.fullscreenQuadPS = "varying vec2 vUv0;\nuniform sampler2D source;\nvoid main(void) {\n    gl_FragColor = texture2D(source, vUv0);\n}\n";
 pc.shaderChunks.fullscreenQuadVS = "attribute vec2 vertex_position;\nvarying vec2 vUv0;\nvoid main(void)\n{\n    gl_Position = vec4(vertex_position, 0.5, 1.0);\n    vUv0 = vertex_position.xy*0.5+0.5;\n}\n";
-pc.shaderChunks.gamma1_0PS = "vec4 texture2DSRGB(sampler2D tex, vec2 uv) {\n    return texture2D(tex, uv);\n}\nvec4 textureCubeSRGB(samplerCube tex, vec3 uvw) {\n    return textureCube(tex, uvw);\n}\nvec3 gammaCorrectOutput(vec3 color) {\n    return color;\n}\nvec3 gammaCorrectInput(vec3 color) {\n    return color;\n}\nfloat gammaCorrectInput(float color) {\n    return color;\n}\nvec4 gammaCorrectInput(vec4 color) {\n    return color;\n}\n";
-pc.shaderChunks.gamma2_2PS = "vec3 gammaCorrectInput(vec3 color) {\n    return pow(color, vec3(2.2));\n}\nfloat gammaCorrectInput(float color) {\n    return pow(color, 2.2);\n}\nvec4 gammaCorrectInput(vec4 color) {\n    return vec4(pow(color.rgb, vec3(2.2)), color.a);\n}\nvec4 texture2DSRGB(sampler2D tex, vec2 uv) {\n    vec4 rgba = texture2D(tex, uv);\n    rgba.rgb = gammaCorrectInput(rgba.rgb);\n    return rgba;\n}\nvec4 textureCubeSRGB(samplerCube tex, vec3 uvw) {\n    vec4 rgba = textureCube(tex, uvw);\n    rgba.rgb = gammaCorrectInput(rgba.rgb);\n    return rgba;\n}\nvec3 gammaCorrectOutput(vec3 color) {\n#ifdef HDR\n    return color;\n#else\n    color += vec3(0.0000001);\n    return pow(color, vec3(0.45));\n#endif\n}\n";
+pc.shaderChunks.gamma1_0PS = "vec4 texture2DSRGB(sampler2D tex, vec2 uv) {\n    return texture2D(tex, uv);\n}\nvec4 texture2DSRGB(sampler2D tex, vec2 uv, float bias) {\n    return texture2D(tex, uv, bias);\n}\nvec4 textureCubeSRGB(samplerCube tex, vec3 uvw) {\n    return textureCube(tex, uvw);\n}\nvec3 gammaCorrectOutput(vec3 color) {\n    return color;\n}\nvec3 gammaCorrectInput(vec3 color) {\n    return color;\n}\nfloat gammaCorrectInput(float color) {\n    return color;\n}\nvec4 gammaCorrectInput(vec4 color) {\n    return color;\n}\n";
+pc.shaderChunks.gamma2_2PS = "vec3 gammaCorrectInput(vec3 color) {\n    return pow(color, vec3(2.2));\n}\nfloat gammaCorrectInput(float color) {\n    return pow(color, 2.2);\n}\nvec4 gammaCorrectInput(vec4 color) {\n    return vec4(pow(color.rgb, vec3(2.2)), color.a);\n}\nvec4 texture2DSRGB(sampler2D tex, vec2 uv) {\n    vec4 rgba = texture2D(tex, uv);\n    rgba.rgb = gammaCorrectInput(rgba.rgb);\n    return rgba;\n}\nvec4 texture2DSRGB(sampler2D tex, vec2 uv, float bias) {\n    vec4 rgba = texture2D(tex, uv, bias);\n    rgba.rgb = gammaCorrectInput(rgba.rgb);\n    return rgba;\n}\nvec4 textureCubeSRGB(samplerCube tex, vec3 uvw) {\n    vec4 rgba = textureCube(tex, uvw);\n    rgba.rgb = gammaCorrectInput(rgba.rgb);\n    return rgba;\n}\nvec3 gammaCorrectOutput(vec3 color) {\n#ifdef HDR\n    return color;\n#else\n    color += vec3(0.0000001);\n    return pow(color, vec3(0.45));\n#endif\n}\n";
 pc.shaderChunks.genParaboloidPS = "varying vec2 vUv0;\nuniform samplerCube source;\nuniform vec4 params; // x = mip\nvoid main(void) {\n    vec2 uv = vUv0;\n    float side = uv.x < 0.5? 1.0 : -1.0;\n    vec2 tc;\n    tc.x = fract(uv.x * 2.0) * 2.0 - 1.0;\n    tc.y = uv.y * 2.0 - 1.0;\n    // scale projection a bit to have a little overlap for filtering\n    const float scale = 1.1;\n    tc *= scale;\n    vec3 dir;\n    dir.y = (dot(tc, tc) - 1.0) * side; // from 1.0 center to 0.0 borders quadratically\n    dir.xz = tc * -2.0;\n    dir.x *= -side * params.y; // flip original cubemap x instead of doing it at runtime\n    dir = fixSeams(dir, params.x);\n    vec4 color = textureCube(source, dir, -100.0);\n    gl_FragColor = color;\n}\n";
 pc.shaderChunks.gles3PS = "#define varying in\nout highp vec4 pc_fragColor;\n#define gl_FragColor pc_fragColor\n#define texture2D texture\n#define textureCube texture\n#define texture2DProj textureProj\n#define texture2DLodEXT textureLod\n#define texture2DProjLodEXT textureProjLod\n#define textureCubeLodEXT textureLod\n#define texture2DGradEXT textureGrad\n#define texture2DProjGradEXT textureProjGrad\n#define textureCubeGradEXT textureGrad\n#define GL2\n";
-pc.shaderChunks.gles3VS = "#define attribute in\n#define varying out\n#define texture2D texture\n#define GL2\n";
+pc.shaderChunks.gles3VS = "#define attribute in\n#define varying out\n#define texture2D texture\n#define GL2\n#define VERTEXSHADER\n";
 pc.shaderChunks.glossPS = "#ifdef MAPFLOAT\nuniform float material_shininess;\n#endif\n#ifdef MAPTEXTURE\nuniform sampler2D texture_glossMap;\n#endif\nvoid getGlossiness() {\n    dGlossiness = 1.0;\n    #ifdef MAPFLOAT\n        dGlossiness *= material_shininess;\n    #endif\n    #ifdef MAPTEXTURE\n        dGlossiness *= texture2D(texture_glossMap, $UV).$CH;\n    #endif\n    #ifdef MAPVERTEX\n        dGlossiness *= saturate(vVertexColor.$VC);\n    #endif\n    dGlossiness += 0.0000001;\n}\n";
 pc.shaderChunks.instancingVS = "\nattribute vec4 instance_line1;\nattribute vec4 instance_line2;\nattribute vec4 instance_line3;\nattribute vec4 instance_line4;\n";
 pc.shaderChunks.lightDiffuseLambertPS = "float getLightDiffuse() {\n    return max(dot(dNormalW, -dLightDirNormW), 0.0);\n}\n";
@@ -6475,7 +6541,7 @@ pc.shaderChunks.lightmapSinglePS = "#ifdef MAPTEXTURE\nuniform sampler2D texture
 pc.shaderChunks.lightmapSingleVertPS = "void addLightMap() {\n    dDiffuseLight += saturate(vVertexColor.$CH);\n}\n";
 pc.shaderChunks.metalnessPS = "void processMetalness(float metalness) {\n    const float dielectricF0 = 0.04;\n    dSpecularity = mix(vec3(dielectricF0), dAlbedo, metalness);\n    dAlbedo *= 1.0 - metalness;\n}\n#ifdef MAPFLOAT\nuniform float material_metalness;\n#endif\n#ifdef MAPTEXTURE\nuniform sampler2D texture_metalnessMap;\n#endif\nvoid getSpecularity() {\n    float metalness = 1.0;\n    #ifdef MAPFLOAT\n        metalness *= material_metalness;\n    #endif\n    #ifdef MAPTEXTURE\n        metalness *= texture2D(texture_metalnessMap, $UV).$CH;\n    #endif\n    #ifdef MAPVERTEX\n        metalness *= saturate(vVertexColor.$VC);\n    #endif\n    processMetalness(metalness);\n}\n";
 pc.shaderChunks.msdfPS = "uniform sampler2D texture_msdfMap;\n#ifdef GL_OES_standard_derivatives\n#define USE_FWIDTH\n#endif\n#ifdef GL2\n#define USE_FWIDTH\n#endif\nfloat median(float r, float g, float b) {\n    return max(min(r, g), min(max(r, g), b));\n}\nfloat map (float min, float max, float v) {\n    return (v - min) / (max - min);\n}\n// msdf way\n// vec4 applyMsdf(vec4 color) {\n//     vec3 tsample = texture(texture_msdfMap, vUv0).rgb;\n   \n//     // separate\n//     vec2 msdfUnit = 4.0 / vec2(512.0, 256.0);\n//     float sigDist = median(tsample.r, tsample.g, tsample.b) - 0.5;\n//     sigDist *= dot(msdfUnit, 0.5/fwidth(vUv0));\n//     float distance = clamp(sigDist + 0.5, 0.0, 1.0);\n//     return mix(vec4(0.0), color, distance);\n// }\nuniform float font_sdfIntensity; // intensity is used to boost the value read from the SDF, 0 is no boost, 1.0 is max boost\nuniform float font_pxrange;      // the number of pixels between inside and outside the font in SDF\nuniform float font_textureWidth; // the width of the texture atlas\nvec4 applyMsdf(vec4 color) {\n    float font_size = 16.0; // TODO fix this\n    // sample the field\n    vec3 tsample = texture2D(texture_msdfMap, vUv0).rgb;\n    // get the signed distance value\n    float sigDist = median(tsample.r, tsample.g, tsample.b);\n    #ifdef USE_FWIDTH\n        // smoothing depends on size of texture on screen\n        vec2 w = fwidth(vUv0);\n        float smoothing = clamp(map(0.0, 2.0 * font_pxrange / font_textureWidth, w.x), 0.0, 0.5);\n    #else\n        // smoothing gets smaller as the font size gets bigger\n        // don't have fwidth we can approximate from font size, this doesn't account for scaling\n        // so a big font scaled down will be wrong...\n        float smoothing = clamp(2.0 * font_pxrange / font_size, 0.0, 0.5);\n        // for small fonts we remap the distance field to intensify it\n        // float mapMin = 0.05;\n        // float mapMax = clamp(((font_size * 0.4 / 40.0) + 0.52), mapMin, 1.0);\n    #endif\n    float mapMin = 0.05;\n    float mapMax = clamp(1.0 - font_sdfIntensity, mapMin, 1.0);\n    \n    // remap to a smaller range (used on smaller font sizes)\n    sigDist = map(mapMin, mapMax, sigDist);\n    float center = 0.5;\n    // calculate smoothing and use to generate opacity\n    // float smoothing = clamp(font_smoothing * (1.0-roy), 0.0, center);\n    float opacity = smoothstep(center-smoothing, center+smoothing, sigDist);\n    // return final color\n    return mix(vec4(0.0), color, opacity);\n}";
-pc.shaderChunks.normalVS = "vec3 getNormal() {\n    dNormalMatrix = matrix_normal;\n    return normalize(dNormalMatrix * vertex_normal);\n}\n";
+pc.shaderChunks.normalVS = "vec3 getNormal() {\n    #ifdef SKIN\n        dNormalMatrix = mat3(dModelMatrix[0].xyz, dModelMatrix[1].xyz, dModelMatrix[2].xyz);\n    #elif defined(INSTANCING)\n        dNormalMatrix = mat3(instance_line1.xyz, instance_line2.xyz, instance_line3.xyz);\n    #else\n        dNormalMatrix = matrix_normal;\n    #endif\n    return normalize(dNormalMatrix * vertex_normal);\n}\n";
 pc.shaderChunks.normalInstancedVS = "vec3 getNormal() {\n    dNormalMatrix = mat3(instance_line1.xyz, instance_line2.xyz, instance_line3.xyz);\n    return normalize(dNormalMatrix * vertex_normal);\n}\n";
 pc.shaderChunks.normalMapPS = "uniform sampler2D texture_normalMap;\nuniform float material_bumpiness;\nvoid getNormal() {\n    vec3 normalMap = unpackNormal(texture2D(texture_normalMap, $UV));\n    dNormalMap = normalMap;\n    dNormalW = dTBN * normalMap;\n}\n";
 pc.shaderChunks.normalMapFloatPS = "uniform sampler2D texture_normalMap;\nuniform float material_bumpiness;\nvoid getNormal() {\n    vec3 normalMap = unpackNormal(texture2D(texture_normalMap, $UV));\n    dNormalMap = normalMap;\n    normalMap = normalize(mix(vec3(0.0, 0.0, 1.0), normalMap, material_bumpiness));\n    dNormalW = dTBN * normalMap;\n}\n";
@@ -6493,7 +6559,7 @@ pc.shaderChunks.outputTex2DPS = "varying vec2 vUv0;\nuniform sampler2D source;\n
 pc.shaderChunks.packDepthPS = "// Packing a float in GLSL with multiplication and mod\n// http://blog.gradientstudios.com/2012/08/23/shadow-map-improvement\nvec4 packFloat(float depth) {\n    const vec4 bit_shift = vec4(256.0 * 256.0 * 256.0, 256.0 * 256.0, 256.0, 1.0);\n    const vec4 bit_mask  = vec4(0.0, 1.0 / 256.0, 1.0 / 256.0, 1.0 / 256.0);\n    // combination of mod and multiplication and division works better\n    vec4 res = mod(depth * bit_shift * vec4(255), vec4(256) ) / vec4(255);\n    res -= res.xxyz * bit_mask;\n    return res;\n}\n";
 pc.shaderChunks.packDepthMaskPS = "vec4 packFloat(float depth) {\n    const vec4 bit_shift = vec4(256.0 * 256.0 * 256.0, 256.0 * 256.0, 256.0, 1.0);\n    const vec4 bit_mask  = vec4(0.0, 1.0 / 256.0, 1.0 / 256.0, 1.0 / 256.0);\n    // combination of mod and multiplication and division works better\n    vec4 res = mod(depth * bit_shift * vec4(255), vec4(256) ) / vec4(255);\n    res.x = 0.0;\n    res -= res.xxyz * bit_mask;\n    return res;\n}\n";
 pc.shaderChunks.parallaxPS = "uniform sampler2D texture_heightMap;\nuniform float material_heightMapFactor;\nvoid getParallax() {\n    float parallaxScale = material_heightMapFactor;\n    float height = texture2D(texture_heightMap, $UV).$CH;\n    height = height * parallaxScale - parallaxScale*0.5;\n    vec3 viewDirT = dViewDirW * dTBN;\n    viewDirT.z += 0.42;\n    dUvOffset = height * (viewDirT.xy / viewDirT.z);\n}\n";
-pc.shaderChunks.particlePS = "varying vec4 texCoordsAlphaLife;\nuniform sampler2D colorMap;\nuniform sampler2D internalTex3;\nuniform float graphSampleSize;\nuniform float graphNumSamples;\nuniform float camera_far;\nuniform float softening;\nuniform float colorMult;\nfloat saturate(float x) {\n    return clamp(x, 0.0, 1.0);\n}\nfloat unpackFloat(vec4 rgbaDepth) {\n    const vec4 bitShift = vec4(1.0 / (256.0 * 256.0 * 256.0), 1.0 / (256.0 * 256.0), 1.0 / 256.0, 1.0);\n    float depth = dot(rgbaDepth, bitShift);\n    return depth;\n}\nvoid main(void) {\n    vec4 tex         = texture2DSRGB(colorMap, texCoordsAlphaLife.xy);\n    vec4 ramp     = texture2DSRGB(internalTex3, vec2(texCoordsAlphaLife.w, 0.0));\n    ramp.rgb *= colorMult;\n    ramp.a += texCoordsAlphaLife.z;\n    vec3 rgb =     tex.rgb * ramp.rgb;\n    float a =         tex.a * ramp.a;\n";
+pc.shaderChunks.particlePS = "varying vec4 texCoordsAlphaLife;\nuniform sampler2D colorMap;\nuniform sampler2D internalTex3;\nuniform float graphSampleSize;\nuniform float graphNumSamples;\n#ifndef CAMERAPLANES\n#define CAMERAPLANES\nuniform vec4 camera_params;\n#endif\nuniform float softening;\nuniform float colorMult;\nfloat saturate(float x) {\n    return clamp(x, 0.0, 1.0);\n}\n#ifndef UNPACKFLOAT\n#define UNPACKFLOAT\nfloat unpackFloat(vec4 rgbaDepth) {\n    const vec4 bitShift = vec4(1.0 / (256.0 * 256.0 * 256.0), 1.0 / (256.0 * 256.0), 1.0 / 256.0, 1.0);\n    float depth = dot(rgbaDepth, bitShift);\n    return depth;\n}\n#endif\nvoid main(void) {\n    vec4 tex         = texture2DSRGB(colorMap, texCoordsAlphaLife.xy);\n    vec4 ramp     = texture2DSRGB(internalTex3, vec2(texCoordsAlphaLife.w, 0.0));\n    ramp.rgb *= colorMult;\n    ramp.a += texCoordsAlphaLife.z;\n    vec3 rgb =     tex.rgb * ramp.rgb;\n    float a =         tex.a * ramp.a;\n";
 pc.shaderChunks.particleVS = "\nvec3 unpack3NFloats(float src) {\n    float r = fract(src);\n    float g = fract(src * 256.0);\n    float b = fract(src * 65536.0);\n    return vec3(r, g, b);\n}\nfloat saturate(float x) {\n    return clamp(x, 0.0, 1.0);\n}\nvec4 tex1Dlod_lerp(sampler2D tex, vec2 tc) {\n    return mix( texture2D(tex,tc), texture2D(tex,tc + graphSampleSize), fract(tc.x*graphNumSamples) );\n}\nvec4 tex1Dlod_lerp(sampler2D tex, vec2 tc, out vec3 w) {\n    vec4 a = texture2D(tex,tc);\n    vec4 b = texture2D(tex,tc + graphSampleSize);\n    float c = fract(tc.x*graphNumSamples);\n    vec3 unpackedA = unpack3NFloats(a.w);\n    vec3 unpackedB = unpack3NFloats(b.w);\n    w = mix(unpackedA, unpackedB, c);\n    return mix(a, b, c);\n}\nvec2 rotate(vec2 quadXY, float pRotation, out mat2 rotMatrix) {\n    float c = cos(pRotation);\n    float s = sin(pRotation);\n    mat2 m = mat2(c, -s, s, c);\n    rotMatrix = m;\n    return m * quadXY;\n}\nvec3 billboard(vec3 InstanceCoords, vec2 quadXY) {\n    vec3 pos = -matrix_viewInverse[0].xyz * quadXY.x + -matrix_viewInverse[1].xyz * quadXY.y;\n    return pos;\n}\nvoid main(void) {\n    vec3 meshLocalPos = particle_vertexData.xyz;\n    float id = floor(particle_vertexData.w);\n    float rndFactor = fract(sin(id + 1.0 + seed));\n    vec3 rndFactor3 = vec3(rndFactor, fract(rndFactor*10.0), fract(rndFactor*100.0));\n    float uv = id / numParticlesPot;\n    readInput(uv);\n    vec2 velocityV = normalize((mat3(matrix_view) * inVel).xy); // should be removed by compiler if align/stretch is not used\n    float particleLifetime = lifetime;\n    if (inLife <= 0.0 || inLife > particleLifetime || !inShow) meshLocalPos = vec3(0.0);\n    vec2 quadXY = meshLocalPos.xy;\n    float nlife = clamp(inLife / particleLifetime, 0.0, 1.0);\n    vec3 paramDiv;\n    vec4 params = tex1Dlod_lerp(internalTex2, vec2(nlife, 0), paramDiv);\n    float scale = params.y;\n    float scaleDiv = paramDiv.x;\n    float alphaDiv = paramDiv.z;\n    scale += (scaleDiv * 2.0 - 1.0) * scaleDivMult * fract(rndFactor*10000.0);\n    texCoordsAlphaLife = vec4(quadXY * -0.5 + 0.5,    (alphaDiv * 2.0 - 1.0) * alphaDivMult * fract(rndFactor*1000.0),    nlife);\n    vec3 particlePos = inPos;\n    vec3 particlePosMoved = vec3(0.0);\n    mat2 rotMatrix;\n";
 pc.shaderChunks.particleAnimFrameClampVS = "\n    float animFrame = min(floor(texCoordsAlphaLife.w * animTexParams.z), animTexParams.w);\n";
 pc.shaderChunks.particleAnimFrameLoopVS = "\n    float animFrame = floor(texCoordsAlphaLife.w * animTexParams.z);\n";
@@ -6515,12 +6581,12 @@ pc.shaderChunks.particle_billboardVS = "\n    quadXY = rotate(quadXY, inAngle, r
 pc.shaderChunks.particle_blendAddPS = "\n    rgb *= saturate(gammaCorrectInput(a));\n    if ((rgb.r + rgb.g + rgb.b) < 0.000001) discard;\n";
 pc.shaderChunks.particle_blendMultiplyPS = "\n    rgb = mix(vec3(1.0), rgb, vec3(a));\n    if (rgb.r + rgb.g + rgb.b > 2.99) discard;\n";
 pc.shaderChunks.particle_blendNormalPS = "\n    if (a < 0.01) discard;\n";
-pc.shaderChunks.particle_cpuVS = "attribute vec4 particle_vertexData;     // XYZ = world pos, W = life\nattribute vec4 particle_vertexData2;     // X = angle, Y = scale, Z = alpha, W = velocity.x\nattribute vec4 particle_vertexData3;     // XYZ = particle local pos, W = velocity.y\nattribute vec2 particle_vertexData4;     // X = velocity.z, W = particle ID\nuniform mat4 matrix_viewProjection;\nuniform mat4 matrix_model;\nuniform mat4 matrix_view;\nuniform mat3 matrix_normal;\nuniform mat4 matrix_viewInverse;\nuniform float numParticles;\nuniform float lifetime;\nuniform float stretch;\n//uniform float graphSampleSize;\n//uniform float graphNumSamples;\nuniform vec3 wrapBounds, emitterScale;\nuniform sampler2D texLifeAndSourcePosOUT;\nuniform sampler2D internalTex0;\nuniform sampler2D internalTex1;\nuniform sampler2D internalTex2;\nuniform vec3 emitterPos;\nvarying vec4 texCoordsAlphaLife;\nvec2 rotate(vec2 quadXY, float pRotation, out mat2 rotMatrix)\n{\n    float c = cos(pRotation);\n    float s = sin(pRotation);\n    //vec4 rotationMatrix = vec4(c, -s, s, c);\n    mat2 m = mat2(c, -s, s, c);\n    rotMatrix = m;\n    return m * quadXY;\n}\nvec3 billboard(vec3 InstanceCoords, vec2 quadXY)\n{\n    vec3 pos = -matrix_viewInverse[0].xyz * quadXY.x + -matrix_viewInverse[1].xyz * quadXY.y;\n    return pos;\n}\nvoid main(void)\n{\n    vec3 particlePos = particle_vertexData.xyz;\n    vec3 inPos = particlePos;\n    vec3 vertPos = particle_vertexData3.xyz;\n    vec3 inVel = vec3(particle_vertexData2.w, particle_vertexData3.w, particle_vertexData4.x);\n    vec2 velocityV = normalize((mat3(matrix_view) * inVel).xy); // should be removed by compiler if align/stretch is not used\n    vec2 quadXY = vertPos.xy;\n    texCoordsAlphaLife = vec4(quadXY * -0.5 + 0.5, particle_vertexData2.z, particle_vertexData.w);\n    mat2 rotMatrix;\n    float inAngle = particle_vertexData2.x;\n    vec3 particlePosMoved = vec3(0.0);\n    vec3 meshLocalPos = particle_vertexData3.xyz;\n";
+pc.shaderChunks.particle_cpuVS = "attribute vec4 particle_vertexData;     // XYZ = world pos, W = life\nattribute vec4 particle_vertexData2;     // X = angle, Y = scale, Z = alpha, W = velocity.x\nattribute vec4 particle_vertexData3;     // XYZ = particle local pos, W = velocity.y\nattribute vec2 particle_vertexData4;     // X = velocity.z, W = particle ID\nuniform mat4 matrix_viewProjection;\nuniform mat4 matrix_model;\n#ifndef VIEWMATRIX\n#define VIEWMATRIX\nuniform mat4 matrix_view;\n#endif\nuniform mat3 matrix_normal;\nuniform mat4 matrix_viewInverse;\nuniform float numParticles;\nuniform float lifetime;\nuniform float stretch;\n//uniform float graphSampleSize;\n//uniform float graphNumSamples;\nuniform vec3 wrapBounds, emitterScale;\nuniform sampler2D texLifeAndSourcePosOUT;\nuniform sampler2D internalTex0;\nuniform sampler2D internalTex1;\nuniform sampler2D internalTex2;\nuniform vec3 emitterPos;\nvarying vec4 texCoordsAlphaLife;\nvec2 rotate(vec2 quadXY, float pRotation, out mat2 rotMatrix)\n{\n    float c = cos(pRotation);\n    float s = sin(pRotation);\n    //vec4 rotationMatrix = vec4(c, -s, s, c);\n    mat2 m = mat2(c, -s, s, c);\n    rotMatrix = m;\n    return m * quadXY;\n}\nvec3 billboard(vec3 InstanceCoords, vec2 quadXY)\n{\n    vec3 pos = -matrix_viewInverse[0].xyz * quadXY.x + -matrix_viewInverse[1].xyz * quadXY.y;\n    return pos;\n}\nvoid main(void)\n{\n    vec3 particlePos = particle_vertexData.xyz;\n    vec3 inPos = particlePos;\n    vec3 vertPos = particle_vertexData3.xyz;\n    vec3 inVel = vec3(particle_vertexData2.w, particle_vertexData3.w, particle_vertexData4.x);\n    vec2 velocityV = normalize((mat3(matrix_view) * inVel).xy); // should be removed by compiler if align/stretch is not used\n    vec2 quadXY = vertPos.xy;\n    texCoordsAlphaLife = vec4(quadXY * -0.5 + 0.5, particle_vertexData2.z, particle_vertexData.w);\n    mat2 rotMatrix;\n    float inAngle = particle_vertexData2.x;\n    vec3 particlePosMoved = vec3(0.0);\n    vec3 meshLocalPos = particle_vertexData3.xyz;\n";
 pc.shaderChunks.particle_cpu_endVS = "\n    localPos *= particle_vertexData2.y * emitterScale;\n    localPos += particlePos;\n    gl_Position = matrix_viewProjection * vec4(localPos, 1.0);\n";
 pc.shaderChunks.particle_endPS = "    rgb = addFog(rgb);\n    rgb = toneMap(rgb);\n    rgb = gammaCorrectOutput(rgb);\n    gl_FragColor = vec4(rgb, a);\n}\n";
 pc.shaderChunks.particle_endVS = "\n    localPos *= scale * emitterScale;\n    localPos += particlePos;\n    gl_Position = matrix_viewProjection * vec4(localPos.xyz, 1.0);\n";
 pc.shaderChunks.particle_halflambertPS = "\n    vec3 negNormal = normal*0.5+0.5;\n    vec3 posNormal = -normal*0.5+0.5;\n    negNormal *= negNormal;\n    posNormal *= posNormal;\n";
-pc.shaderChunks.particle_initVS = "attribute vec4 particle_vertexData; // XYZ = particle position, W = particle ID + random factor\nuniform mat4 matrix_viewProjection;\nuniform mat4 matrix_model;\nuniform mat3 matrix_normal;\nuniform mat4 matrix_viewInverse;\nuniform mat4 matrix_view;\nuniform float numParticles, numParticlesPot;\nuniform float graphSampleSize;\nuniform float graphNumSamples;\nuniform float stretch;\nuniform vec3 wrapBounds;\nuniform vec3 emitterScale, emitterPos;\nuniform float rate, rateDiv, lifetime, deltaRandomnessStatic, scaleDivMult, alphaDivMult, seed, delta;\nuniform sampler2D particleTexOUT, particleTexIN;\nuniform sampler2D internalTex0;\nuniform sampler2D internalTex1;\nuniform sampler2D internalTex2;\nvarying vec4 texCoordsAlphaLife;\nvec3 inPos;\nvec3 inVel;\nfloat inAngle;\nbool inShow;\nfloat inLife;\n";
+pc.shaderChunks.particle_initVS = "attribute vec4 particle_vertexData; // XYZ = particle position, W = particle ID + random factor\nuniform mat4 matrix_viewProjection;\nuniform mat4 matrix_model;\nuniform mat3 matrix_normal;\nuniform mat4 matrix_viewInverse;\n#ifndef VIEWMATRIX\n#define VIEWMATRIX\nuniform mat4 matrix_view;\n#endif\nuniform float numParticles, numParticlesPot;\nuniform float graphSampleSize;\nuniform float graphNumSamples;\nuniform float stretch;\nuniform vec3 wrapBounds;\nuniform vec3 emitterScale, emitterPos;\nuniform float rate, rateDiv, lifetime, deltaRandomnessStatic, scaleDivMult, alphaDivMult, seed, delta;\nuniform sampler2D particleTexOUT, particleTexIN;\nuniform sampler2D internalTex0;\nuniform sampler2D internalTex1;\nuniform sampler2D internalTex2;\n#ifndef CAMERAPLANES\n#define CAMERAPLANES\nuniform vec4 camera_params;\n#endif\nvarying vec4 texCoordsAlphaLife;\nvec3 inPos;\nvec3 inVel;\nfloat inAngle;\nbool inShow;\nfloat inLife;\n";
 pc.shaderChunks.particle_lambertPS = "\n    vec3 negNormal = max(normal, vec3(0.0));\n    vec3 posNormal = max(-normal, vec3(0.0));\n";
 pc.shaderChunks.particle_lightingPS = "\n    vec3 light = negNormal.x*lightCube[0] + posNormal.x*lightCube[1] +\n                        negNormal.y*lightCube[2] + posNormal.y*lightCube[3] +\n                        negNormal.z*lightCube[4] + posNormal.z*lightCube[5];\n    rgb *= light;\n";
 pc.shaderChunks.particle_localShiftVS = "    particlePos += emitterPos;\n";
@@ -6528,8 +6594,8 @@ pc.shaderChunks.particle_meshVS = "\n    vec3 localPos = meshLocalPos;\n    loca
 pc.shaderChunks.particle_normalVS = "\n    Normal = normalize(localPos + matrix_viewInverse[2].xyz);\n";
 pc.shaderChunks.particle_normalMapPS = "\n    vec3 normalMap         = normalize( texture2D(normalMap, texCoordsAlphaLife.xy).xyz * 2.0 - 1.0 );\n    vec3 normal = ParticleMat * normalMap;\n";
 pc.shaderChunks.particle_pointAlongVS = "    inAngle = atan(velocityV.x, velocityV.y); // not the fastest way, but easier to plug in; TODO: create rot matrix right from vectors\n";
-pc.shaderChunks.particle_softPS = "\n    vec2 screenTC = gl_FragCoord.xy * uScreenSize.zw;\n    float depth = unpackFloat( texture2D(uDepthMap, screenTC) ) * camera_far;\n    float particleDepth = vDepth;\n    float depthDiff = saturate(abs(particleDepth - depth) * softening);\n    a *= depthDiff;\n";
-pc.shaderChunks.particle_softVS = "\n    vDepth = -(matrix_view * vec4(localPos,1.0)).z;\n";
+pc.shaderChunks.particle_softPS = "\n    float depth = getLinearScreenDepth();\n    float particleDepth = vDepth;\n    float depthDiff = saturate(abs(particleDepth - depth) * softening);\n    a *= depthDiff;\n";
+pc.shaderChunks.particle_softVS = "\n    vDepth = getLinearDepth(localPos);\n";
 pc.shaderChunks.particle_stretchVS = "    vec3 moveDir = inVel * stretch;\n    vec3 posPrev = inPos - moveDir;\n    posPrev += particlePosMoved;\n    vec2 centerToVertexV = normalize((mat3(matrix_view) * localPos).xy);\n    float interpolation = dot(-velocityV, centerToVertexV) * 0.5 + 0.5;\n    particlePos = mix(particlePos, posPrev, interpolation);\n";
 pc.shaderChunks.particle_wrapVS = "\n    vec3 origParticlePos = particlePos;\n    particlePos -= matrix_model[3].xyz;\n    particlePos = mod(particlePos, wrapBounds) - wrapBounds * 0.5;\n    particlePos += matrix_model[3].xyz;\n    particlePosMoved = particlePos - origParticlePos;\n";
 pc.shaderChunks.precisionTestPS = "void main(void) {\n    gl_FragColor = vec4(2147483648.0);\n}\n";
@@ -6539,19 +6605,20 @@ pc.shaderChunks.reflDirPS = "void getReflDir() {\n    dReflDirW = normalize(-ref
 pc.shaderChunks.reflectionCubePS = "uniform samplerCube texture_cubeMap;\nuniform float material_reflectivity;\nvoid addReflection() {\n    vec3 lookupVec = fixSeams(cubeMapProject(dReflDirW));\n    lookupVec.x *= -1.0;\n    dReflection += vec4($textureCubeSAMPLE(texture_cubeMap, lookupVec).rgb, material_reflectivity);\n}\n";
 pc.shaderChunks.reflectionDpAtlasPS = "uniform sampler2D texture_sphereMap;\nuniform float material_reflectivity;\nvec2 getDpAtlasUv(vec2 uv, float mip) {\n    vec4 rect;\n    float sx = saturate(mip - 2.0);\n    rect.x = sx * 0.5;\n    float t = mip - rect.x * 6.0;\n    float i = 1.0 - rect.x;\n    rect.y = min(t * 0.5, 0.75) * i + rect.x;\n    float st = saturate(t);\n    rect.z = (1.0 - st * 0.5) * i;\n    rect.w = rect.z * 0.5;\n    float rcRectZ = 1.0 / rect.z;\n    float scaleFactor = 0.00390625 * rcRectZ; // 0.0078125 = (256 + 2) / 256 - 1, 0.00390625 same for 512\n    vec2 scale = vec2(scaleFactor, scaleFactor * 2.0);\n    uv = uv * (vec2(1.0) - scale) + scale * 0.5;\n    uv = uv * rect.zw + rect.xy;\n    return uv;\n}\nvoid addReflection() {\n    vec3 reflDir = normalize(cubeMapProject(dReflDirW));\n    // Convert vector to DP coords\n    bool up = reflDir.y > 0.0;\n    float scale = 0.90909090909090909090909090909091;// 1.0 / 1.1;\n    vec3 reflDirWarp = reflDir.xzx * vec3(-0.25, 0.5, 0.25);\n    float reflDirVer = abs(reflDir.y) + 1.0;\n    reflDirWarp /= reflDirVer;\n    reflDirWarp *= scale;\n    reflDirWarp = vec3(0.75, 0.5, 0.25) - reflDirWarp;\n    vec2 tc = up? reflDirWarp.xy : reflDirWarp.zy;\n    float bias = saturate(1.0 - dGlossiness) * 5.0; // multiply by max mip level\n    float mip = floor(bias);\n    vec3 tex1 = $texture2DSAMPLE(texture_sphereMap, getDpAtlasUv(tc, mip)).rgb;\n    mip = min(mip + 1.0, 5.0);\n    vec3 tex2 = $texture2DSAMPLE(texture_sphereMap, getDpAtlasUv(tc, mip)).rgb;\n    tex1 = mix(tex1, tex2, fract(bias));\n    tex1 = processEnvironment(tex1);\n    dReflection += vec4(tex1, material_reflectivity);\n}\n";
 pc.shaderChunks.reflectionPrefilteredCubePS = "uniform samplerCube texture_prefilteredCubeMap128;\nuniform samplerCube texture_prefilteredCubeMap64;\nuniform samplerCube texture_prefilteredCubeMap32;\nuniform samplerCube texture_prefilteredCubeMap16;\nuniform samplerCube texture_prefilteredCubeMap8;\n#ifndef PMREM4\n#define PMREM4\nuniform samplerCube texture_prefilteredCubeMap4;\n#endif\nuniform float material_reflectivity;\nvoid addReflection() {\n    // Unfortunately, WebGL doesn't allow us using textureCubeLod. Therefore bunch of nasty workarounds is required.\n    // We fix mip0 to 128x128, so code is rather static.\n    // Mips smaller than 4x4 aren't great even for diffuse. Don't forget that we don't have bilinear filtering between different faces.\n    float bias = saturate(1.0 - dGlossiness) * 5.0; // multiply by max mip level\n    int index1 = int(bias);\n    int index2 = int(min(bias + 1.0, 7.0));\n    vec3 fixedReflDir = fixSeams(cubeMapProject(dReflDirW), bias);\n    fixedReflDir.x *= -1.0;\n    vec4 cubes[6];\n    cubes[0] = textureCube(texture_prefilteredCubeMap128, fixedReflDir);\n    cubes[1] = textureCube(texture_prefilteredCubeMap64, fixedReflDir);\n    cubes[2] = textureCube(texture_prefilteredCubeMap32, fixedReflDir);\n    cubes[3] = textureCube(texture_prefilteredCubeMap16, fixedReflDir);\n    cubes[4] = textureCube(texture_prefilteredCubeMap8, fixedReflDir);\n    cubes[5] = textureCube(texture_prefilteredCubeMap4, fixedReflDir);\n    // Also we don't have dynamic indexing in PS, so...\n    vec4 cube[2];\n    for(int i = 0; i < 6; i++) {\n        if (i == index1) {\n            cube[0] = cubes[i];\n        }\n        if (i == index2) {\n            cube[1] = cubes[i];\n        }\n    }\n    // another variant\n    /*if (index1==0){ cube[0]=cubes[0];\n    }else if (index1==1){ cube[0]=cubes[1];\n    }else if (index1==2){ cube[0]=cubes[2];\n    }else if (index1==3){ cube[0]=cubes[3];\n    }else if (index1==4){ cube[0]=cubes[4];\n    }else if (index1==5){ cube[0]=cubes[5];}\n    if (index2==0){ cube[1]=cubes[0];\n    }else if (index2==1){ cube[1]=cubes[1];\n    }else if (index2==2){ cube[1]=cubes[2];\n    }else if (index2==3){ cube[1]=cubes[3];\n    }else if (index2==4){ cube[1]=cubes[4];\n    }else if (index2==5){ cube[1]=cubes[5];}*/\n    vec4 cubeFinal = mix(cube[0], cube[1], fract(bias));\n    vec3 refl = processEnvironment($DECODE(cubeFinal).rgb);\n    dReflection += vec4(refl, material_reflectivity);\n}\n";
-pc.shaderChunks.reflectionPrefilteredCubeLodPS = "#extension GL_EXT_shader_texture_lod : enable\n#ifndef PMREM4\n#define PMREM4\nuniform samplerCube texture_prefilteredCubeMap128;\n#endif\nuniform float material_reflectivity;\nvoid addReflection() {\n    float bias = saturate(1.0 - dGlossiness) * 5.0; // multiply by max mip level\n    vec3 fixedReflDir = fixSeams(cubeMapProject(dReflDirW), bias);\n    fixedReflDir.x *= -1.0;\n    vec3 refl = processEnvironment($DECODE( textureCubeLodEXT(texture_prefilteredCubeMap128, fixedReflDir, bias) ).rgb);\n    dReflection += vec4(refl, material_reflectivity);\n}\n";
-pc.shaderChunks.reflectionSpherePS = "uniform mat4 matrix_view;\nuniform sampler2D texture_sphereMap;\nuniform float material_reflectivity;\nvoid addReflection() {\n    vec3 reflDirV = (mat3(matrix_view) * dReflDirW).xyz;\n    float m = 2.0 * sqrt( dot(reflDirV.xy, reflDirV.xy) + (reflDirV.z+1.0)*(reflDirV.z+1.0) );\n    vec2 sphereMapUv = reflDirV.xy / m + 0.5;\n    dReflection += vec4($texture2DSAMPLE(texture_sphereMap, sphereMapUv).rgb, material_reflectivity);\n}\n";
+pc.shaderChunks.reflectionPrefilteredCubeLodPS = "\n#ifndef PMREM4\n#define PMREM4\n#extension GL_EXT_shader_texture_lod : enable\nuniform samplerCube texture_prefilteredCubeMap128;\n#endif\nuniform float material_reflectivity;\nvoid addReflection() {\n    float bias = saturate(1.0 - dGlossiness) * 5.0; // multiply by max mip level\n    vec3 fixedReflDir = fixSeams(cubeMapProject(dReflDirW), bias);\n    fixedReflDir.x *= -1.0;\n    vec3 refl = processEnvironment($DECODE( textureCubeLodEXT(texture_prefilteredCubeMap128, fixedReflDir, bias) ).rgb);\n    dReflection += vec4(refl, material_reflectivity);\n}\n";
+pc.shaderChunks.reflectionSpherePS = "#ifndef VIEWMATRIX\n#define VIEWMATRIX\nuniform mat4 matrix_view;\n#endif\nuniform sampler2D texture_sphereMap;\nuniform float material_reflectivity;\nvoid addReflection() {\n    vec3 reflDirV = (mat3(matrix_view) * dReflDirW).xyz;\n    float m = 2.0 * sqrt( dot(reflDirV.xy, reflDirV.xy) + (reflDirV.z+1.0)*(reflDirV.z+1.0) );\n    vec2 sphereMapUv = reflDirV.xy / m + 0.5;\n    dReflection += vec4($texture2DSAMPLE(texture_sphereMap, sphereMapUv).rgb, material_reflectivity);\n}\n";
 pc.shaderChunks.reflectionSphereLowPS = "uniform sampler2D texture_sphereMap;\nuniform float material_reflectivity;\nvoid addReflection() {\n    vec3 reflDirV = vNormalV;\n    vec2 sphereMapUv = reflDirV.xy * 0.5 + 0.5;\n    dReflection += vec4($texture2DSAMPLE(texture_sphereMap, sphereMapUv).rgb, material_reflectivity);\n}\n";
 pc.shaderChunks.refractionPS = "uniform float material_refraction, material_refractionIndex;\nvec3 refract2(vec3 viewVec, vec3 Normal, float IOR) {\n    float vn = dot(viewVec, Normal);\n    float k = 1.0 - IOR * IOR * (1.0 - vn * vn);\n    vec3 refrVec = IOR * viewVec - (IOR * vn + sqrt(k)) * Normal;\n    return refrVec;\n}\nvoid addRefraction() {\n    // use same reflection code with refraction vector\n    vec3 tmp = dReflDirW;\n    vec4 tmp2 = dReflection;\n    dReflection = vec4(0.0);\n    dReflDirW = refract2(-dViewDirW, dNormalW, material_refractionIndex);\n    addReflection();\n    dDiffuseLight = mix(dDiffuseLight, dReflection.rgb * dAlbedo, material_refraction);\n    dReflDirW = tmp;\n    dReflection = tmp2;\n}\n";
 pc.shaderChunks.rgbmPS = "vec3 decodeRGBM(vec4 rgbm) {\n    vec3 color = (8.0 * rgbm.a) * rgbm.rgb;\n    return color * color;\n}\nvec3 texture2DRGBM(sampler2D tex, vec2 uv) {\n    return decodeRGBM(texture2D(tex, uv));\n}\nvec3 textureCubeRGBM(samplerCube tex, vec3 uvw) {\n    return decodeRGBM(textureCube(tex, uvw));\n}\n";
+pc.shaderChunks.screenDepthPS = "uniform sampler2D uDepthMap;\n#ifndef SCREENSIZE\n#define SCREENSIZE\nuniform vec4 uScreenSize;\n#endif\n#ifndef VIEWMATRIX\n#define VIEWMATRIX\nuniform mat4 matrix_view;\n#endif\n#ifndef CAMERAPLANES\n#define CAMERAPLANES\nuniform vec4 camera_params; // 1 / camera_far,      camera_far,     (1 - f / n) / 2,        (1 + f / n) / 2\n#endif\n#ifdef GL2\n    float linearizeDepth(float z) {\n        z = z * 2.0 - 1.0;\n        return 1.0 / (camera_params.z * z + camera_params.w);\n    }\n#else\n    #ifndef UNPACKFLOAT\n    #define UNPACKFLOAT\n    float unpackFloat(vec4 rgbaDepth) {\n        const vec4 bitShift = vec4(1.0 / (256.0 * 256.0 * 256.0), 1.0 / (256.0 * 256.0), 1.0 / 256.0, 1.0);\n        return dot(rgbaDepth, bitShift);\n    }\n    #endif\n#endif\n// Retrieves rendered linear camera depth by UV\nfloat getLinearScreenDepth(vec2 uv) {\n    #ifdef GL2\n        return linearizeDepth(texture2D(uDepthMap, uv).r) * camera_params.y;\n    #else\n        return unpackFloat(texture2D(uDepthMap, uv)) * camera_params.y;\n    #endif\n}\n#ifndef VERTEXSHADER\n// Retrieves rendered linear camera depth under the current pixel\nfloat getLinearScreenDepth() {\n    vec2 uv = gl_FragCoord.xy * uScreenSize.zw;\n    return getLinearScreenDepth(uv);\n}\n#endif\n// Generates linear camera depth for the given world position\nfloat getLinearDepth(vec3 pos) {\n    return -(matrix_view * vec4(pos, 1.0)).z;\n}\n";
 pc.shaderChunks.shadowCommonPS = "void normalOffsetPointShadow(vec4 shadowParams) {\n    float distScale = length(dLightDirW);\n    vec3 wPos = vPositionW + dVertexNormalW * shadowParams.y * clamp(1.0 - dot(dVertexNormalW, -dLightDirNormW), 0.0, 1.0) * distScale; //0.02\n    vec3 dir = wPos - dLightPosW;\n    dLightDirW = dir;\n}\n";
 pc.shaderChunks.shadowCoordPS = "void _getShadowCoordOrtho(mat4 shadowMatrix, vec3 shadowParams, vec3 wPos) {\n    dShadowCoord = (shadowMatrix * vec4(wPos, 1.0)).xyz;\n    dShadowCoord.z = saturate(dShadowCoord.z) - 0.0001;\n    #ifdef SHADOWBIAS\n        dShadowCoord.z += getShadowBias(shadowParams.x, shadowParams.z);\n    #endif\n}\nvoid _getShadowCoordPersp(mat4 shadowMatrix, vec4 shadowParams, vec3 wPos) {\n    vec4 projPos = shadowMatrix * vec4(wPos, 1.0);\n    projPos.xy /= projPos.w;\n    dShadowCoord.xy = projPos.xy;\n    dShadowCoord.z = length(dLightDirW) * shadowParams.w;\n    #ifdef SHADOWBIAS\n        dShadowCoord.z += getShadowBias(shadowParams.x, shadowParams.z);\n    #endif\n}\nvoid getShadowCoordOrtho(mat4 shadowMatrix, vec3 shadowParams) {\n    _getShadowCoordOrtho(shadowMatrix, shadowParams, vPositionW);\n}\nvoid getShadowCoordPersp(mat4 shadowMatrix, vec4 shadowParams) {\n    _getShadowCoordPersp(shadowMatrix, shadowParams, vPositionW);\n}\nvoid getShadowCoordPerspNormalOffset(mat4 shadowMatrix, vec4 shadowParams) {\n    float distScale = abs(dot(vPositionW - dLightPosW, dLightDirNormW)); // fov?\n    vec3 wPos = vPositionW + dVertexNormalW * shadowParams.y * clamp(1.0 - dot(dVertexNormalW, -dLightDirNormW), 0.0, 1.0) * distScale;\n    _getShadowCoordPersp(shadowMatrix, shadowParams, wPos);\n}\nvoid getShadowCoordOrthoNormalOffset(mat4 shadowMatrix, vec3 shadowParams) {\n    vec3 wPos = vPositionW + dVertexNormalW * shadowParams.y * clamp(1.0 - dot(dVertexNormalW, -dLightDirNormW), 0.0, 1.0); //0.08\n    _getShadowCoordOrtho(shadowMatrix, shadowParams, wPos);\n}\n";
 pc.shaderChunks.shadowCoordVS = "void getLightDirPoint(vec3 lightPosW) {\n    vec3 lightDirW = vPositionW - lightPosW;\n    dLightDirNormW = normalize(lightDirW);\n    dLightPosW = lightPosW;\n}\nvoid _getShadowCoordOrtho(mat4 shadowMatrix, vec3 shadowParams, vec3 wPos) {\n    vec4 projPos = shadowMatrix * vec4(wPos, 1.0);\n    vMainShadowUv = projPos;\n}\nvoid _getShadowCoordPersp(mat4 shadowMatrix, vec3 shadowParams, vec3 wPos) {\n    vec4 projPos = shadowMatrix * vec4(wPos, 1.0);\n    vMainShadowUv = projPos;\n}\nvoid getShadowCoordOrtho(mat4 shadowMatrix, vec3 shadowParams) {\n    _getShadowCoordOrtho(shadowMatrix, shadowParams, vPositionW);\n}\nvoid getShadowCoordPersp(mat4 shadowMatrix, vec3 shadowParams) {\n    _getShadowCoordPersp(shadowMatrix, shadowParams, vPositionW);\n}\nvoid getShadowCoordPerspNormalOffset(mat4 shadowMatrix, vec3 shadowParams) {\n    float distScale = abs(dot(vPositionW - dLightPosW, dLightDirNormW)); // fov?\n    vec3 wPos = vPositionW + dNormalW * shadowParams.y * clamp(1.0 - dot(dNormalW, -dLightDirNormW), 0.0, 1.0) * distScale;\n    _getShadowCoordPersp(shadowMatrix, shadowParams, wPos);\n}\nvoid getShadowCoordOrthoNormalOffset(mat4 shadowMatrix, vec3 shadowParams) {\n    vec3 wPos = vPositionW + dNormalW * shadowParams.y * clamp(1.0 - dot(dNormalW, -dLightDirNormW), 0.0, 1.0); //0.08\n    _getShadowCoordOrtho(shadowMatrix, shadowParams, wPos);\n}\n";
 pc.shaderChunks.shadowCoordPerspZbufferPS = "void _getShadowCoordPerspZbuffer(mat4 shadowMatrix, vec4 shadowParams, vec3 wPos) {\n    vec4 projPos = shadowMatrix * vec4(wPos, 1.0);\n    projPos.xyz /= projPos.w;\n    dShadowCoord = projPos.xyz;\n    // depth bias is already applied on render\n}\nvoid getShadowCoordPerspZbufferNormalOffset(mat4 shadowMatrix, vec4 shadowParams) {\n    float distScale = abs(dot(vPositionW - dLightPosW, dLightDirNormW)); // fov?\n    vec3 wPos = vPositionW + dVertexNormalW * shadowParams.y * clamp(1.0 - dot(dVertexNormalW, -dLightDirNormW), 0.0, 1.0) * distScale;\n    _getShadowCoordPerspZbuffer(shadowMatrix, shadowParams, wPos);\n}\nvoid getShadowCoordPerspZbuffer(mat4 shadowMatrix, vec4 shadowParams) {\n    _getShadowCoordPerspZbuffer(shadowMatrix, shadowParams, vPositionW);\n}\n";
 pc.shaderChunks.shadowEVSMPS = "float VSM$(sampler2D tex, vec2 texCoords, float resolution, float Z, float vsmBias, float exponent) {\n    vec3 moments = texture2D(tex, texCoords).xyz;\n    return calculateEVSM(moments, Z, vsmBias, exponent);\n}\nfloat getShadowVSM$(sampler2D shadowMap, vec3 shadowParams, float exponent) {\n    return VSM$(shadowMap, dShadowCoord.xy, shadowParams.x, dShadowCoord.z, shadowParams.y, exponent);\n}\nfloat getShadowSpotVSM$(sampler2D shadowMap, vec4 shadowParams, float exponent) {\n    return VSM$(shadowMap, dShadowCoord.xy, shadowParams.x, length(dLightDirW) * shadowParams.w + shadowParams.z, shadowParams.y, exponent);\n}\n";
 pc.shaderChunks.shadowEVSMnPS = "float VSM$(sampler2D tex, vec2 texCoords, float resolution, float Z, float vsmBias, float exponent) {\n    float pixelSize = 1.0 / resolution;\n    texCoords -= vec2(pixelSize);\n    vec3 s00 = texture2D(tex, texCoords).xyz;\n    vec3 s10 = texture2D(tex, texCoords + vec2(pixelSize, 0)).xyz;\n    vec3 s01 = texture2D(tex, texCoords + vec2(0, pixelSize)).xyz;\n    vec3 s11 = texture2D(tex, texCoords + vec2(pixelSize)).xyz;\n    vec2 fr = fract(texCoords * resolution);\n    vec3 h0 = mix(s00, s10, fr.x);\n    vec3 h1 = mix(s01, s11, fr.x);\n    vec3 moments = mix(h0, h1, fr.y);\n    return calculateEVSM(moments, Z, vsmBias, exponent);\n}\nfloat getShadowVSM$(sampler2D shadowMap, vec3 shadowParams, float exponent) {\n    return VSM$(shadowMap, dShadowCoord.xy, shadowParams.x, dShadowCoord.z, shadowParams.y, exponent);\n}\nfloat getShadowSpotVSM$(sampler2D shadowMap, vec4 shadowParams, float exponent) {\n    return VSM$(shadowMap, dShadowCoord.xy, shadowParams.x, length(dLightDirW) * shadowParams.w + shadowParams.z, shadowParams.y, exponent);\n}\n";
-pc.shaderChunks.shadowStandardPS = "vec3 lessThan2(vec3 a, vec3 b) {\n    return clamp((b - a)*1000.0, 0.0, 1.0); // softer version\n}\nfloat unpackFloat(vec4 rgbaDepth) {\n    const vec4 bitShift = vec4(1.0 / (256.0 * 256.0 * 256.0), 1.0 / (256.0 * 256.0), 1.0 / 256.0, 1.0);\n    return dot(rgbaDepth, bitShift);\n}\n// ----- Direct/Spot Sampling -----\n#ifdef GL2\n    float _getShadowPCF3x3(sampler2DShadow shadowMap, vec3 shadowParams) {\n        float z = dShadowCoord.z;\n        vec2 uv = dShadowCoord.xy * shadowParams.x; // 1 unit - 1 texel\n        float shadowMapSizeInv = 1.0 / shadowParams.x;\n        vec2 base_uv = floor(uv + 0.5);\n        float s = (uv.x + 0.5 - base_uv.x);\n        float t = (uv.y + 0.5 - base_uv.y);\n        base_uv -= vec2(0.5);\n        base_uv *= shadowMapSizeInv;\n        float sum = 0.0;\n        float uw0 = (3.0 - 2.0 * s);\n        float uw1 = (1.0 + 2.0 * s);\n        float u0 = (2.0 - s) / uw0 - 1.0;\n        float u1 = s / uw1 + 1.0;\n        float vw0 = (3.0 - 2.0 * t);\n        float vw1 = (1.0 + 2.0 * t);\n        float v0 = (2.0 - t) / vw0 - 1.0;\n        float v1 = t / vw1 + 1.0;\n        u0 = u0 * shadowMapSizeInv + base_uv.x;\n        v0 = v0 * shadowMapSizeInv + base_uv.y;\n        u1 = u1 * shadowMapSizeInv + base_uv.x;\n        v1 = v1 * shadowMapSizeInv + base_uv.y;\n        sum += uw0 * vw0 * texture(shadowMap, vec3(u0, v0, z));\n        sum += uw1 * vw0 * texture(shadowMap, vec3(u1, v0, z));\n        sum += uw0 * vw1 * texture(shadowMap, vec3(u0, v1, z));\n        sum += uw1 * vw1 * texture(shadowMap, vec3(u1, v1, z));\n        sum *= 1.0f / 16.0;\n        return sum;\n    }\n    float getShadowPCF3x3(sampler2DShadow shadowMap, vec3 shadowParams) {\n        return _getShadowPCF3x3(shadowMap, shadowParams);\n    }\n    float getShadowSpotPCF3x3(sampler2DShadow shadowMap, vec4 shadowParams) {\n        return _getShadowPCF3x3(shadowMap, shadowParams.xyz);\n    }\n#else\n    float _xgetShadowPCF3x3(mat3 depthKernel, sampler2D shadowMap, vec3 shadowParams) {\n        mat3 shadowKernel;\n        vec3 shadowCoord = dShadowCoord;\n        vec3 shadowZ = vec3(shadowCoord.z);\n        shadowKernel[0] = vec3(greaterThan(depthKernel[0], shadowZ));\n        shadowKernel[1] = vec3(greaterThan(depthKernel[1], shadowZ));\n        shadowKernel[2] = vec3(greaterThan(depthKernel[2], shadowZ));\n        vec2 fractionalCoord = fract( shadowCoord.xy * shadowParams.x );\n        shadowKernel[0] = mix(shadowKernel[0], shadowKernel[1], fractionalCoord.x);\n        shadowKernel[1] = mix(shadowKernel[1], shadowKernel[2], fractionalCoord.x);\n        vec4 shadowValues;\n        shadowValues.x = mix(shadowKernel[0][0], shadowKernel[0][1], fractionalCoord.y);\n        shadowValues.y = mix(shadowKernel[0][1], shadowKernel[0][2], fractionalCoord.y);\n        shadowValues.z = mix(shadowKernel[1][0], shadowKernel[1][1], fractionalCoord.y);\n        shadowValues.w = mix(shadowKernel[1][1], shadowKernel[1][2], fractionalCoord.y);\n        return dot( shadowValues, vec4( 1.0 ) ) * 0.25;\n    }\n    float _getShadowPCF3x3(sampler2D shadowMap, vec3 shadowParams) {\n        vec3 shadowCoord = dShadowCoord;\n        float xoffset = 1.0 / shadowParams.x; // 1/shadow map width\n        float dx0 = -xoffset;\n        float dx1 = xoffset;\n        mat3 depthKernel;\n        depthKernel[0][0] = unpackFloat(texture2D(shadowMap, shadowCoord.xy + vec2(dx0, dx0)));\n        depthKernel[0][1] = unpackFloat(texture2D(shadowMap, shadowCoord.xy + vec2(dx0, 0.0)));\n        depthKernel[0][2] = unpackFloat(texture2D(shadowMap, shadowCoord.xy + vec2(dx0, dx1)));\n        depthKernel[1][0] = unpackFloat(texture2D(shadowMap, shadowCoord.xy + vec2(0.0, dx0)));\n        depthKernel[1][1] = unpackFloat(texture2D(shadowMap, shadowCoord.xy));\n        depthKernel[1][2] = unpackFloat(texture2D(shadowMap, shadowCoord.xy + vec2(0.0, dx1)));\n        depthKernel[2][0] = unpackFloat(texture2D(shadowMap, shadowCoord.xy + vec2(dx1, dx0)));\n        depthKernel[2][1] = unpackFloat(texture2D(shadowMap, shadowCoord.xy + vec2(dx1, 0.0)));\n        depthKernel[2][2] = unpackFloat(texture2D(shadowMap, shadowCoord.xy + vec2(dx1, dx1)));\n        return _xgetShadowPCF3x3(depthKernel, shadowMap, shadowParams);\n    }\n    float getShadowPCF3x3(sampler2D shadowMap, vec3 shadowParams) {\n        return _getShadowPCF3x3(shadowMap, shadowParams);\n    }\n    float getShadowSpotPCF3x3(sampler2D shadowMap, vec4 shadowParams) {\n        return _getShadowPCF3x3(shadowMap, shadowParams.xyz);\n    }\n#endif\n// ----- Point Sampling -----\nfloat _getShadowPoint(samplerCube shadowMap, vec4 shadowParams, vec3 dir) {\n    vec3 tc = normalize(dir);\n    vec3 tcAbs = abs(tc);\n    vec4 dirX = vec4(1,0,0, tc.x);\n    vec4 dirY = vec4(0,1,0, tc.y);\n    float majorAxisLength = tc.z;\n    if ((tcAbs.x > tcAbs.y) && (tcAbs.x > tcAbs.z)) {\n        dirX = vec4(0,0,1, tc.z);\n        dirY = vec4(0,1,0, tc.y);\n        majorAxisLength = tc.x;\n    } else if ((tcAbs.y > tcAbs.x) && (tcAbs.y > tcAbs.z)) {\n        dirX = vec4(1,0,0, tc.x);\n        dirY = vec4(0,0,1, tc.z);\n        majorAxisLength = tc.y;\n    }\n    float shadowParamsInFaceSpace = ((1.0/shadowParams.x) * 2.0) * abs(majorAxisLength);\n    vec3 xoffset = (dirX.xyz * shadowParamsInFaceSpace);\n    vec3 yoffset = (dirY.xyz * shadowParamsInFaceSpace);\n    vec3 dx0 = -xoffset;\n    vec3 dy0 = -yoffset;\n    vec3 dx1 = xoffset;\n    vec3 dy1 = yoffset;\n    mat3 shadowKernel;\n    mat3 depthKernel;\n    depthKernel[0][0] = unpackFloat(textureCube(shadowMap, tc + dx0 + dy0));\n    depthKernel[0][1] = unpackFloat(textureCube(shadowMap, tc + dx0));\n    depthKernel[0][2] = unpackFloat(textureCube(shadowMap, tc + dx0 + dy1));\n    depthKernel[1][0] = unpackFloat(textureCube(shadowMap, tc + dy0));\n    depthKernel[1][1] = unpackFloat(textureCube(shadowMap, tc));\n    depthKernel[1][2] = unpackFloat(textureCube(shadowMap, tc + dy1));\n    depthKernel[2][0] = unpackFloat(textureCube(shadowMap, tc + dx1 + dy0));\n    depthKernel[2][1] = unpackFloat(textureCube(shadowMap, tc + dx1));\n    depthKernel[2][2] = unpackFloat(textureCube(shadowMap, tc + dx1 + dy1));\n    vec3 shadowZ = vec3(length(dir) * shadowParams.w + shadowParams.z);\n    shadowKernel[0] = vec3(lessThan2(depthKernel[0], shadowZ));\n    shadowKernel[1] = vec3(lessThan2(depthKernel[1], shadowZ));\n    shadowKernel[2] = vec3(lessThan2(depthKernel[2], shadowZ));\n    vec2 uv = (vec2(dirX.w, dirY.w) / abs(majorAxisLength)) * 0.5;\n    vec2 fractionalCoord = fract( uv * shadowParams.x );\n    shadowKernel[0] = mix(shadowKernel[0], shadowKernel[1], fractionalCoord.x);\n    shadowKernel[1] = mix(shadowKernel[1], shadowKernel[2], fractionalCoord.x);\n    vec4 shadowValues;\n    shadowValues.x = mix(shadowKernel[0][0], shadowKernel[0][1], fractionalCoord.y);\n    shadowValues.y = mix(shadowKernel[0][1], shadowKernel[0][2], fractionalCoord.y);\n    shadowValues.z = mix(shadowKernel[1][0], shadowKernel[1][1], fractionalCoord.y);\n    shadowValues.w = mix(shadowKernel[1][1], shadowKernel[1][2], fractionalCoord.y);\n    return 1.0 - dot( shadowValues, vec4( 1.0 ) ) * 0.25;\n}\nfloat getShadowPointPCF3x3(samplerCube shadowMap, vec4 shadowParams) {\n    return _getShadowPoint(shadowMap, shadowParams, dLightDirW);\n}\n";
-pc.shaderChunks.shadowStandardGL2PS = "float _getShadowPCF5x5(sampler2DShadow shadowMap, vec3 shadowParams) {\n    // http://the-witness.net/news/2013/09/shadow-mapping-summary-part-1/\n    float z = dShadowCoord.z;\n    vec2 uv = dShadowCoord.xy * shadowParams.x; // 1 unit - 1 texel\n    float shadowMapSizeInv = 1.0 / shadowParams.x;\n    vec2 base_uv = floor(uv + 0.5);\n    float s = (uv.x + 0.5 - base_uv.x);\n    float t = (uv.y + 0.5 - base_uv.y);\n    base_uv -= vec2(0.5);\n    base_uv *= shadowMapSizeInv;\n    float uw0 = (4.0 - 3.0 * s);\n    float uw1 = 7.0;\n    float uw2 = (1.0 + 3.0 * s);\n    float u0 = (3.0 - 2.0 * s) / uw0 - 2.0;\n    float u1 = (3.0 + s) / uw1;\n    float u2 = s / uw2 + 2.0;\n    float vw0 = (4.0 - 3.0 * t);\n    float vw1 = 7.0;\n    float vw2 = (1.0 + 3.0 * t);\n    float v0 = (3.0 - 2.0 * t) / vw0 - 2.0;\n    float v1 = (3.0 + t) / vw1;\n    float v2 = t / vw2 + 2.0;\n    float sum = 0.0;\n    u0 = u0 * shadowMapSizeInv + base_uv.x;\n    v0 = v0 * shadowMapSizeInv + base_uv.y;\n    u1 = u1 * shadowMapSizeInv + base_uv.x;\n    v1 = v1 * shadowMapSizeInv + base_uv.y;\n    u2 = u2 * shadowMapSizeInv + base_uv.x;\n    v2 = v2 * shadowMapSizeInv + base_uv.y;\n    sum += uw0 * vw0 * texture(shadowMap, vec3(u0, v0, z));\n    sum += uw1 * vw0 * texture(shadowMap, vec3(u1, v0, z));\n    sum += uw2 * vw0 * texture(shadowMap, vec3(u2, v0, z));\n    sum += uw0 * vw1 * texture(shadowMap, vec3(u0, v1, z));\n    sum += uw1 * vw1 * texture(shadowMap, vec3(u1, v1, z));\n    sum += uw2 * vw1 * texture(shadowMap, vec3(u2, v1, z));\n    sum += uw0 * vw2 * texture(shadowMap, vec3(u0, v2, z));\n    sum += uw1 * vw2 * texture(shadowMap, vec3(u1, v2, z));\n    sum += uw2 * vw2 * texture(shadowMap, vec3(u2, v2, z));\n    sum *= 1.0f / 144.0;\n    sum = gammaCorrectInput(sum); // gives softer gradient\n    return sum;\n}\nfloat getShadowPCF5x5(sampler2DShadow shadowMap, vec3 shadowParams) {\n    return _getShadowPCF5x5(shadowMap, shadowParams);\n}\nfloat getShadowSpotPCF5x5(sampler2DShadow shadowMap, vec4 shadowParams) {\n    return _getShadowPCF5x5(shadowMap, shadowParams.xyz);\n}\n";
+pc.shaderChunks.shadowStandardPS = "vec3 lessThan2(vec3 a, vec3 b) {\n    return clamp((b - a)*1000.0, 0.0, 1.0); // softer version\n}\n#ifndef UNPACKFLOAT\n#define UNPACKFLOAT\nfloat unpackFloat(vec4 rgbaDepth) {\n    const vec4 bitShift = vec4(1.0 / (256.0 * 256.0 * 256.0), 1.0 / (256.0 * 256.0), 1.0 / 256.0, 1.0);\n    return dot(rgbaDepth, bitShift);\n}\n#endif\n// ----- Direct/Spot Sampling -----\n#ifdef GL2\n    float _getShadowPCF3x3(sampler2DShadow shadowMap, vec3 shadowParams) {\n        float z = dShadowCoord.z;\n        vec2 uv = dShadowCoord.xy * shadowParams.x; // 1 unit - 1 texel\n        float shadowMapSizeInv = 1.0 / shadowParams.x;\n        vec2 base_uv = floor(uv + 0.5);\n        float s = (uv.x + 0.5 - base_uv.x);\n        float t = (uv.y + 0.5 - base_uv.y);\n        base_uv -= vec2(0.5);\n        base_uv *= shadowMapSizeInv;\n        float sum = 0.0;\n        float uw0 = (3.0 - 2.0 * s);\n        float uw1 = (1.0 + 2.0 * s);\n        float u0 = (2.0 - s) / uw0 - 1.0;\n        float u1 = s / uw1 + 1.0;\n        float vw0 = (3.0 - 2.0 * t);\n        float vw1 = (1.0 + 2.0 * t);\n        float v0 = (2.0 - t) / vw0 - 1.0;\n        float v1 = t / vw1 + 1.0;\n        u0 = u0 * shadowMapSizeInv + base_uv.x;\n        v0 = v0 * shadowMapSizeInv + base_uv.y;\n        u1 = u1 * shadowMapSizeInv + base_uv.x;\n        v1 = v1 * shadowMapSizeInv + base_uv.y;\n        sum += uw0 * vw0 * texture(shadowMap, vec3(u0, v0, z));\n        sum += uw1 * vw0 * texture(shadowMap, vec3(u1, v0, z));\n        sum += uw0 * vw1 * texture(shadowMap, vec3(u0, v1, z));\n        sum += uw1 * vw1 * texture(shadowMap, vec3(u1, v1, z));\n        sum *= 1.0f / 16.0;\n        return sum;\n    }\n    float getShadowPCF3x3(sampler2DShadow shadowMap, vec3 shadowParams) {\n        return _getShadowPCF3x3(shadowMap, shadowParams);\n    }\n    float getShadowSpotPCF3x3(sampler2DShadow shadowMap, vec4 shadowParams) {\n        return _getShadowPCF3x3(shadowMap, shadowParams.xyz);\n    }\n#else\n    float _xgetShadowPCF3x3(mat3 depthKernel, sampler2D shadowMap, vec3 shadowParams) {\n        mat3 shadowKernel;\n        vec3 shadowCoord = dShadowCoord;\n        vec3 shadowZ = vec3(shadowCoord.z);\n        shadowKernel[0] = vec3(greaterThan(depthKernel[0], shadowZ));\n        shadowKernel[1] = vec3(greaterThan(depthKernel[1], shadowZ));\n        shadowKernel[2] = vec3(greaterThan(depthKernel[2], shadowZ));\n        vec2 fractionalCoord = fract( shadowCoord.xy * shadowParams.x );\n        shadowKernel[0] = mix(shadowKernel[0], shadowKernel[1], fractionalCoord.x);\n        shadowKernel[1] = mix(shadowKernel[1], shadowKernel[2], fractionalCoord.x);\n        vec4 shadowValues;\n        shadowValues.x = mix(shadowKernel[0][0], shadowKernel[0][1], fractionalCoord.y);\n        shadowValues.y = mix(shadowKernel[0][1], shadowKernel[0][2], fractionalCoord.y);\n        shadowValues.z = mix(shadowKernel[1][0], shadowKernel[1][1], fractionalCoord.y);\n        shadowValues.w = mix(shadowKernel[1][1], shadowKernel[1][2], fractionalCoord.y);\n        return dot( shadowValues, vec4( 1.0 ) ) * 0.25;\n    }\n    float _getShadowPCF3x3(sampler2D shadowMap, vec3 shadowParams) {\n        vec3 shadowCoord = dShadowCoord;\n        float xoffset = 1.0 / shadowParams.x; // 1/shadow map width\n        float dx0 = -xoffset;\n        float dx1 = xoffset;\n        mat3 depthKernel;\n        depthKernel[0][0] = unpackFloat(texture2D(shadowMap, shadowCoord.xy + vec2(dx0, dx0)));\n        depthKernel[0][1] = unpackFloat(texture2D(shadowMap, shadowCoord.xy + vec2(dx0, 0.0)));\n        depthKernel[0][2] = unpackFloat(texture2D(shadowMap, shadowCoord.xy + vec2(dx0, dx1)));\n        depthKernel[1][0] = unpackFloat(texture2D(shadowMap, shadowCoord.xy + vec2(0.0, dx0)));\n        depthKernel[1][1] = unpackFloat(texture2D(shadowMap, shadowCoord.xy));\n        depthKernel[1][2] = unpackFloat(texture2D(shadowMap, shadowCoord.xy + vec2(0.0, dx1)));\n        depthKernel[2][0] = unpackFloat(texture2D(shadowMap, shadowCoord.xy + vec2(dx1, dx0)));\n        depthKernel[2][1] = unpackFloat(texture2D(shadowMap, shadowCoord.xy + vec2(dx1, 0.0)));\n        depthKernel[2][2] = unpackFloat(texture2D(shadowMap, shadowCoord.xy + vec2(dx1, dx1)));\n        return _xgetShadowPCF3x3(depthKernel, shadowMap, shadowParams);\n    }\n    float getShadowPCF3x3(sampler2D shadowMap, vec3 shadowParams) {\n        return _getShadowPCF3x3(shadowMap, shadowParams);\n    }\n    float getShadowSpotPCF3x3(sampler2D shadowMap, vec4 shadowParams) {\n        return _getShadowPCF3x3(shadowMap, shadowParams.xyz);\n    }\n#endif\n// ----- Point Sampling -----\nfloat _getShadowPoint(samplerCube shadowMap, vec4 shadowParams, vec3 dir) {\n    vec3 tc = normalize(dir);\n    vec3 tcAbs = abs(tc);\n    vec4 dirX = vec4(1,0,0, tc.x);\n    vec4 dirY = vec4(0,1,0, tc.y);\n    float majorAxisLength = tc.z;\n    if ((tcAbs.x > tcAbs.y) && (tcAbs.x > tcAbs.z)) {\n        dirX = vec4(0,0,1, tc.z);\n        dirY = vec4(0,1,0, tc.y);\n        majorAxisLength = tc.x;\n    } else if ((tcAbs.y > tcAbs.x) && (tcAbs.y > tcAbs.z)) {\n        dirX = vec4(1,0,0, tc.x);\n        dirY = vec4(0,0,1, tc.z);\n        majorAxisLength = tc.y;\n    }\n    float shadowParamsInFaceSpace = ((1.0/shadowParams.x) * 2.0) * abs(majorAxisLength);\n    vec3 xoffset = (dirX.xyz * shadowParamsInFaceSpace);\n    vec3 yoffset = (dirY.xyz * shadowParamsInFaceSpace);\n    vec3 dx0 = -xoffset;\n    vec3 dy0 = -yoffset;\n    vec3 dx1 = xoffset;\n    vec3 dy1 = yoffset;\n    mat3 shadowKernel;\n    mat3 depthKernel;\n    depthKernel[0][0] = unpackFloat(textureCube(shadowMap, tc + dx0 + dy0));\n    depthKernel[0][1] = unpackFloat(textureCube(shadowMap, tc + dx0));\n    depthKernel[0][2] = unpackFloat(textureCube(shadowMap, tc + dx0 + dy1));\n    depthKernel[1][0] = unpackFloat(textureCube(shadowMap, tc + dy0));\n    depthKernel[1][1] = unpackFloat(textureCube(shadowMap, tc));\n    depthKernel[1][2] = unpackFloat(textureCube(shadowMap, tc + dy1));\n    depthKernel[2][0] = unpackFloat(textureCube(shadowMap, tc + dx1 + dy0));\n    depthKernel[2][1] = unpackFloat(textureCube(shadowMap, tc + dx1));\n    depthKernel[2][2] = unpackFloat(textureCube(shadowMap, tc + dx1 + dy1));\n    vec3 shadowZ = vec3(length(dir) * shadowParams.w + shadowParams.z);\n    shadowKernel[0] = vec3(lessThan2(depthKernel[0], shadowZ));\n    shadowKernel[1] = vec3(lessThan2(depthKernel[1], shadowZ));\n    shadowKernel[2] = vec3(lessThan2(depthKernel[2], shadowZ));\n    vec2 uv = (vec2(dirX.w, dirY.w) / abs(majorAxisLength)) * 0.5;\n    vec2 fractionalCoord = fract( uv * shadowParams.x );\n    shadowKernel[0] = mix(shadowKernel[0], shadowKernel[1], fractionalCoord.x);\n    shadowKernel[1] = mix(shadowKernel[1], shadowKernel[2], fractionalCoord.x);\n    vec4 shadowValues;\n    shadowValues.x = mix(shadowKernel[0][0], shadowKernel[0][1], fractionalCoord.y);\n    shadowValues.y = mix(shadowKernel[0][1], shadowKernel[0][2], fractionalCoord.y);\n    shadowValues.z = mix(shadowKernel[1][0], shadowKernel[1][1], fractionalCoord.y);\n    shadowValues.w = mix(shadowKernel[1][1], shadowKernel[1][2], fractionalCoord.y);\n    return 1.0 - dot( shadowValues, vec4( 1.0 ) ) * 0.25;\n}\nfloat getShadowPointPCF3x3(samplerCube shadowMap, vec4 shadowParams) {\n    return _getShadowPoint(shadowMap, shadowParams, dLightDirW);\n}\n";
+pc.shaderChunks.shadowStandardGL2PS = "float _getShadowPCF5x5(sampler2DShadow shadowMap, vec3 shadowParams) {\n    // http://the-witness.net/news/2013/09/shadow-mapping-summary-part-1/\n    float z = dShadowCoord.z;\n    vec2 uv = dShadowCoord.xy * shadowParams.x; // 1 unit - 1 texel\n    float shadowMapSizeInv = 1.0 / shadowParams.x;\n    vec2 base_uv = floor(uv + 0.5);\n    float s = (uv.x + 0.5 - base_uv.x);\n    float t = (uv.y + 0.5 - base_uv.y);\n    base_uv -= vec2(0.5);\n    base_uv *= shadowMapSizeInv;\n    float uw0 = (4.0 - 3.0 * s);\n    float uw1 = 7.0;\n    float uw2 = (1.0 + 3.0 * s);\n    float u0 = (3.0 - 2.0 * s) / uw0 - 2.0;\n    float u1 = (3.0 + s) / uw1;\n    float u2 = s / uw2 + 2.0;\n    float vw0 = (4.0 - 3.0 * t);\n    float vw1 = 7.0;\n    float vw2 = (1.0 + 3.0 * t);\n    float v0 = (3.0 - 2.0 * t) / vw0 - 2.0;\n    float v1 = (3.0 + t) / vw1;\n    float v2 = t / vw2 + 2.0;\n    float sum = 0.0;\n    u0 = u0 * shadowMapSizeInv + base_uv.x;\n    v0 = v0 * shadowMapSizeInv + base_uv.y;\n    u1 = u1 * shadowMapSizeInv + base_uv.x;\n    v1 = v1 * shadowMapSizeInv + base_uv.y;\n    u2 = u2 * shadowMapSizeInv + base_uv.x;\n    v2 = v2 * shadowMapSizeInv + base_uv.y;\n    sum += uw0 * vw0 * texture(shadowMap, vec3(u0, v0, z));\n    sum += uw1 * vw0 * texture(shadowMap, vec3(u1, v0, z));\n    sum += uw2 * vw0 * texture(shadowMap, vec3(u2, v0, z));\n    sum += uw0 * vw1 * texture(shadowMap, vec3(u0, v1, z));\n    sum += uw1 * vw1 * texture(shadowMap, vec3(u1, v1, z));\n    sum += uw2 * vw1 * texture(shadowMap, vec3(u2, v1, z));\n    sum += uw0 * vw2 * texture(shadowMap, vec3(u0, v2, z));\n    sum += uw1 * vw2 * texture(shadowMap, vec3(u1, v2, z));\n    sum += uw2 * vw2 * texture(shadowMap, vec3(u2, v2, z));\n    sum *= 1.0f / 144.0;\n    sum = gammaCorrectInput(sum); // gives softer gradient\n    sum = saturate(sum);\n    return sum;\n}\nfloat getShadowPCF5x5(sampler2DShadow shadowMap, vec3 shadowParams) {\n    return _getShadowPCF5x5(shadowMap, shadowParams);\n}\nfloat getShadowSpotPCF5x5(sampler2DShadow shadowMap, vec4 shadowParams) {\n    return _getShadowPCF5x5(shadowMap, shadowParams.xyz);\n}\n";
 pc.shaderChunks.shadowStandardGL2VSPS = "float getShadowPCF5x5VS(sampler2DShadow shadowMap, vec3 shadowParams) {\n    dShadowCoord = vMainShadowUv.xyz;\n    dShadowCoord.z = saturate(dShadowCoord.z) - 0.0001; // prevent going to dark after the far plane\n    return _getShadowPCF5x5(shadowMap, shadowParams);\n}\n";
 pc.shaderChunks.shadowStandardVSPS = "#ifdef GL2\n#define SHADOW_SAMPLERVS sampler2DShadow\n#else\n#define SHADOW_SAMPLERVS sampler2D\n#endif\nfloat getShadowPCF3x3VS(SHADOW_SAMPLERVS shadowMap, vec3 shadowParams) {\n    dShadowCoord = vMainShadowUv.xyz;\n    dShadowCoord.z = saturate(dShadowCoord.z) - 0.0001;\n    #ifdef SHADOWBIAS\n        dShadowCoord.z += getShadowBias(shadowParams.x, shadowParams.z);\n    #endif\n    return _getShadowPCF3x3(shadowMap, shadowParams);\n}\n";
 pc.shaderChunks.shadowVSM8PS = "float calculateVSM8(vec3 moments, float Z, float vsmBias) {\n    float VSMBias = vsmBias;//0.01 * 0.25;\n    float depthScale = VSMBias * Z;\n    float minVariance1 = depthScale * depthScale;\n    return chebyshevUpperBound(moments.xy, Z, minVariance1, 0.1);\n}\nfloat decodeFloatRG(vec2 rg) {\n    return rg.y*(1.0/255.0) + rg.x;\n}\nfloat VSM8(sampler2D tex, vec2 texCoords, float resolution, float Z, float vsmBias, float exponent) {\n    vec4 c = texture2D(tex, texCoords);\n    vec3 moments = vec3(decodeFloatRG(c.xy), decodeFloatRG(c.zw), 0.0);\n    return calculateVSM8(moments, Z, vsmBias);\n}\nfloat getShadowVSM8(sampler2D shadowMap, vec3 shadowParams, float exponent) {\n    return VSM8(shadowMap, dShadowCoord.xy, shadowParams.x, dShadowCoord.z, shadowParams.y, 0.0);\n}\nfloat getShadowSpotVSM8(sampler2D shadowMap, vec4 shadowParams, float exponent) {\n    return VSM8(shadowMap, dShadowCoord.xy, shadowParams.x, length(dLightDirW) * shadowParams.w + shadowParams.z, shadowParams.y, 0.0);\n}\n";
@@ -6559,10 +6626,10 @@ pc.shaderChunks.shadowVSMVSPS = "float getShadowVSM$VS(sampler2D shadowMap, vec3
 pc.shaderChunks.shadowVSM_commonPS = "float linstep(float a, float b, float v) {\n    return saturate((v - a) / (b - a));\n}\nfloat reduceLightBleeding(float pMax, float amount) {\n  // Remove the [0, amount] tail and linearly rescale (amount, 1].\n   return linstep(amount, 1.0, pMax);\n}\nfloat chebyshevUpperBound(vec2 moments, float mean, float minVariance, float lightBleedingReduction) {\n    // Compute variance\n    float variance = moments.y - (moments.x * moments.x);\n    variance = max(variance, minVariance);\n    // Compute probabilistic upper bound\n    float d = mean - moments.x;\n    float pMax = variance / (variance + (d * d));\n    pMax = reduceLightBleeding(pMax, lightBleedingReduction);\n    // One-tailed Chebyshev\n    return (mean <= moments.x ? 1.0 : pMax);\n}\nfloat calculateEVSM(vec3 moments, float Z, float vsmBias, float exponent) {\n    Z = 2.0 * Z - 1.0;\n    float warpedDepth = exp(exponent * Z);\n    moments.xy += vec2(warpedDepth, warpedDepth*warpedDepth) * (1.0 - moments.z);\n    float VSMBias = vsmBias;//0.01 * 0.25;\n    float depthScale = VSMBias * exponent * warpedDepth;\n    float minVariance1 = depthScale * depthScale;\n    return chebyshevUpperBound(moments.xy, warpedDepth, minVariance1, 0.1);\n}\n";
 pc.shaderChunks.skinBatchConstVS = "attribute float vertex_boneIndices;\nuniform mat4 matrix_pose[BONE_LIMIT];\nmat4 getBoneMatrix(const in float i) {\n    mat4 bone = matrix_pose[int(i)];\n    return bone;\n}\n";
 pc.shaderChunks.skinBatchTexVS = "attribute float vertex_boneIndices;\nuniform sampler2D texture_poseMap;\nuniform vec2 texture_poseMapSize;\nmat4 getBoneMatrix(const in float i) {\n    float j = i * 4.0;\n    float x = mod(j, float(texture_poseMapSize.x));\n    float y = floor(j / float(texture_poseMapSize.x));\n    float dx = 1.0 / float(texture_poseMapSize.x);\n    float dy = 1.0 / float(texture_poseMapSize.y);\n    y = dy * (y + 0.5);\n    vec4 v1 = texture2D(texture_poseMap, vec2(dx * (x + 0.5), y));\n    vec4 v2 = texture2D(texture_poseMap, vec2(dx * (x + 1.5), y));\n    vec4 v3 = texture2D(texture_poseMap, vec2(dx * (x + 2.5), y));\n    vec4 v4 = texture2D(texture_poseMap, vec2(dx * (x + 3.5), y));\n    mat4 bone = mat4(v1, v2, v3, v4);\n    return bone;\n}\n";
-pc.shaderChunks.skinConstVS = "attribute vec4 vertex_boneWeights;\nattribute vec4 vertex_boneIndices;\nuniform mat4 matrix_pose[BONE_LIMIT];\nuniform vec3 skinPosOffset;\nmat4 getBoneMatrix(const in float i)\n{\n    mat4 bone = matrix_pose[int(i)];\n    return bone;\n}\n";
-pc.shaderChunks.skinTexVS = "attribute vec4 vertex_boneWeights;\nattribute vec4 vertex_boneIndices;\nuniform sampler2D texture_poseMap;\nuniform vec2 texture_poseMapSize;\nuniform vec3 skinPosOffset;\nmat4 getBoneMatrix(const in float i)\n{\n    float j = i * 4.0;\n    float x = mod(j, float(texture_poseMapSize.x));\n    float y = floor(j / float(texture_poseMapSize.x));\n    float dx = 1.0 / float(texture_poseMapSize.x);\n    float dy = 1.0 / float(texture_poseMapSize.y);\n    y = dy * (y + 0.5);\n    vec4 v1 = texture2D(texture_poseMap, vec2(dx * (x + 0.5), y));\n    vec4 v2 = texture2D(texture_poseMap, vec2(dx * (x + 1.5), y));\n    vec4 v3 = texture2D(texture_poseMap, vec2(dx * (x + 2.5), y));\n    vec4 v4 = texture2D(texture_poseMap, vec2(dx * (x + 3.5), y));\n    mat4 bone = mat4(v1, v2, v3, v4);\n    return bone;\n}\n";
+pc.shaderChunks.skinConstVS = "attribute vec4 vertex_boneWeights;\nattribute vec4 vertex_boneIndices;\nuniform mat4 matrix_pose[BONE_LIMIT];\nmat4 getBoneMatrix(const in float i)\n{\n    mat4 bone = matrix_pose[int(i)];\n    return bone;\n}\n";
+pc.shaderChunks.skinTexVS = "attribute vec4 vertex_boneWeights;\nattribute vec4 vertex_boneIndices;\nuniform sampler2D texture_poseMap;\nuniform vec2 texture_poseMapSize;\nmat4 getBoneMatrix(const in float i)\n{\n    float j = i * 4.0;\n    float x = mod(j, float(texture_poseMapSize.x));\n    float y = floor(j / float(texture_poseMapSize.x));\n    float dx = 1.0 / float(texture_poseMapSize.x);\n    float dy = 1.0 / float(texture_poseMapSize.y);\n    y = dy * (y + 0.5);\n    vec4 v1 = texture2D(texture_poseMap, vec2(dx * (x + 0.5), y));\n    vec4 v2 = texture2D(texture_poseMap, vec2(dx * (x + 1.5), y));\n    vec4 v3 = texture2D(texture_poseMap, vec2(dx * (x + 2.5), y));\n    vec4 v4 = texture2D(texture_poseMap, vec2(dx * (x + 3.5), y));\n    mat4 bone = mat4(v1, v2, v3, v4);\n    return bone;\n}\n";
 pc.shaderChunks.skyboxPS = "varying vec3 vViewDir;\nuniform samplerCube texture_cubeMap;\nvoid main(void) {\n    gl_FragColor = textureCube(texture_cubeMap, fixSeams(vViewDir));\n}\n";
-pc.shaderChunks.skyboxVS = "attribute vec3 aPosition;\nuniform mat4 matrix_view;\nuniform mat4 matrix_projection;\nvarying vec3 vViewDir;\nvoid main(void)\n{\n    mat4 view = matrix_view;\n    view[3][0] = view[3][1] = view[3][2] = 0.0;\n    gl_Position = matrix_projection * view * vec4(aPosition, 1.0);\n    // Force skybox to far Z, regardless of the clip planes on the camera\n    // Subtract a tiny fudge factor to ensure floating point errors don't\n    // still push pixels beyond far Z. See:\n    // http://www.opengl.org/discussion_boards/showthread.php/171867-skybox-problem\n    gl_Position.z = gl_Position.w - 0.00001;\n    vViewDir = aPosition;\n    vViewDir.x *= -1.0;\n}\n";
+pc.shaderChunks.skyboxVS = "attribute vec3 aPosition;\n#ifndef VIEWMATRIX\n#define VIEWMATRIX\nuniform mat4 matrix_view;\n#endif\nuniform mat4 matrix_projection;\nvarying vec3 vViewDir;\nvoid main(void)\n{\n    mat4 view = matrix_view;\n    view[3][0] = view[3][1] = view[3][2] = 0.0;\n    gl_Position = matrix_projection * view * vec4(aPosition, 1.0);\n    // Force skybox to far Z, regardless of the clip planes on the camera\n    // Subtract a tiny fudge factor to ensure floating point errors don't\n    // still push pixels beyond far Z. See:\n    // http://www.opengl.org/discussion_boards/showthread.php/171867-skybox-problem\n    gl_Position.z = gl_Position.w - 0.00001;\n    vViewDir = aPosition;\n    vViewDir.x *= -1.0;\n}\n";
 pc.shaderChunks.skyboxHDRPS = "varying vec3 vViewDir;\nuniform samplerCube texture_cubeMap;\nvoid main(void) {\n    vec3 color = processEnvironment($textureCubeSAMPLE(texture_cubeMap, fixSeamsStatic(vViewDir, $FIXCONST)).rgb);\n    color = toneMap(color);\n    color = gammaCorrectOutput(color);\n    gl_FragColor = vec4(color, 1.0);\n}\n";
 pc.shaderChunks.skyboxPrefilteredCubePS = "varying vec3 vViewDir;\nuniform samplerCube texture_cubeMap;\nvec3 fixSeamsStretch(vec3 vec, float mipmapIndex, float cubemapSize) {\n    float scale = 1.0 - exp2(mipmapIndex) / cubemapSize;\n    float M = max(max(abs(vec.x), abs(vec.y)), abs(vec.z));\n    if (abs(vec.x) != M) vec.x *= scale;\n    if (abs(vec.y) != M) vec.y *= scale;\n    if (abs(vec.z) != M) vec.z *= scale;\n    return vec;\n}\nvoid main(void) {\n    vec3 color = textureCubeRGBM(texture_cubeMap, fixSeamsStretch(vViewDir, 0.0, 128.0));\n    color = toneMap(color);\n    color = gammaCorrectOutput(color);\n    gl_FragColor = vec4(color, 1.0);\n}\n";
 pc.shaderChunks.specularPS = "#ifdef MAPCOLOR\nuniform vec3 material_specular;\n#endif\n#ifdef MAPTEXTURE\nuniform sampler2D texture_specularMap;\n#endif\nvoid getSpecularity() {\n    dSpecularity = vec3(1.0);\n    #ifdef MAPCOLOR\n        dSpecularity *= material_specular;\n    #endif\n    #ifdef MAPTEXTURE\n        dSpecularity *= texture2D(texture_specularMap, $UV).$CH;\n    #endif\n    #ifdef MAPVERTEX\n        dSpecularity *= saturate(vVertexColor.$VC);\n    #endif\n}\n";
@@ -6580,19 +6647,13 @@ pc.shaderChunks.tonemappingFilmicPS = "const float A =  0.15;\nconst float B =  
 pc.shaderChunks.tonemappingHejlPS = "uniform float exposure;\nvec3 toneMap(vec3 color) {\n    color *= exposure;\n    const float  A = 0.22, B = 0.3, C = .1, D = 0.2, E = .01, F = 0.3;\n    const float Scl = 1.25;\n    vec3 h = max( vec3(0.0), color - vec3(0.004) );\n    return (h*((Scl*A)*h+Scl*vec3(C*B,C*B,C*B))+Scl*vec3(D*E,D*E,D*E)) / (h*(A*h+vec3(B,B,B))+vec3(D*F,D*F,D*F)) - Scl*vec3(E/F,E/F,E/F);\n}\n";
 pc.shaderChunks.tonemappingLinearPS = "uniform float exposure;\nvec3 toneMap(vec3 color) {\n    return color * exposure;\n}\n";
 pc.shaderChunks.tonemappingNonePS = "vec3 toneMap(vec3 color) {\n    return color;\n}\n";
-pc.shaderChunks.transformVS = "mat4 getModelMatrix() {\n    return matrix_model;\n}\nvec4 getPosition() {\n    dModelMatrix = getModelMatrix();\n    vec4 posW = dModelMatrix * vec4(vertex_position, 1.0);\n    dPositionW = posW.xyz;\n    return matrix_viewProjection * posW;\n}\nvec3 getWorldPosition() {\n    return dPositionW;\n}\n";
-pc.shaderChunks.transformBatchSkinnedVS = "mat4 getModelMatrix() {\n    return getBoneMatrix(vertex_boneIndices);\n}\nvec4 getPosition() {\n    dModelMatrix = getModelMatrix();\n    vec4 posW = dModelMatrix * vec4(vertex_position, 1.0);\n    dPositionW = posW.xyz;\n    return matrix_viewProjection * posW;\n}\nvec3 getWorldPosition() {\n    return dPositionW;\n}\n";
+pc.shaderChunks.transformVS = "#ifdef PIXELSNAP\n    uniform vec4 uScreenSize;\n#endif\n#ifdef NINESLICED\n    #ifndef NINESLICE\n    #define NINESLICE\n    uniform vec4 innerOffset;\n    uniform vec2 outerScale;\n    uniform vec4 atlasRect;\n    varying vec2 vTiledUv;\n    #endif\n#endif\nmat4 getModelMatrix() {\n    #ifdef DYNAMICBATCH\n        return getBoneMatrix(vertex_boneIndices);\n    #elif defined(SKIN)\n        return matrix_model * (getBoneMatrix(vertex_boneIndices.x) * vertex_boneWeights.x +\n               getBoneMatrix(vertex_boneIndices.y) * vertex_boneWeights.y +\n               getBoneMatrix(vertex_boneIndices.z) * vertex_boneWeights.z +\n               getBoneMatrix(vertex_boneIndices.w) * vertex_boneWeights.w);\n    #elif defined(INSTANCING)\n        return mat4(instance_line1, instance_line2, instance_line3, instance_line4);\n    #else\n        return matrix_model;\n    #endif\n}\nvec4 getPosition() {\n    dModelMatrix = getModelMatrix();\n    vec3 localPos = vertex_position;\n    #ifdef NINESLICED\n        // outer and inner vertices are at the same position, scale both\n        localPos.xz *= outerScale;\n        // offset inner vertices inside\n        // (original vertices must be in [-1;1] range)\n        vec2 positiveUnitOffset = clamp(vertex_position.xz, vec2(0.0), vec2(1.0));\n        vec2 negativeUnitOffset = clamp(-vertex_position.xz, vec2(0.0), vec2(1.0));\n        localPos.xz += (-positiveUnitOffset * innerOffset.xy + negativeUnitOffset * innerOffset.zw) * vertex_texCoord0.xy;\n        vTiledUv = (localPos.xz - outerScale + innerOffset.xy) * -0.5 + 1.0; // uv = local pos - inner corner\n        localPos.xz *= -0.5; // move from -1;1 to -0.5;0.5\n        localPos = localPos.xzy;\n    #endif\n    vec4 posW = dModelMatrix * vec4(localPos, 1.0);\n    #ifdef SCREENSPACE\n        posW.zw = vec2(0.0, 1.0);\n    #endif\n    dPositionW = posW.xyz;\n    vec4 screenPos;\n    #ifdef UV1LAYOUT\n        screenPos = vec4(vertex_texCoord1.xy * 2.0 - 1.0, 0.5, 1);\n    #else\n        #ifdef SCREENSPACE\n            screenPos = posW;\n        #else\n            screenPos = matrix_viewProjection * posW;\n        #endif\n        #ifdef PIXELSNAP\n            // snap vertex to a pixel boundary\n            screenPos.xy = (screenPos.xy * 0.5) + 0.5;\n            screenPos.xy *= uScreenSize.xy;\n            screenPos.xy = floor(screenPos.xy);\n            screenPos.xy *= uScreenSize.zw;\n            screenPos.xy = (screenPos.xy * 2.0) - 1.0;\n        #endif\n    #endif\n    return screenPos;\n}\nvec3 getWorldPosition() {\n    return dPositionW;\n}\n";
 pc.shaderChunks.transformDeclVS = "attribute vec3 vertex_position;\nuniform mat4 matrix_model;\nuniform mat4 matrix_viewProjection;\nvec3 dPositionW;\nmat4 dModelMatrix;\n";
-pc.shaderChunks.transformInstancedVS = "mat4 getModelMatrix() {\n    return mat4(instance_line1, instance_line2, instance_line3, instance_line4);\n}\nvec4 getPosition() {\n    dModelMatrix = getModelMatrix();\n    vec4 posW = dModelMatrix * vec4(vertex_position, 1.0);\n    dPositionW = posW.xyz;\n    return matrix_viewProjection * posW;\n}\nvec3 getWorldPosition() {\n    return dPositionW;\n}\n";
-pc.shaderChunks.transformPixelSnapVS = "uniform vec4 uScreenSize;\nmat4 getModelMatrix() {\n    return matrix_model;\n}\nvec4 getPosition() {\n    dModelMatrix = getModelMatrix();\n    vec4 posW = dModelMatrix * vec4(vertex_position, 1.0);\n    dPositionW = posW.xyz;\n    vec4 o = matrix_viewProjection * posW;\n    // snap vertex to a pixel boundary\n    o.xy = (o.xy * 0.5) + 0.5;\n    o.xy *= uScreenSize.xy;\n    o.xy = floor(o.xy);\n    o.xy *= uScreenSize.zw;\n    o.xy = (o.xy * 2.0) - 1.0;\n    return o;\n}\nvec3 getWorldPosition() {\n    return dPositionW;\n}\n";
-pc.shaderChunks.transformScreenSpaceVS = "mat4 getModelMatrix() {\n    return matrix_model;\n}\nvec4 getPosition() {\n    vec4 posW = vec4((getModelMatrix() * vec4(vertex_position, 1.0)).xy, 0.0, 1.0);\n    dPositionW = posW.xyz;\n    return posW;\n}\nvec3 getWorldPosition() {\n    return dPositionW;\n}\n";
-pc.shaderChunks.transformScreenSpaceBatchSkinnedVS = "mat4 getModelMatrix() {\n    return getBoneMatrix(vertex_boneIndices);\n}\nvec4 getPosition() {\n    vec4 posW = vec4((getModelMatrix() * vec4(vertex_position, 1.0)).xy, 0.0, 1.0);\n    dPositionW = posW.xyz;\n    return posW;\n}\nvec3 getWorldPosition() {\n    return dPositionW;\n}\n";
-pc.shaderChunks.transformSkinnedVS = "mat4 getModelMatrix() {\n    return getBoneMatrix(vertex_boneIndices.x) * vertex_boneWeights.x +\n           getBoneMatrix(vertex_boneIndices.y) * vertex_boneWeights.y +\n           getBoneMatrix(vertex_boneIndices.z) * vertex_boneWeights.z +\n           getBoneMatrix(vertex_boneIndices.w) * vertex_boneWeights.w;\n}\nvec4 getPosition() {\n    dModelMatrix = getModelMatrix();\n    vec4 posW = dModelMatrix * vec4(vertex_position, 1.0);\n    //posW.xyz /= posW.w;\n    posW.xyz += skinPosOffset;\n    dPositionW = posW.xyz;// / posW.w;\n    return matrix_viewProjection * posW;\n}\nvec3 getWorldPosition() {\n    return dPositionW;\n}\n";
-pc.shaderChunks.transformUv1VS = "mat4 getModelMatrix() {\n    return matrix_model;\n}\nvec4 getPosition() {\n    dModelMatrix = getModelMatrix();\n    vec4 posW = dModelMatrix * vec4(vertex_position, 1.0);\n    dPositionW = posW.xyz;\n    return vec4(vertex_texCoord1.xy * 2.0 - 1.0, 0.5, 1);\n}\nvec3 getWorldPosition() {\n    return dPositionW;\n}\n";
 pc.shaderChunks.uv0VS = "\nvec2 getUv0() {\n    return vertex_texCoord0;\n}\n";
 pc.shaderChunks.uv1VS = "\nvec2 getUv1() {\n    return vertex_texCoord1;\n}\n";
+pc.shaderChunks.uv9SliceVS = "#ifndef NINESLICE\n#define NINESLICE\nuniform vec4 innerOffset;\nuniform vec2 outerScale;\nuniform vec4 atlasRect;\nvarying vec2 vTiledUv;\n#endif\nvarying vec2 vMask;\nvec2 getUv0() {\n    vec2 uv = vertex_position.xz;\n    // offset inner vertices inside\n    // (original vertices must be in [-1;1] range)\n    vec2 positiveUnitOffset = clamp(vertex_position.xz, vec2(0.0), vec2(1.0));\n    vec2 negativeUnitOffset = clamp(-vertex_position.xz, vec2(0.0), vec2(1.0));\n    uv += (-positiveUnitOffset * innerOffset.xy + negativeUnitOffset * innerOffset.zw) * vertex_texCoord0.xy;\n    uv = uv * -0.5 + 0.5;\n    uv = uv * atlasRect.zw + atlasRect.xy;\n    vMask = vertex_texCoord0.xy;\n    return uv;\n}\n";
 pc.shaderChunks.viewDirPS = "void getViewDir() {\n    dViewDirW = normalize(view_position - vPositionW);\n}\n";
-pc.shaderChunks.viewNormalVS = "\nuniform mat4 matrix_view;\nvec3 getViewNormal() {\n    return mat3(matrix_view) * vNormalW;\n}\n";
+pc.shaderChunks.viewNormalVS = "\n#ifndef VIEWMATRIX\n#define VIEWMATRIX\nuniform mat4 matrix_view;\n#endif\nvec3 getViewNormal() {\n    return mat3(matrix_view) * vNormalW;\n}\n";
 pc.programlib = {gammaCode:function(value) {
   if (value === pc.GAMMA_SRGB || value === pc.GAMMA_SRGBFAST) {
     return pc.shaderChunks.gamma2_2PS;
@@ -6632,20 +6693,18 @@ pc.programlib = {gammaCode:function(value) {
     } else {
       if (value === "exp2") {
         return pc.shaderChunks.fogExp2PS;
-      } else {
-        return pc.shaderChunks.fogNonePS;
       }
     }
   }
+  return pc.shaderChunks.fogNonePS;
 }, skinCode:function(device, chunks) {
   if (!chunks) {
     chunks = pc.shaderChunks;
   }
   if (device.supportsBoneTextures) {
     return chunks.skinTexVS;
-  } else {
-    return "#define BONE_LIMIT " + device.getBoneLimit() + "\n" + chunks.skinConstVS;
   }
+  return "#define BONE_LIMIT " + device.getBoneLimit() + "\n" + chunks.skinConstVS;
 }, precisionCode:function(device) {
   var pcode = "precision " + device.precision + " float;\n";
   if (device.webgl2) {
@@ -6675,6 +6734,7 @@ pc.programlib.basic = {generateKey:function(device, options) {
   if (options.diffuseMap) {
     key += "_diff";
   }
+  key += "_" + options.pass;
   return key;
 }, createShaderDefinition:function(device, options) {
   var attributes = {vertex_position:pc.SEMANTIC_POSITION};
@@ -6705,8 +6765,22 @@ pc.programlib.basic = {generateKey:function(device, options) {
     code += "attribute vec2 vertex_texCoord0;\n";
     code += "varying vec2 vUv0;\n";
   }
+  if (options.pass === pc.SHADER_DEPTH) {
+    code += "varying float vDepth;\n";
+    code += "#ifndef VIEWMATRIX\n";
+    code += "#define VIEWMATRIX\n";
+    code += "uniform mat4 matrix_view;\n";
+    code += "#endif\n";
+    code += "#ifndef CAMERAPLANES\n";
+    code += "#define CAMERAPLANES\n";
+    code += "uniform vec4 camera_params;\n\n";
+    code += "#endif\n";
+  }
   code += pc.programlib.begin();
   code += "   gl_Position = getPosition();\n";
+  if (options.pass === pc.SHADER_DEPTH) {
+    code += "    vDepth = -(matrix_view * vec4(getWorldPosition(),1.0)).z * camera_params.x;\n";
+  }
   if (options.vertexColors) {
     code += "    vColor = vertex_color;\n";
   }
@@ -6731,6 +6805,10 @@ pc.programlib.basic = {generateKey:function(device, options) {
   if (options.alphatest) {
     code += chunks.alphaTestPS;
   }
+  if (options.pass === pc.SHADER_DEPTH) {
+    code += "varying float vDepth;\n";
+    code += chunks.packDepthPS;
+  }
   code += pc.programlib.begin();
   if (options.vertexColors) {
     code += "    gl_FragColor = vColor;\n";
@@ -6743,292 +6821,13 @@ pc.programlib.basic = {generateKey:function(device, options) {
   if (options.alphatest) {
     code += "   alphaTest(gl_FragColor.a);\n";
   }
-  if (options.fog) {
-    code += "   glFragColor.rgb = addFog(gl_FragColor.rgb);\n";
-  }
-  code += pc.programlib.end();
-  var fshader = code;
-  return {attributes:attributes, vshader:vshader, fshader:fshader};
-}};
-pc.programlib.depth = {generateKey:function(device, options) {
-  var key = "depth";
-  if (options.skin) {
-    key += "_skin";
-  }
-  if (options.opacityMap) {
-    key += "_opam";
-  }
-  if (options.instancing) {
-    key += "_inst";
-  }
-  return key;
-}, createShaderDefinition:function(device, options) {
-  var attributes = {vertex_position:pc.SEMANTIC_POSITION};
-  if (options.skin) {
-    attributes.vertex_boneWeights = pc.SEMANTIC_BLENDWEIGHT;
-    attributes.vertex_boneIndices = pc.SEMANTIC_BLENDINDICES;
-  }
-  if (options.opacityMap) {
-    attributes.vertex_texCoord0 = pc.SEMANTIC_TEXCOORD0;
-  }
-  var chunks = pc.shaderChunks;
-  var code = "";
-  code += chunks.transformDeclVS;
-  if (options.skin) {
-    code += pc.programlib.skinCode(device);
-    code += chunks.transformSkinnedVS;
+  if (options.pass === pc.SHADER_PICK) {
   } else {
-    if (options.instancing) {
-      attributes.instance_line1 = pc.SEMANTIC_TEXCOORD2;
-      attributes.instance_line2 = pc.SEMANTIC_TEXCOORD3;
-      attributes.instance_line3 = pc.SEMANTIC_TEXCOORD4;
-      attributes.instance_line4 = pc.SEMANTIC_TEXCOORD5;
-      code += chunks.instancingVS;
-      code += chunks.transformInstancedVS;
+    if (options.pass === pc.SHADER_DEPTH) {
+      code += "    gl_FragColor = packFloat(vDepth);\n";
     } else {
-      if (options.screenSpace) {
-        code += chunks.transformScreenSpaceVS;
-      } else {
-        code += chunks.transformVS;
-      }
-    }
-  }
-  if (options.opacityMap) {
-    code += "attribute vec2 vertex_texCoord0;\n\n";
-    code += "varying vec2 vUv0;\n\n";
-  }
-  code += "varying float vDepth;\n";
-  code += "uniform mat4 matrix_view;\n";
-  code += "uniform float camera_far;\n\n";
-  code += pc.programlib.begin();
-  code += "   gl_Position = getPosition();\n";
-  if (options.opacityMap) {
-    code += "    vUv0 = vertex_texCoord0;\n";
-  }
-  code += "    vDepth = -(matrix_view * vec4(getWorldPosition(),1.0)).z / camera_far;\n";
-  code += pc.programlib.end();
-  var vshader = code;
-  code = pc.programlib.precisionCode(device);
-  if (options.opacityMap) {
-    code += "varying vec2 vUv0;\n\n";
-    code += "uniform sampler2D texture_opacityMap;\n\n";
-    code += chunks.alphaTestPS;
-  }
-  code += "varying float vDepth;\n\n";
-  code += "vec4 packFloat(float depth)\n";
-  code += "{\n";
-  code += "    const vec4 bit_shift = vec4(256.0 * 256.0 * 256.0, 256.0 * 256.0, 256.0, 1.0);\n";
-  code += "    const vec4 bit_mask  = vec4(0.0, 1.0 / 256.0, 1.0 / 256.0, 1.0 / 256.0);\n";
-  code += "    vec4 res = mod(depth * bit_shift * vec4(255), vec4(256) ) / vec4(255);\n";
-  code += "    res -= res.xxyz * bit_mask;\n";
-  code += "    return res;\n";
-  code += "}\n\n";
-  code += pc.programlib.begin();
-  if (options.opacityMap) {
-    code += "    alphaTest(texture2D(texture_opacityMap, vUv0)." + options.opacityChannel[0] + " );\n\n";
-  }
-  code += "float depth = vDepth;\n";
-  code += "gl_FragColor = packFloat(depth);\n";
-  code += pc.programlib.end();
-  var fshader = code;
-  return {attributes:attributes, vshader:vshader, fshader:fshader};
-}};
-pc.programlib.depthrgba = {hashCode:function(str) {
-  var hash = 0;
-  if (str.length === 0) {
-    return hash;
-  }
-  for (var i = 0;i < str.length;i++) {
-    var char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash;
-  }
-  return hash;
-}, generateKey:function(device, options) {
-  var key = "depthrgba";
-  if (options.skin) {
-    key += "_skin";
-  }
-  if (options.opacityMap) {
-    key += "_opam" + options.opacityChannel;
-  }
-  if (options.type) {
-    key += options.type;
-  }
-  if (options.instancing) {
-    key += "_inst";
-  }
-  key += "_" + options.shadowType;
-  if (options.chunks) {
-    var str = "";
-    for (var p in options.chunks) {
-      if (options.chunks.hasOwnProperty(p)) {
-        str += p + options.chunks[p];
-      }
-    }
-    key += this.hashCode(str);
-  }
-  return key;
-}, createShaderDefinition:function(device, options) {
-  var attributes = {vertex_position:pc.SEMANTIC_POSITION};
-  if (options.skin) {
-    attributes.vertex_boneWeights = pc.SEMANTIC_BLENDWEIGHT;
-    attributes.vertex_boneIndices = pc.SEMANTIC_BLENDINDICES;
-  }
-  if (options.opacityMap) {
-    attributes.vertex_texCoord0 = pc.SEMANTIC_TEXCOORD0;
-  }
-  var chunks = pc.shaderChunks;
-  if (options.chunks) {
-    var customChunks = [];
-    for (var p in chunks) {
-      if (chunks.hasOwnProperty(p)) {
-        if (!options.chunks[p]) {
-          customChunks[p] = chunks[p];
-        } else {
-          customChunks[p] = options.chunks[p];
-        }
-      }
-    }
-    chunks = customChunks;
-  }
-  var code = "";
-  code += chunks.transformDeclVS;
-  if (options.chunks && options.attributes) {
-    for (var p in options.attributes) {
-      if (options.attributes.hasOwnProperty(p)) {
-        attributes[p] = options.attributes[p];
-      }
-    }
-  }
-  var uvAdded = false;
-  if (attributes.vertex_normal) {
-    code += "attribute vec3 vertex_normal;\n";
-  }
-  if (attributes.vertex_tangent) {
-    code += "attribute vec4 vertex_tangent;\n";
-  }
-  if (attributes.vertex_texCoord0) {
-    uvAdded = true;
-    code += "attribute vec2 vertex_texCoord0;\n";
-  }
-  if (attributes.vertex_texCoord1) {
-    code += "attribute vec2 vertex_texCoord1;\n";
-  }
-  if (attributes.vertex_color) {
-    code += "attribute vec4 vertex_color;\n";
-  }
-  if (!options.skin && attributes.vertex_boneWeights) {
-    code += "attribute vec4 vertex_boneWeights;\n";
-  }
-  if (!options.skin && attributes.vertex_boneIndices) {
-    code += "attribute vec4 vertex_boneIndices;\n";
-  }
-  if (options.skin) {
-    code += pc.programlib.skinCode(device, chunks);
-    code += chunks.transformSkinnedVS;
-  } else {
-    if (options.instancing) {
-      attributes.instance_line1 = pc.SEMANTIC_TEXCOORD2;
-      attributes.instance_line2 = pc.SEMANTIC_TEXCOORD3;
-      attributes.instance_line3 = pc.SEMANTIC_TEXCOORD4;
-      attributes.instance_line4 = pc.SEMANTIC_TEXCOORD5;
-      code += chunks.instancingVS;
-      code += chunks.transformInstancedVS;
-    } else {
-      if (options.screenSpace) {
-        code += chunks.transformScreenSpaceVS;
-      } else {
-        code += chunks.transformVS;
-      }
-    }
-  }
-  if (options.opacityMap) {
-    if (!uvAdded) {
-      code += "attribute vec2 vertex_texCoord0;\n\n";
-    }
-    code += "varying vec2 vUv0;\n\n";
-  }
-  if (options.type !== pc.LIGHTTYPE_DIRECTIONAL) {
-    code += "varying vec3 worldPos;\n\n";
-  }
-  code += pc.programlib.begin();
-  code += "   gl_Position = getPosition();\n";
-  if (options.opacityMap) {
-    code += "    vUv0 = vertex_texCoord0;\n";
-  }
-  if (options.type !== pc.LIGHTTYPE_DIRECTIONAL) {
-    code += "    worldPos = dPositionW;\n";
-  }
-  code += pc.programlib.end();
-  var vshader = code;
-  code = "";
-  if (device.extStandardDerivatives && !device.webgl2) {
-    code += "#extension GL_OES_standard_derivatives : enable\n\n";
-  }
-  code += pc.programlib.precisionCode(device);
-  if (device.extStandardDerivatives && !device.webgl2) {
-    code += "uniform vec2 polygonOffset;\n";
-  }
-  if (options.shadowType === pc.SHADOW_VSM32) {
-    if (device.extTextureFloatHighPrecision) {
-      code += "#define VSM_EXPONENT 15.0\n\n";
-    } else {
-      code += "#define VSM_EXPONENT 5.54\n\n";
-    }
-  } else {
-    if (options.shadowType === pc.SHADOW_VSM16) {
-      code += "#define VSM_EXPONENT 5.54\n\n";
-    }
-  }
-  if (options.opacityMap) {
-    code += "varying vec2 vUv0;\n";
-    code += "uniform sampler2D texture_opacityMap;\n";
-    code += chunks.alphaTestPS;
-  }
-  if (options.type !== pc.LIGHTTYPE_DIRECTIONAL) {
-    code += "varying vec3 worldPos;\n";
-    code += "uniform vec3 view_position;\n";
-    code += "uniform float light_radius;\n";
-  }
-  if (options.shadowType === pc.SHADOW_PCF3 && (!device.webgl2 || options.type === pc.LIGHTTYPE_POINT)) {
-    code += chunks.packDepthPS;
-  } else {
-    if (options.shadowType === pc.SHADOW_VSM8) {
-      code += "vec2 encodeFloatRG( float v ) {\n";
-      code += "    vec2 enc = vec2(1.0, 255.0) * v;\n";
-      code += "    enc = fract(enc);\n";
-      code += "    enc -= enc.yy * vec2(1.0/255.0, 1.0/255.0);\n";
-      code += "    return enc;\n";
-      code += "}\n\n";
-    }
-  }
-  code += pc.programlib.begin();
-  if (options.opacityMap) {
-    code += "    alphaTest( texture2D(texture_opacityMap, vUv0)." + options.opacityChannel + " );\n\n";
-  }
-  var isVsm = options.shadowType === pc.SHADOW_VSM8 || options.shadowType === pc.SHADOW_VSM16 || options.shadowType === pc.SHADOW_VSM32;
-  if (options.type === pc.LIGHTTYPE_POINT || isVsm && options.type !== pc.LIGHTTYPE_DIRECTIONAL) {
-    code += "   float depth = min(distance(view_position, worldPos) / light_radius, 0.99999);\n";
-  } else {
-    code += "   float depth = gl_FragCoord.z;\n";
-  }
-  if (options.shadowType === pc.SHADOW_PCF3 && (!device.webgl2 || options.type === pc.LIGHTTYPE_POINT)) {
-    if (device.extStandardDerivatives && !device.webgl2) {
-      code += "   float minValue = 2.3374370500153186e-10; //(1.0 / 255.0) / (256.0 * 256.0 * 256.0);\n";
-      code += "   depth += polygonOffset.x * max(abs(dFdx(depth)), abs(dFdy(depth))) + minValue * polygonOffset.y;\n";
-      code += "   gl_FragData[0] = packFloat(depth);\n";
-    } else {
-      code += "   gl_FragData[0] = packFloat(depth);\n";
-    }
-  } else {
-    if (options.shadowType === pc.SHADOW_PCF3 || options.shadowType === pc.SHADOW_PCF5) {
-      code += "   gl_FragData[0] = vec4(1.0);\n";
-    } else {
-      if (options.shadowType === pc.SHADOW_VSM8) {
-        code += "   gl_FragColor = vec4(encodeFloatRG(depth), encodeFloatRG(depth*depth));\n";
-      } else {
-        code += chunks.storeEVSMPS;
+      if (options.fog) {
+        code += "   glFragColor.rgb = addFog(gl_FragColor.rgb);\n";
       }
     }
   }
@@ -7053,6 +6852,11 @@ pc.programlib.particle = {generateKey:function(device, options) {
   var chunk = pc.shaderChunks;
   var vshader = "";
   var fshader = pc.programlib.precisionCode(device) + "\n";
+  if (device.webgl2) {
+    vshader += "#define GL2\n";
+    fshader += "#define GL2\n";
+  }
+  vshader += "#define VERTEXSHADER\n";
   if (options.animTex) {
     vshader += "\nuniform vec4 animTexParams;\n";
   }
@@ -7068,6 +6872,9 @@ pc.programlib.particle = {generateKey:function(device, options) {
   if (!options.useCpu) {
     vshader += chunk.particle_initVS;
     vshader += options.pack8 ? chunk.particleInputRgba8PS : chunk.particleInputFloatPS;
+    if (options.soft > 0) {
+      vshader += chunk.screenDepthPS;
+    }
     vshader += chunk.particleVS;
     if (options.localSpace) {
       vshader += chunk.particle_localShiftVS;
@@ -7096,6 +6903,9 @@ pc.programlib.particle = {generateKey:function(device, options) {
       vshader += chunk.particle_softVS;
     }
   } else {
+    if (options.soft > 0) {
+      vshader += chunk.screenDepthPS;
+    }
     vshader += chunk.particle_cpuVS;
     if (options.localSpace) {
       vshader += chunk.particle_localShiftVS;
@@ -7157,7 +6967,7 @@ pc.programlib.particle = {generateKey:function(device, options) {
     fshader += "\nuniform sampler2D normalMap;\n";
   }
   if (options.soft > 0) {
-    fshader += "\nuniform sampler2D uDepthMap;\n uniform vec4 uScreenSize;\n";
+    fshader += chunk.screenDepthPS;
   }
   fshader += chunk.particlePS;
   if (options.soft > 0) {
@@ -7224,25 +7034,43 @@ var _oldChunkVertFloat = function(s, o, p) {
   _oldChunkWarn(p, o);
   return "#undef MAPVERTEXFLOAT\n#ifdef MAPVERTEX\n#ifdef MAPFLOAT\n#define MAPVERTEXFLOAT\n#endif\n#endif\n" + "#ifdef MAPVERTEXFLOAT\n" + s + "\n#else\n" + pc.shaderChunks[o] + "\n#endif\n";
 };
-pc.programlib.standard = {_oldChunkToNew:{aoTexPS:{n:"aoPS", f:_oldChunkTex}, aoVertPS:{n:"aoPS", f:_oldChunkVert}, diffuseConstPS:{n:"diffusePS", f:_oldChunkColor}, diffuseTexPS:{n:"diffusePS", f:_oldChunkTex}, diffuseTexConstPS:{n:"diffusePS", f:_oldChunkTexColor}, diffuseVertPS:{n:"diffusePS", f:_oldChunkVert}, diffuseVertConstPS:{n:"diffusePS", f:_oldChunkVertColor}, emissiveConstPS:{n:"emissivePS", f:_oldChunkColor}, emissiveTexPS:{n:"emissivePS", f:_oldChunkTex}, emissiveTexConstPS:{n:"emissivePS",
-f:_oldChunkTexColor}, emissiveTexConstFloatPS:{n:"emissivePS", f:_oldChunkTexFloat}, emissiveVertPS:{n:"emissivePS", f:_oldChunkVert}, emissiveVertConstPS:{n:"emissivePS", f:_oldChunkVertColor}, emissiveVertConstFloatPS:{n:"emissivePS", f:_oldChunkVertFloat}, glossConstPS:{n:"glossPS", f:_oldChunkFloat}, glossTexPS:{n:"glossPS", f:_oldChunkTex}, glossTexConstPS:{n:"glossPS", f:_oldChunkTexFloat}, glossVertPS:{n:"glossPS", f:_oldChunkVert}, glossVertConstPS:{n:"glossPS", f:_oldChunkVertFloat}, metalnessConstPS:{n:"metalnessPS",
-f:_oldChunkFloat}, metalnessTexPS:{n:"metalnessPS", f:_oldChunkTex}, metalnessTexConstPS:{n:"metalnessPS", f:_oldChunkTexFloat}, metalnessVertPS:{n:"metalnessPS", f:_oldChunkVert}, metalnessVertConstPS:{n:"metalnessPS", f:_oldChunkVertFloat}, opacityConstPS:{n:"opacityPS", f:_oldChunkFloat}, opacityTexPS:{n:"opacityPS", f:_oldChunkTex}, opacityTexConstPS:{n:"opacityPS", f:_oldChunkTexFloat}, opacityVertPS:{n:"opacityPS", f:_oldChunkVert}, opacityVertConstPS:{n:"opacityPS", f:_oldChunkVertFloat},
-specularConstPS:{n:"specularPS", f:_oldChunkColor}, specularTexPS:{n:"specularPS", f:_oldChunkTex}, specularTexConstPS:{n:"specularPS", f:_oldChunkTexColor}, specularVertPS:{n:"specularPS", f:_oldChunkVert}, specularVertConstPS:{n:"specularPS", f:_oldChunkVertColor}}, hashCode:function(str) {
-  var hash = 0;
-  if (str.length === 0) {
-    return hash;
-  }
-  for (var i = 0;i < str.length;i++) {
-    var char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash;
-  }
-  return hash;
-}, generateKey:function(device, options) {
-  var props = [];
+var _oldChunkTransformSkin = function(s, o, p) {
+  _oldChunkWarn(p, o);
+  return "\n#ifdef SKIN\n" + s + "\n#else\n" + pc.shaderChunks[o] + "\n#endif\n";
+};
+var _oldChunkTransformDynbatch = function(s, o, p) {
+  _oldChunkWarn(p, o);
+  return "\n#ifdef DYNAMICBATCH\n" + s + "\n#else\n" + pc.shaderChunks[o] + "\n#endif\n";
+};
+var _oldChunkTransformInstanced = function(s, o, p) {
+  _oldChunkWarn(p, o);
+  return "\n#ifdef INSTANCING\n" + s + "\n#else\n" + pc.shaderChunks[o] + "\n#endif\n";
+};
+var _oldChunkTransformPixelSnap = function(s, o, p) {
+  _oldChunkWarn(p, o);
+  return "\n#ifdef PIXELSNAP\n" + s + "\n#else\n" + pc.shaderChunks[o] + "\n#endif\n";
+};
+var _oldChunkTransformScreenSpace = function(s, o, p) {
+  _oldChunkWarn(p, o);
+  return "\n#ifdef SCREENSPACE\n" + s + "\n#else\n" + pc.shaderChunks[o] + "\n#endif\n";
+};
+var _oldChunkTransformScreenSpaceBatch = function(s, o, p) {
+  _oldChunkWarn(p, o);
+  return "#undef SCREENSPACEBATCH\n#ifdef SCREENSPACE\n#ifdef BATCH\n#define SCREENSPACEBATCH\n#endif\n#endif\n" + "#ifdef SCREENSPACEBATCH\n" + s + "\n#else\n" + pc.shaderChunks[o] + "\n#endif\n";
+};
+var _oldChunkTransformUv1 = function(s, o, p) {
+  _oldChunkWarn(p, o);
+  return "\n#ifdef UV1LAYOUT\n" + s + "\n#else\n" + pc.shaderChunks[o] + "\n#endif\n";
+};
+pc.programlib.standard = {_oldChunkToNew:{aoTexPS:{n:"aoPS", f:_oldChunkTex}, aoVertPS:{n:"aoPS", f:_oldChunkVert}, diffuseConstPS:{n:"diffusePS", f:_oldChunkColor}, diffuseTexPS:{n:"diffusePS", f:_oldChunkTex}, diffuseTexConstPS:{n:"diffusePS", f:_oldChunkTexColor}, diffuseVertPS:{n:"diffusePS", f:_oldChunkVert}, diffuseVertConstPS:{n:"diffusePS", f:_oldChunkVertColor}, emissiveConstPS:{n:"emissivePS", f:_oldChunkColor}, emissiveTexPS:{n:"emissivePS", f:_oldChunkTex}, emissiveTexConstPS:{n:"emissivePS", 
+f:_oldChunkTexColor}, emissiveTexConstFloatPS:{n:"emissivePS", f:_oldChunkTexFloat}, emissiveVertPS:{n:"emissivePS", f:_oldChunkVert}, emissiveVertConstPS:{n:"emissivePS", f:_oldChunkVertColor}, emissiveVertConstFloatPS:{n:"emissivePS", f:_oldChunkVertFloat}, glossConstPS:{n:"glossPS", f:_oldChunkFloat}, glossTexPS:{n:"glossPS", f:_oldChunkTex}, glossTexConstPS:{n:"glossPS", f:_oldChunkTexFloat}, glossVertPS:{n:"glossPS", f:_oldChunkVert}, glossVertConstPS:{n:"glossPS", f:_oldChunkVertFloat}, metalnessConstPS:{n:"metalnessPS", 
+f:_oldChunkFloat}, metalnessTexPS:{n:"metalnessPS", f:_oldChunkTex}, metalnessTexConstPS:{n:"metalnessPS", f:_oldChunkTexFloat}, metalnessVertPS:{n:"metalnessPS", f:_oldChunkVert}, metalnessVertConstPS:{n:"metalnessPS", f:_oldChunkVertFloat}, opacityConstPS:{n:"opacityPS", f:_oldChunkFloat}, opacityTexPS:{n:"opacityPS", f:_oldChunkTex}, opacityTexConstPS:{n:"opacityPS", f:_oldChunkTexFloat}, opacityVertPS:{n:"opacityPS", f:_oldChunkVert}, opacityVertConstPS:{n:"opacityPS", f:_oldChunkVertFloat}, 
+specularConstPS:{n:"specularPS", f:_oldChunkColor}, specularTexPS:{n:"specularPS", f:_oldChunkTex}, specularTexConstPS:{n:"specularPS", f:_oldChunkTexColor}, specularVertPS:{n:"specularPS", f:_oldChunkVert}, specularVertConstPS:{n:"specularPS", f:_oldChunkVertColor}, transformBatchSkinnedVS:{n:"transformVS", f:_oldChunkTransformDynbatch}, transformInstancedVS:{n:"transformVS", f:_oldChunkTransformInstanced}, transformPixelSnapVS:{n:"transformVS", f:_oldChunkTransformPixelSnap}, transformScreenSpaceVS:{n:"transformVS", 
+f:_oldChunkTransformScreenSpace}, transformScreenSpaceBatchSkinned:{n:"transformVS", f:_oldChunkTransformScreenSpaceBatch}, transformSkinned:{n:"transformVS", f:_oldChunkTransformSkin}, transformUv1:{n:"transformVS", f:_oldChunkTransformUv1}}, generateKey:function(device, options) {
+  var prop, props = [];
   var key = "standard";
   var light;
-  for (var prop in options) {
+  for (prop in options) {
     if (options.hasOwnProperty(prop)) {
       if (prop === "chunks") {
         for (var p in options[prop]) {
@@ -7269,7 +7097,7 @@ specularConstPS:{n:"specularPS", f:_oldChunkColor}, specularTexPS:{n:"specularPS
       key += light.key;
     }
   }
-  return this.hashCode(key);
+  return pc.hashCode(key);
 }, _correctChannel:function(p, chan) {
   if (pc._matTex2D[p] > 0) {
     if (pc._matTex2D[p] < chan.length) {
@@ -7341,23 +7169,18 @@ specularConstPS:{n:"specularPS", f:_oldChunkColor}, specularTexPS:{n:"specularPS
     if (light._type === pc.LIGHTTYPE_SPOT) {
       if (light._isPcf && (device.webgl2 || device.extStandardDerivatives)) {
         return "       getShadowCoordPerspZbuffer" + shadowCoordArgs;
-      } else {
-        return "       getShadowCoordPersp" + shadowCoordArgs;
       }
-    } else {
-      return "       getShadowCoordOrtho" + shadowCoordArgs;
+      return "       getShadowCoordPersp" + shadowCoordArgs;
     }
-  } else {
-    if (light._type === pc.LIGHTTYPE_SPOT) {
-      if (light._isPcf && (device.webgl2 || device.extStandardDerivatives)) {
-        return "       getShadowCoordPerspZbufferNormalOffset" + shadowCoordArgs;
-      } else {
-        return "       getShadowCoordPerspNormalOffset" + shadowCoordArgs;
-      }
-    } else {
-      return "       getShadowCoordOrthoNormalOffset" + shadowCoordArgs;
-    }
+    return "       getShadowCoordOrtho" + shadowCoordArgs;
   }
+  if (light._type === pc.LIGHTTYPE_SPOT) {
+    if (light._isPcf && (device.webgl2 || device.extStandardDerivatives)) {
+      return "       getShadowCoordPerspZbufferNormalOffset" + shadowCoordArgs;
+    }
+    return "       getShadowCoordPerspNormalOffset" + shadowCoordArgs;
+  }
+  return "       getShadowCoordOrthoNormalOffset" + shadowCoordArgs;
 }, _addVaryingIfNeeded:function(code, type, name) {
   return code.indexOf(name) >= 0 ? "varying " + type + " " + name + ";\n" : "";
 }, createShaderDefinition:function(device, options) {
@@ -7369,14 +7192,14 @@ specularConstPS:{n:"specularPS", f:_oldChunkColor}, specularTexPS:{n:"specularPS
   }
   if (options.shadingModel === pc.SPECULAR_PHONG) {
     options.fresnelModel = 0;
-    options.specularAA = false;
+    options.specularAntialias = false;
     options.prefilteredCubemap = false;
     options.dpAtlas = false;
     options.ambientSH = false;
   } else {
     options.fresnelModel = options.fresnelModel === 0 ? pc.FRESNEL_SCHLICK : options.fresnelModel;
   }
-  var cubemapReflection = options.cubeMap || options.prefilteredCubemap && options.useSpecular && (!options.sphereMap && !options.dpAtlas);
+  var cubemapReflection = (options.cubeMap || options.prefilteredCubemap && options.useSpecular) && !options.sphereMap && !options.dpAtlas;
   var reflections = options.sphereMap || cubemapReflection || options.dpAtlas;
   var useTangents = pc.precalculatedTangents;
   var useTexCubeLod = options.useTexCubeLod;
@@ -7390,6 +7213,7 @@ specularConstPS:{n:"specularPS", f:_oldChunkColor}, specularTexPS:{n:"specularPS
     options.specularMap = options.glossMap = null;
   }
   var needsNormal = lighting || reflections || options.ambientSH || options.prefilteredCubemap || options.heightMap;
+  var shadowPass = options.pass >= pc.SHADER_SHADOW && options.pass <= 17;
   this.options = options;
   var code = "";
   var codeBody = "";
@@ -7397,6 +7221,8 @@ specularConstPS:{n:"specularPS", f:_oldChunkColor}, specularTexPS:{n:"specularPS
   var chunks = pc.shaderChunks;
   var lightType;
   var shadowCoordArgs;
+  var chunk;
+  var attributes = {vertex_position:pc.SEMANTIC_POSITION};
   if (options.chunks) {
     var customChunks = {};
     var newP;
@@ -7405,10 +7231,29 @@ specularConstPS:{n:"specularPS", f:_oldChunkColor}, specularTexPS:{n:"specularPS
         if (!options.chunks[p]) {
           customChunks[p] = chunks[p];
         } else {
-          customChunks[p] = options.chunks[p];
-          if (!needsNormal) {
-            customChunks[p] = customChunks[p].replace(/vertex_normal/g, "vec3(0)").replace(/vertex_tangent/g, "vec4(0)");
+          chunk = options.chunks[p];
+          if (chunk.indexOf("vertex_normal") >= 0) {
+            attributes.vertex_normal = pc.SEMANTIC_NORMAL;
           }
+          if (chunk.indexOf("vertex_tangent") >= 0) {
+            attributes.vertex_tangent = pc.SEMANTIC_TANGENT;
+          }
+          if (chunk.indexOf("vertex_texCoord0") >= 0) {
+            attributes.vertex_texCoord0 = pc.SEMANTIC_TEXCOORD0;
+          }
+          if (chunk.indexOf("vertex_texCoord1") >= 0) {
+            attributes.vertex_texCoord1 = pc.SEMANTIC_TEXCOORD1;
+          }
+          if (chunk.indexOf("vertex_color") >= 0) {
+            attributes.vertex_color = pc.SEMANTIC_COLOR;
+          }
+          if (chunk.indexOf("vertex_boneWeights") >= 0) {
+            attributes.vertex_boneWeights = pc.SEMANTIC_BLENDWEIGHT;
+          }
+          if (chunk.indexOf("vertex_boneIndices") >= 0) {
+            attributes.vertex_boneIndices = pc.SEMANTIC_BLENDINDICES;
+          }
+          customChunks[p] = chunk;
         }
       }
     }
@@ -7439,8 +7284,19 @@ specularConstPS:{n:"specularPS", f:_oldChunkColor}, specularTexPS:{n:"specularPS
       code += chunks.shadowCoordVS;
     }
   }
-  var attributes = {vertex_position:pc.SEMANTIC_POSITION};
   codeBody += "   vPositionW    = getWorldPosition();\n";
+  if (options.pass === pc.SHADER_DEPTH) {
+    code += "varying float vDepth;\n";
+    code += "#ifndef VIEWMATRIX\n";
+    code += "#define VIEWMATRIX\n";
+    code += "uniform mat4 matrix_view;\n";
+    code += "#endif\n";
+    code += "#ifndef CAMERAPLANES\n";
+    code += "#define CAMERAPLANES\n";
+    code += "uniform vec4 camera_params;\n\n";
+    code += "#endif\n";
+    codeBody += "    vDepth = -(matrix_view * vec4(vPositionW,1.0)).z * camera_params.x;\n";
+  }
   if (options.useInstancing) {
     attributes.instance_line1 = pc.SEMANTIC_TEXCOORD2;
     attributes.instance_line2 = pc.SEMANTIC_TEXCOORD3;
@@ -7524,40 +7380,25 @@ specularConstPS:{n:"specularPS", f:_oldChunkColor}, specularTexPS:{n:"specularPS
     attributes.vertex_color = pc.SEMANTIC_COLOR;
     codeBody += "   vVertexColor = vertex_color;\n";
   }
-  if (options.screenSpace) {
-    code += chunks.transformScreenSpaceVS;
-    if (needsNormal) {
-      code += chunks.normalVS;
-    }
+  if (options.skin) {
+    attributes.vertex_boneWeights = pc.SEMANTIC_BLENDWEIGHT;
+    attributes.vertex_boneIndices = pc.SEMANTIC_BLENDINDICES;
+    code += pc.programlib.skinCode(device, chunks);
+    code += "#define SKIN\n";
   } else {
-    if (options.skin) {
-      attributes.vertex_boneWeights = pc.SEMANTIC_BLENDWEIGHT;
-      attributes.vertex_boneIndices = pc.SEMANTIC_BLENDINDICES;
-      code += pc.programlib.skinCode(device, chunks);
-      code += chunks.transformSkinnedVS;
-      if (needsNormal) {
-        code += chunks.normalSkinnedVS;
-      }
-    } else {
-      if (options.useInstancing) {
-        code += chunks.transformInstancedVS;
-        if (needsNormal) {
-          code += chunks.normalInstancedVS;
-        }
-      } else {
-        if (options.pixelSnap) {
-          code += chunks.transformPixelSnapVS;
-          if (needsNormal) {
-            code += chunks.normalVS;
-          }
-        } else {
-          code += chunks.transformVS;
-          if (needsNormal) {
-            code += chunks.normalVS;
-          }
-        }
-      }
+    if (options.useInstancing) {
+      code += "#define INSTANCING\n";
     }
+  }
+  if (options.screenSpace) {
+    code += "#define SCREENSPACE\n";
+  }
+  if (options.pixelSnap) {
+    code += "#define PIXELSNAP\n";
+  }
+  code += chunks.transformVS;
+  if (needsNormal) {
+    code += chunks.normalVS;
   }
   code += "\n";
   code += chunks.startVS;
@@ -7616,6 +7457,117 @@ specularConstPS:{n:"specularPS", f:_oldChunkColor}, specularTexPS:{n:"specularPS
     code += chunks.gles3PS;
   }
   code += options.forceFragmentPrecision ? "precision " + options.forceFragmentPrecision + " float;\n\n" : pc.programlib.precisionCode(device);
+  if (options.pass === pc.SHADER_PICK) {
+    code += "uniform vec4 uColor;";
+    code += varyings;
+    if (options.alphaTest) {
+      code += "float dAlpha;\n";
+      code += this._addMap("opacity", options, chunks, "");
+      code += chunks.alphaTestPS;
+    }
+    code += pc.programlib.begin();
+    if (options.alphaTest) {
+      code += "   getOpacity();\n";
+      code += "   alphaTest(dAlpha);\n";
+    }
+    code += "    gl_FragColor = uColor;\n";
+    code += pc.programlib.end();
+    return {attributes:attributes, vshader:vshader, fshader:code};
+  } else {
+    if (options.pass === pc.SHADER_DEPTH) {
+      code += "varying float vDepth;\n";
+      code += varyings;
+      code += chunks.packDepthPS;
+      if (options.alphaTest) {
+        code += "float dAlpha;\n";
+        code += this._addMap("opacity", options, chunks, "");
+        code += chunks.alphaTestPS;
+      }
+      code += pc.programlib.begin();
+      if (options.alphaTest) {
+        code += "   getOpacity();\n";
+        code += "   alphaTest(dAlpha);\n";
+      }
+      code += "    gl_FragColor = packFloat(vDepth);\n";
+      code += pc.programlib.end();
+      return {attributes:attributes, vshader:vshader, fshader:code};
+    } else {
+      if (shadowPass) {
+        var smode = options.pass - pc.SHADER_SHADOW;
+        var numShadowModes = 5;
+        lightType = Math.floor(smode / numShadowModes);
+        var shadowType = smode - lightType * numShadowModes;
+        if (device.extStandardDerivatives && !device.webgl2) {
+          code += "uniform vec2 polygonOffset;\n";
+        }
+        if (shadowType === pc.SHADOW_VSM32) {
+          if (device.extTextureFloatHighPrecision) {
+            code += "#define VSM_EXPONENT 15.0\n\n";
+          } else {
+            code += "#define VSM_EXPONENT 5.54\n\n";
+          }
+        } else {
+          if (shadowType === pc.SHADOW_VSM16) {
+            code += "#define VSM_EXPONENT 5.54\n\n";
+          }
+        }
+        if (lightType !== pc.LIGHTTYPE_DIRECTIONAL) {
+          code += "uniform vec3 view_position;\n";
+          code += "uniform float light_radius;\n";
+        }
+        code += varyings;
+        if (options.alphaTest) {
+          code += "float dAlpha;\n";
+          code += this._addMap("opacity", options, chunks, "");
+          code += chunks.alphaTestPS;
+        }
+        if (shadowType === pc.SHADOW_PCF3 && (!device.webgl2 || lightType === pc.LIGHTTYPE_POINT)) {
+          code += chunks.packDepthPS;
+        } else {
+          if (shadowType === pc.SHADOW_VSM8) {
+            code += "vec2 encodeFloatRG( float v ) {\n";
+            code += "    vec2 enc = vec2(1.0, 255.0) * v;\n";
+            code += "    enc = fract(enc);\n";
+            code += "    enc -= enc.yy * vec2(1.0/255.0, 1.0/255.0);\n";
+            code += "    return enc;\n";
+            code += "}\n\n";
+          }
+        }
+        code += pc.programlib.begin();
+        if (options.alphaTest) {
+          code += "   getOpacity();\n";
+          code += "   alphaTest(dAlpha);\n";
+        }
+        var isVsm = shadowType === pc.SHADOW_VSM8 || shadowType === pc.SHADOW_VSM16 || shadowType === pc.SHADOW_VSM32;
+        if (lightType === pc.LIGHTTYPE_POINT || isVsm && lightType !== pc.LIGHTTYPE_DIRECTIONAL) {
+          code += "   float depth = min(distance(view_position, vPositionW) / light_radius, 0.99999);\n";
+        } else {
+          code += "   float depth = gl_FragCoord.z;\n";
+        }
+        if (shadowType === pc.SHADOW_PCF3 && (!device.webgl2 || lightType === pc.LIGHTTYPE_POINT)) {
+          if (device.extStandardDerivatives && !device.webgl2) {
+            code += "   float minValue = 2.3374370500153186e-10; //(1.0 / 255.0) / (256.0 * 256.0 * 256.0);\n";
+            code += "   depth += polygonOffset.x * max(abs(dFdx(depth)), abs(dFdy(depth))) + minValue * polygonOffset.y;\n";
+            code += "   gl_FragColor = packFloat(depth);\n";
+          } else {
+            code += "   gl_FragColor = packFloat(depth);\n";
+          }
+        } else {
+          if (shadowType === pc.SHADOW_PCF3 || shadowType === pc.SHADOW_PCF5) {
+            code += "   gl_FragColor = vec4(1.0);\n";
+          } else {
+            if (shadowType === pc.SHADOW_VSM8) {
+              code += "   gl_FragColor = vec4(encodeFloatRG(depth), encodeFloatRG(depth*depth));\n";
+            } else {
+              code += chunks.storeEVSMPS;
+            }
+          }
+        }
+        code += pc.programlib.end();
+        return {attributes:attributes, vshader:vshader, fshader:code};
+      }
+    }
+  }
   if (options.customFragmentShader) {
     fshader = code + options.customFragmentShader;
     return {attributes:attributes, vshader:vshader, fshader:fshader, tag:pc.SHADERTAG_MATERIAL};
@@ -7729,7 +7681,7 @@ specularConstPS:{n:"specularPS", f:_oldChunkColor}, specularTexPS:{n:"specularPS
   }
   code += this._addMap("emissive", options, chunks, uvOffset, null, options.emissiveFormat);
   if (options.useSpecular && (lighting || reflections)) {
-    if (options.specularAA && options.normalMap) {
+    if (options.specularAntialias && options.normalMap) {
       if (options.needsNormalFloat && needsNormal) {
         code += chunks.specularAaToksvigFloatPS;
       } else {
@@ -7891,7 +7843,7 @@ specularConstPS:{n:"specularPS", f:_oldChunkColor}, specularTexPS:{n:"specularPS
       }
     }
   }
-  if (options.modulateAmbient && !useOldAmbient) {
+  if (options.ambientTint && !useOldAmbient) {
     code += "uniform vec3 material_ambient;\n";
   }
   if (options.alphaTest) {
@@ -7972,7 +7924,7 @@ specularConstPS:{n:"specularPS", f:_oldChunkColor}, specularTexPS:{n:"specularPS
   if (addAmbient) {
     code += "   addAmbient();\n";
   }
-  if (options.modulateAmbient && !useOldAmbient) {
+  if (options.ambientTint && !useOldAmbient) {
     code += "   dDiffuseLight *= material_ambient;\n";
   }
   if (useAo && !options.occludeDirect) {
@@ -8213,74 +8165,13 @@ specularConstPS:{n:"specularPS", f:_oldChunkColor}, specularTexPS:{n:"specularPS
   fshader = code;
   return {attributes:attributes, vshader:vshader, fshader:fshader, tag:pc.SHADERTAG_MATERIAL};
 }};
-pc.programlib.pick = {generateKey:function(device, options) {
-  var key = "pick";
-  if (options.skin) {
-    key += "_skin";
-  }
-  if (options.opacityMap) {
-    key += "_opam" + options.opacityChannel;
-  }
-  if (options.screenSpace) {
-    key += "_screenspace";
-  }
-  return key;
-}, createShaderDefinition:function(device, options) {
-  var attributes = {vertex_position:pc.SEMANTIC_POSITION};
-  if (options.skin) {
-    attributes.vertex_boneWeights = pc.SEMANTIC_BLENDWEIGHT;
-    attributes.vertex_boneIndices = pc.SEMANTIC_BLENDINDICES;
-  }
-  if (options.opacityMap) {
-    attributes.vertex_texCoord0 = pc.SEMANTIC_TEXCOORD0;
-  }
-  var chunks = pc.shaderChunks;
-  var code = "";
-  code += chunks.transformDeclVS;
-  if (options.skin) {
-    code += pc.programlib.skinCode(device);
-    code += chunks.transformSkinnedVS;
-  } else {
-    if (options.screenSpace) {
-      code += chunks.transformScreenSpaceVS;
-    } else {
-      code += chunks.transformVS;
-    }
-  }
-  if (options.opacityMap) {
-    code += "attribute vec2 vertex_texCoord0;\n\n";
-    code += "varying vec2 vUv0;\n\n";
-  }
-  code += pc.programlib.begin();
-  code += "   gl_Position = getPosition();\n";
-  if (options.opacityMap) {
-    code += "    vUv0 = vertex_texCoord0;\n";
-  }
-  code += pc.programlib.end();
-  var vshader = code;
-  code = pc.programlib.precisionCode(device);
-  code += "uniform vec4 uColor;";
-  if (options.opacityMap) {
-    code += "varying vec2 vUv0;\n\n";
-    code += "uniform sampler2D texture_opacityMap;\n\n";
-    code += chunks.alphaTestPS;
-  }
-  code += pc.programlib.begin();
-  if (options.opacityMap) {
-    code += "    alphaTest( texture2D(texture_opacityMap, vUv0)." + options.opacityChannel[0] + " );\n\n";
-  }
-  code += "    gl_FragColor = uColor;\n";
-  code += pc.programlib.end();
-  var fshader = code;
-  return {attributes:attributes, vshader:vshader, fshader:fshader};
-}};
 pc.programlib.skybox = {generateKey:function(device, options) {
   var key = "skybox" + options.rgbm + " " + options.hdr + " " + options.fixSeams + "" + options.toneMapping + "" + options.gamma + "" + options.useIntensity + "" + options.mip;
   return key;
 }, createShaderDefinition:function(device, options) {
   var chunks = pc.shaderChunks;
   var mip2size = [128, 64, 16, 8, 4, 2];
-  return {attributes:{aPosition:pc.SEMANTIC_POSITION}, vshader:chunks.skyboxVS, fshader:pc.programlib.precisionCode(device) + (options.mip ? chunks.fixCubemapSeamsStretchPS : chunks.fixCubemapSeamsNonePS) + (options.useIntensity ? chunks.envMultiplyPS : chunks.envConstPS) + pc.programlib.gammaCode(options.gamma) + pc.programlib.tonemapCode(options.toneMapping) + chunks.rgbmPS + chunks.skyboxHDRPS.replace(/\$textureCubeSAMPLE/g, options.rgbm ? "textureCubeRGBM" : options.hdr ? "textureCube" : "textureCubeSRGB").replace(/\$FIXCONST/g,
+  return {attributes:{aPosition:pc.SEMANTIC_POSITION}, vshader:chunks.skyboxVS, fshader:pc.programlib.precisionCode(device) + (options.mip ? chunks.fixCubemapSeamsStretchPS : chunks.fixCubemapSeamsNonePS) + (options.useIntensity ? chunks.envMultiplyPS : chunks.envConstPS) + pc.programlib.gammaCode(options.gamma) + pc.programlib.tonemapCode(options.toneMapping) + chunks.rgbmPS + chunks.skyboxHDRPS.replace(/\$textureCubeSAMPLE/g, options.rgbm ? "textureCubeRGBM" : options.hdr ? "textureCube" : "textureCubeSRGB").replace(/\$FIXCONST/g, 
   1 - 1 / mip2size[options.mip] + "")};
 }};
 pc.extend(pc, function() {
@@ -8349,10 +8240,11 @@ pc.extend(pc, function() {
   return {PostEffect:PostEffect, createFullscreenQuad:createFullscreenQuad, drawFullscreenQuad:drawFullscreenQuad};
 }());
 (function() {
-  var enums = {BLEND_SUBTRACTIVE:0, BLEND_ADDITIVE:1, BLEND_NORMAL:2, BLEND_NONE:3, BLEND_PREMULTIPLIED:4, BLEND_MULTIPLICATIVE:5, BLEND_ADDITIVEALPHA:6, BLEND_MULTIPLICATIVE2X:7, BLEND_SCREEN:8, BLEND_MIN:9, BLEND_MAX:10, FOG_NONE:"none", FOG_LINEAR:"linear", FOG_EXP:"exp", FOG_EXP2:"exp2", FRESNEL_NONE:0, FRESNEL_SCHLICK:2, LAYER_HUD:0, LAYER_GIZMO:1, LAYER_FX:2, LAYER_WORLD:15, LIGHTTYPE_DIRECTIONAL:0, LIGHTTYPE_POINT:1, LIGHTTYPE_SPOT:2, LIGHTFALLOFF_LINEAR:0, LIGHTFALLOFF_INVERSESQUARED:1, SHADOW_PCF3:0,
-  SHADOW_DEPTH:0, SHADOW_VSM8:1, SHADOW_VSM16:2, SHADOW_VSM32:3, SHADOW_PCF5:4, BLUR_BOX:0, BLUR_GAUSSIAN:1, PARTICLESORT_NONE:0, PARTICLESORT_DISTANCE:1, PARTICLESORT_NEWER_FIRST:2, PARTICLESORT_OLDER_FIRST:3, PARTICLEMODE_GPU:0, PARTICLEMODE_CPU:1, EMITTERSHAPE_BOX:0, EMITTERSHAPE_SPHERE:1, PROJECTION_PERSPECTIVE:0, PROJECTION_ORTHOGRAPHIC:1, RENDERSTYLE_SOLID:0, RENDERSTYLE_WIREFRAME:1, RENDERSTYLE_POINTS:2, CUBEPROJ_NONE:0, CUBEPROJ_BOX:1, SPECULAR_PHONG:0, SPECULAR_BLINN:1, GAMMA_NONE:0, GAMMA_SRGB:1,
-  GAMMA_SRGBFAST:2, GAMMA_SRGBHDR:3, TONEMAP_LINEAR:0, TONEMAP_FILMIC:1, TONEMAP_HEJL:2, TONEMAP_ACES:3, TONEMAP_ACES2:4, SPECOCC_NONE:0, SPECOCC_AO:1, SPECOCC_GLOSSDEPENDENT:2, SHADERDEF_NOSHADOW:1, SHADERDEF_SKIN:2, SHADERDEF_UV0:4, SHADERDEF_UV1:8, SHADERDEF_VCOLOR:16, SHADERDEF_INSTANCING:32, SHADERDEF_LM:64, SHADERDEF_DIRLM:128, SHADERDEF_SCREENSPACE:256, LINEBATCH_WORLD:0, LINEBATCH_OVERLAY:1, LINEBATCH_GIZMO:2, SHADOWUPDATE_NONE:0, SHADOWUPDATE_THISFRAME:1, SHADOWUPDATE_REALTIME:2, SORTKEY_FORWARD:0,
-  SORTKEY_DEPTH:1, SHADER_FORWARD:0, SHADER_FORWARDHDR:1, SHADER_DEPTH:2, SHADER_SHADOW:3, SHADER_PICK:18, BAKE_COLOR:0, BAKE_COLORDIR:1, VIEW_CENTER:0, VIEW_LEFT:1, VIEW_RIGHT:2};
+  var enums = {BLEND_SUBTRACTIVE:0, BLEND_ADDITIVE:1, BLEND_NORMAL:2, BLEND_NONE:3, BLEND_PREMULTIPLIED:4, BLEND_MULTIPLICATIVE:5, BLEND_ADDITIVEALPHA:6, BLEND_MULTIPLICATIVE2X:7, BLEND_SCREEN:8, BLEND_MIN:9, BLEND_MAX:10, FOG_NONE:"none", FOG_LINEAR:"linear", FOG_EXP:"exp", FOG_EXP2:"exp2", FRESNEL_NONE:0, FRESNEL_SCHLICK:2, LAYER_HUD:0, LAYER_GIZMO:1, LAYER_FX:2, LAYER_WORLD:15, LAYERID_WORLD:0, LAYERID_DEPTH:1, LAYERID_SKYBOX:2, LAYERID_IMMEDIATE:3, LAYERID_UI:4, LIGHTTYPE_DIRECTIONAL:0, LIGHTTYPE_POINT:1, 
+  LIGHTTYPE_SPOT:2, LIGHTFALLOFF_LINEAR:0, LIGHTFALLOFF_INVERSESQUARED:1, SHADOW_PCF3:0, SHADOW_DEPTH:0, SHADOW_VSM8:1, SHADOW_VSM16:2, SHADOW_VSM32:3, SHADOW_PCF5:4, BLUR_BOX:0, BLUR_GAUSSIAN:1, PARTICLESORT_NONE:0, PARTICLESORT_DISTANCE:1, PARTICLESORT_NEWER_FIRST:2, PARTICLESORT_OLDER_FIRST:3, PARTICLEMODE_GPU:0, PARTICLEMODE_CPU:1, EMITTERSHAPE_BOX:0, EMITTERSHAPE_SPHERE:1, PROJECTION_PERSPECTIVE:0, PROJECTION_ORTHOGRAPHIC:1, RENDERSTYLE_SOLID:0, RENDERSTYLE_WIREFRAME:1, RENDERSTYLE_POINTS:2, 
+  CUBEPROJ_NONE:0, CUBEPROJ_BOX:1, SPECULAR_PHONG:0, SPECULAR_BLINN:1, GAMMA_NONE:0, GAMMA_SRGB:1, GAMMA_SRGBFAST:2, GAMMA_SRGBHDR:3, TONEMAP_LINEAR:0, TONEMAP_FILMIC:1, TONEMAP_HEJL:2, TONEMAP_ACES:3, TONEMAP_ACES2:4, SPECOCC_NONE:0, SPECOCC_AO:1, SPECOCC_GLOSSDEPENDENT:2, SHADERDEF_NOSHADOW:1, SHADERDEF_SKIN:2, SHADERDEF_UV0:4, SHADERDEF_UV1:8, SHADERDEF_VCOLOR:16, SHADERDEF_INSTANCING:32, SHADERDEF_LM:64, SHADERDEF_DIRLM:128, SHADERDEF_SCREENSPACE:256, LINEBATCH_WORLD:0, LINEBATCH_OVERLAY:1, LINEBATCH_GIZMO:2, 
+  SHADOWUPDATE_NONE:0, SHADOWUPDATE_THISFRAME:1, SHADOWUPDATE_REALTIME:2, SORTKEY_FORWARD:0, SORTKEY_DEPTH:1, MASK_DYNAMIC:1, MASK_BAKED:2, MASK_LIGHTMAP:4, SHADER_FORWARD:0, SHADER_FORWARDHDR:1, SHADER_DEPTH:2, SHADER_SHADOW:3, SHADER_PICK:18, BAKE_COLOR:0, BAKE_COLORDIR:1, VIEW_CENTER:0, VIEW_LEFT:1, VIEW_RIGHT:2, SORTMODE_NONE:0, SORTMODE_MANUAL:1, SORTMODE_MATERIALMESH:2, SORTMODE_BACK2FRONT:3, SORTMODE_FRONT2BACK:4, COMPUPDATED_INSTANCES:1, COMPUPDATED_LIGHTS:2, COMPUPDATED_CAMERAS:4, COMPUPDATED_BLEND:8, 
+  ASPECT_AUTO:0, ASPECT_MANUAL:1};
   pc.extend(pc, enums);
   pc.scene = {};
   pc.extend(pc.scene, enums);
@@ -8361,9 +8253,7 @@ pc.extend(pc, function() {
   var Scene = function Scene() {
     this.root = null;
     this._gravity = new pc.Vec3(0, -9.8, 0);
-    this.drawCalls = [];
-    this.shadowCasters = [];
-    this.immediateDrawCalls = [];
+    this._layers = null;
     this._fog = pc.FOG_NONE;
     this.fogColor = new pc.Color(0, 0, 0);
     this.fogStart = 1;
@@ -8375,37 +8265,20 @@ pc.extend(pc, function() {
     this.exposure = 1;
     this._skyboxPrefiltered = [null, null, null, null, null, null];
     this._skyboxCubeMap = null;
-    this._skyboxModel = null;
+    this.skyboxModel = null;
     this._skyboxIntensity = 1;
     this._skyboxMip = 0;
     this.lightmapSizeMultiplier = 1;
     this.lightmapMaxResolution = 2048;
     this.lightmapMode = pc.BAKE_COLORDIR;
     this._stats = {meshInstances:0, lights:0, dynamicLights:0, bakedLights:0, lastStaticPrepareFullTime:0, lastStaticPrepareSearchTime:0, lastStaticPrepareWriteTime:0, lastStaticPrepareTriAabbTime:0, lastStaticPrepareCombineTime:0, updateShadersTime:0};
+    this.updateShaders = true;
+    this.updateSkybox = true;
+    this._shaderVersion = 0;
+    this._statsUpdated = false;
     this._models = [];
-    this._lights = [];
-    this._globalLights = [];
-    this._localLights = [[], []];
-    this._updateShaders = true;
-    this._sceneShadersVersion = 0;
-    this._needsStaticPrepare = true;
+    pc.events.attach(this);
   };
-  Object.defineProperty(Scene.prototype, "updateShaders", {get:function() {
-    return this._updateShaders;
-  }, set:function(val) {
-    if (val !== this._updateShaders) {
-      this._updateShaders = val;
-      if (!this._models) {
-        return;
-      }
-      if (val) {
-        this._sceneShadersVersion++;
-      }
-      for (var i = 0;i < this._models.length;i++) {
-        this._models[i]._shadersVersion = this._sceneShadersVersion;
-      }
-    }
-  }});
   Object.defineProperty(Scene.prototype, "fog", {get:function() {
     return this._fog;
   }, set:function(type) {
@@ -8505,6 +8378,22 @@ pc.extend(pc, function() {
     this._skyboxPrefiltered[5] = value;
     this.updateShaders = true;
   }});
+  Object.defineProperty(Scene.prototype, "drawCalls", {get:function() {
+    var drawCalls = this.layers._meshInstances;
+    if (!drawCalls.length) {
+      this.layers._update();
+      drawCalls = this.layers._meshInstances;
+    }
+    return drawCalls;
+  }, set:function(value) {
+  }});
+  Object.defineProperty(Scene.prototype, "layers", {get:function() {
+    return this._layers;
+  }, set:function(layers) {
+    var prev = this._layers;
+    this._layers = layers;
+    this.fire("set:layers", prev, layers);
+  }});
   Scene.prototype.applySettings = function(settings) {
     this._gravity.set(settings.physics.gravity[0], settings.physics.gravity[1], settings.physics.gravity[2]);
     this.ambientLight.set(settings.render.global_ambient[0], settings.render.global_ambient[1], settings.render.global_ambient[2]);
@@ -8524,229 +8413,54 @@ pc.extend(pc, function() {
     this._resetSkyboxModel();
     this.updateShaders = true;
   };
-  Scene.prototype.updateShadersFunc = function(device) {
-    var i;
-    var time = pc.now();
-    if (this._skyboxCubeMap && !this._skyboxModel) {
+  Scene.prototype._updateSkybox = function(device) {
+    if (this._skyboxCubeMap && !this.skyboxModel) {
       var material = new pc.Material;
       var scene = this;
       material.updateShader = function(dev, sc, defs, staticLightList, pass) {
         var library = device.getProgramLibrary();
-        var shader = library.getProgram("skybox", {rgbm:scene._skyboxCubeMap.rgbm, hdr:scene._skyboxCubeMap.rgbm || scene._skyboxCubeMap.format === pc.PIXELFORMAT_RGBA32F, useIntensity:scene.skyboxIntensity !== 1, mip:scene._skyboxCubeMap.fixCubemapSeams ? scene.skyboxMip : 0, fixSeams:scene._skyboxCubeMap.fixCubemapSeams, gamma:pass === pc.SHADER_FORWARDHDR ? scene.gammaCorrection ? pc.GAMMA_SRGBHDR : pc.GAMMA_NONE : scene.gammaCorrection, toneMapping:pass === pc.SHADER_FORWARDHDR ? pc.TONEMAP_LINEAR :
+        var shader = library.getProgram("skybox", {rgbm:scene._skyboxCubeMap.rgbm, hdr:scene._skyboxCubeMap.rgbm || scene._skyboxCubeMap.format === pc.PIXELFORMAT_RGBA32F, useIntensity:scene.skyboxIntensity !== 1, mip:scene._skyboxCubeMap.fixCubemapSeams ? scene.skyboxMip : 0, fixSeams:scene._skyboxCubeMap.fixCubemapSeams, gamma:pass === pc.SHADER_FORWARDHDR ? scene.gammaCorrection ? pc.GAMMA_SRGBHDR : pc.GAMMA_NONE : scene.gammaCorrection, toneMapping:pass === pc.SHADER_FORWARDHDR ? pc.TONEMAP_LINEAR : 
         scene.toneMapping});
         this.setShader(shader);
       };
       material.updateShader();
+      var usedTex;
       if (!this._skyboxCubeMap.fixCubemapSeams || !scene._skyboxMip) {
-        material.setParameter("texture_cubeMap", this._skyboxCubeMap);
+        usedTex = this._skyboxCubeMap;
       } else {
         var mip2tex = [null, "64", "16", "8", "4"];
         var mipTex = this["skyboxPrefiltered" + mip2tex[scene._skyboxMip]];
         if (mipTex) {
-          material.setParameter("texture_cubeMap", mipTex);
+          usedTex = mipTex;
         }
       }
+      material.setParameter("texture_cubeMap", usedTex);
       material.cull = pc.CULLFACE_NONE;
-      var node = new pc.GraphNode;
-      var mesh = pc.createBox(device);
-      var meshInstance = new pc.MeshInstance(node, mesh, material);
-      meshInstance.updateKey = function() {
-        var material = this.material;
-        this.key = pc._getDrawcallSortKey(this.layer, material.blendType, false, 0);
-      };
-      meshInstance.updateKey();
-      meshInstance.cull = false;
-      meshInstance.drawToDepth = false;
-      var model = new pc.Model;
-      model.graph = node;
-      model.meshInstances = [meshInstance];
-      this._skyboxModel = model;
-      this.addModel(model);
-    }
-    var materials = [];
-    var drawCalls = this.drawCalls;
-    for (i = 0;i < drawCalls.length;i++) {
-      var drawCall = drawCalls[i];
-      if (drawCall.material !== undefined) {
-        if (materials.indexOf(drawCall.material) === -1) {
-          materials.push(drawCall.material);
-        }
+      var skyLayer = this.layers.getLayerById(pc.LAYERID_SKYBOX);
+      if (skyLayer) {
+        var node = new pc.GraphNode;
+        var mesh = pc.createBox(device);
+        var meshInstance = new pc.MeshInstance(node, mesh, material);
+        meshInstance.cull = false;
+        meshInstance._noDepthDrawGl1 = true;
+        var model = new pc.Model;
+        model.graph = node;
+        model.meshInstances = [meshInstance];
+        this.skyboxModel = model;
+        skyLayer.addMeshInstances(model.meshInstances);
+        skyLayer.enabled = true;
+        this.skyLayer = skyLayer;
+        this.fire("set:skybox", usedTex);
       }
     }
-    for (i = 0;i < materials.length;i++) {
-      var mat = materials[i];
-      if (mat.updateShader !== pc.Material.prototype.updateShader) {
-        mat.clearVariants();
-        mat.shader = null;
-      }
-    }
-    this._stats.updateShadersTime += pc.now() - time;
-  };
-  Scene.prototype.getModels = function() {
-    return this._models;
-  };
-  Scene.prototype._updateStats = function() {
-  };
-  Scene.prototype._updateLightStats = function() {
-    var stats = this._stats;
-    stats.lights = this._lights.length;
-    stats.dynamicLights = 0;
-    stats.bakedLights = 0;
-    var l;
-    for (var i = 0;i < stats.lights;i++) {
-      l = this._lights[i];
-      if (l._enabled) {
-        if (l._mask & pc.MASK_DYNAMIC || l._mask & pc.MASK_BAKED) {
-          stats.dynamicLights++;
-        }
-        if (l._mask & pc.MASK_LIGHTMAP) {
-          stats.bakedLights++;
-        }
-      }
-    }
-  };
-  Scene.prototype.addModel = function(model) {
-    var i, len;
-    var updateModelShaders = model._shadersVersion !== this._sceneShadersVersion;
-    model._shadersVersion = this._sceneShadersVersion;
-    var index = this._models.indexOf(model);
-    if (index === -1) {
-      this._models.push(model);
-      var materials = model.getMaterials();
-      for (i = 0;i < materials.length;i++) {
-        materials[i].scene = this;
-      }
-      var meshInstance;
-      var numMeshInstances = model.meshInstances.length;
-      for (i = 0;i < numMeshInstances;i++) {
-        meshInstance = model.meshInstances[i];
-        if (updateModelShaders) {
-          meshInstance.material.clearVariants();
-        }
-        if (this.drawCalls.indexOf(meshInstance) === -1) {
-          this.drawCalls.push(meshInstance);
-        }
-        if (meshInstance.castShadow) {
-          if (this.shadowCasters.indexOf(meshInstance) === -1) {
-            this.shadowCasters.push(meshInstance);
-          }
-        }
-      }
-      var lights = model.getLights();
-      for (i = 0, len = lights.length;i < len;i++) {
-        this.addLight(lights[i]);
-      }
-      this._updateStats();
-    }
-  };
-  Scene.prototype.addShadowCaster = function(model) {
-    var meshInstance;
-    var numMeshInstances = model.meshInstances.length;
-    for (var i = 0;i < numMeshInstances;i++) {
-      meshInstance = model.meshInstances[i];
-      if (meshInstance.castShadow) {
-        if (this.shadowCasters.indexOf(meshInstance) === -1) {
-          this.shadowCasters.push(meshInstance);
-        }
-      }
-    }
-  };
-  Scene.prototype.removeModel = function(model) {
-    var i, j, len, drawCall, spliceOffset, spliceCount;
-    var index = this._models.indexOf(model);
-    if (index !== -1) {
-      this._models.splice(index, 1);
-      var materials = model.getMaterials();
-      for (i = 0;i < materials.length;i++) {
-        materials[i].scene = null;
-      }
-      var meshInstance;
-      var numMeshInstances = model.meshInstances.length;
-      for (i = 0;i < numMeshInstances;i++) {
-        meshInstance = model.meshInstances[i];
-        spliceOffset = -1;
-        spliceCount = 0;
-        len = this.drawCalls.length;
-        for (j = 0;j < len;j++) {
-          drawCall = this.drawCalls[j];
-          if (drawCall === meshInstance) {
-            spliceOffset = j;
-            spliceCount = 1;
-            break;
-          }
-          if (drawCall._staticSource === meshInstance) {
-            if (spliceOffset < 0) {
-              spliceOffset = j;
-            }
-            spliceCount++;
-          } else {
-            if (spliceOffset >= 0) {
-              break;
-            }
-          }
-        }
-        if (spliceOffset >= 0) {
-          this.drawCalls.splice(spliceOffset, spliceCount);
-        }
-        if (meshInstance.castShadow) {
-          index = this.shadowCasters.indexOf(meshInstance);
-          if (index !== -1) {
-            this.shadowCasters.splice(index, 1);
-          }
-        }
-      }
-      var lights = model.getLights();
-      for (i = 0, len = lights.length;i < len;i++) {
-        this.removeLight(lights[i]);
-      }
-      this._updateStats();
-    }
-  };
-  Scene.prototype.removeShadowCaster = function(model) {
-    var meshInstance, index;
-    var numMeshInstances = model.meshInstances.length;
-    for (var i = 0;i < numMeshInstances;i++) {
-      meshInstance = model.meshInstances[i];
-      if (meshInstance.castShadow) {
-        index = this.shadowCasters.indexOf(meshInstance);
-        if (index !== -1) {
-          this.shadowCasters.splice(index, 1);
-        }
-      }
-    }
-  };
-  Scene.prototype.containsModel = function(model) {
-    return this._models.indexOf(model) >= 0;
-  };
-  Scene.prototype.addLight = function(light) {
-    var index = this._lights.indexOf(light);
-    if (index !== -1) {
-      console.warn("pc.Scene#addLight: light is already in the scene");
-    } else {
-      this._lights.push(light);
-      light._scene = this;
-      this.updateShaders = true;
-    }
-    this._updateLightStats();
-  };
-  Scene.prototype.removeLight = function(light) {
-    var index = this._lights.indexOf(light);
-    if (index === -1) {
-      console.warn("pc.Scene#removeLight: light is not in the scene");
-    } else {
-      this._lights.splice(index, 1);
-      light._scene = null;
-      this.updateShaders = true;
-    }
-    this._updateLightStats();
   };
   Scene.prototype._resetSkyboxModel = function() {
-    if (this._skyboxModel) {
-      if (this.containsModel(this._skyboxModel)) {
-        this.removeModel(this._skyboxModel);
-      }
+    if (this.skyboxModel) {
+      this.skyLayer.removeMeshInstances(this.skyboxModel.meshInstances);
+      this.skyLayer.enabled = false;
     }
-    this._skyboxModel = null;
+    this.skyboxModel = null;
+    this.updateSkybox = true;
   };
   Scene.prototype.setSkybox = function(cubemaps) {
     var i;
@@ -8772,28 +8486,57 @@ pc.extend(pc, function() {
     }
     this.skybox = cubemaps[0];
   };
-  Scene.prototype.update = function() {
-    for (var i = 0, len = this._models.length;i < len;i++) {
-      this._models[i].getGraph().syncHierarchy();
+  Scene.prototype.destroy = function() {
+    this.skybox = null;
+  };
+  Scene.prototype.addModel = function(model) {
+    if (this.containsModel(model)) {
+      return;
+    }
+    var layer = this.layers.getLayerById(pc.LAYERID_WORLD);
+    if (!layer) {
+      return;
+    }
+    layer.addMeshInstances(model.meshInstances);
+    this._models.push(model);
+  };
+  Scene.prototype.addShadowCaster = function(model) {
+    var layer = this.layers.getLayerById(pc.LAYERID_WORLD);
+    if (!layer) {
+      return;
+    }
+    layer.addShadowCasters(model.meshInstances);
+  };
+  Scene.prototype.removeModel = function(model) {
+    var index = this._models.indexOf(model);
+    if (index !== -1) {
+      var layer = this.layers.getLayerById(pc.LAYERID_WORLD);
+      if (!layer) {
+        return;
+      }
+      layer.removeMeshInstances(model.meshInstances);
+      this._models.splice(index, 1);
     }
   };
-  Scene.prototype.destroy = function() {
-    var i;
-    var models = this.getModels();
-    for (i = 0;i < models.length;i++) {
-      this.removeModel(models[i]);
+  Scene.prototype.removeShadowCasters = function(model) {
+    var layer = this.layers.getLayerById(pc.LAYERID_WORLD);
+    if (!layer) {
+      return;
     }
-    for (i = 0;i < this._lights.length;i++) {
-      this.removeLight(this._lights[i]);
-    }
-    this.skybox = null;
+    layer.removeShadowCasters(model.meshInstances);
+  };
+  Scene.prototype.containsModel = function(model) {
+    return this._models.indexOf(model) >= 0;
+  };
+  Scene.prototype.getModels = function(model) {
+    return this._models;
   };
   return {Scene:Scene};
 }());
 pc.extend(pc, function() {
   var scaleShift = (new pc.Mat4).mul2((new pc.Mat4).setTranslate(.5, .5, .5), (new pc.Mat4).setScale(.5, .5, .5));
-  var rgbaDepthClearOptions = {color:[254 / 255, 254 / 255, 254 / 255, 254 / 255], depth:1, flags:pc.CLEARFLAG_COLOR | pc.CLEARFLAG_DEPTH};
   var opChanId = {r:1, g:2, b:3, a:4};
+  var pointLightRotations = [(new pc.Quat).setFromEulerAngles(0, 90, 180), (new pc.Quat).setFromEulerAngles(0, -90, 180), (new pc.Quat).setFromEulerAngles(90, 0, 0), (new pc.Quat).setFromEulerAngles(-90, 0, 0), (new pc.Quat).setFromEulerAngles(0, 180, 180), (new pc.Quat).setFromEulerAngles(0, 0, 180)];
   var numShadowModes = 5;
   var shadowMapCache = [{}, {}, {}, {}, {}];
   var directionalShadowEpsilon = .01;
@@ -8822,16 +8565,13 @@ pc.extend(pc, function() {
   var tempSphere = {center:null, radius:0};
   var meshPos;
   var visibleSceneAabb = new pc.BoundingBox;
-  var lightBounds = new pc.BoundingBox;
-  var culled = [];
-  var filtered = [];
   var boneTextureSize = [0, 0];
   var boneTexture, instancingData, modelMatrix, normalMatrix;
   var shadowMapCubeCache = {};
   var maxBlurSize = 25;
   var keyA, keyB;
   var frustumPoints = [];
-  for (var i = 0;i < 8;i++) {
+  for (var fp = 0;fp < 8;fp++) {
     frustumPoints.push(new pc.Vec3);
   }
   function _getFrustumPoints(camera, farClip, points) {
@@ -8876,160 +8616,7 @@ pc.extend(pc, function() {
     points[7].z = -farClip;
     return points;
   }
-  function StaticArray(size) {
-    var data = new Array(size);
-    var obj = function(idx) {
-      return data[idx];
-    };
-    obj.size = 0;
-    obj.push = function(v) {
-      data[this.size] = v;
-      ++this.size;
-    };
-    obj.data = data;
-    return obj;
-  }
-  var intersectCache = {temp:[new pc.Vec3, new pc.Vec3, new pc.Vec3], vertices:new Array(3), negative:new StaticArray(3), positive:new StaticArray(3), intersections:new StaticArray(3), zCollection:new StaticArray(36)};
-  function _groupVertices(coord, face, smallerIsNegative) {
-    var intersections = intersectCache.intersections;
-    var small, large;
-    if (smallerIsNegative) {
-      small = intersectCache.negative;
-      large = intersectCache.positive;
-    } else {
-      small = intersectCache.positive;
-      large = intersectCache.negative;
-    }
-    intersections.size = 0;
-    small.size = 0;
-    large.size = 0;
-    var intersectCount = 0;
-    var v;
-    for (var j = 0;j < 3;++j) {
-      v = intersectCache.vertices[j];
-      if (v[coord] < face) {
-        small.push(v);
-      } else {
-        if (v[coord] === face) {
-          intersections.push(intersectCache.temp[intersections.size].copy(v));
-        } else {
-          large.push(v);
-        }
-      }
-    }
-  }
-  function _triXFace(zs, x, y, faceTest, yMin, yMax) {
-    var negative = intersectCache.negative;
-    var positive = intersectCache.positive;
-    var intersections = intersectCache.intersections;
-    if (negative.size === 3) {
-      return false;
-    }
-    if (negative.size && positive.size) {
-      intersections.push(intersectCache.temp[intersections.size].lerp(negative(0), positive(0), (faceTest - negative(0)[x]) / (positive(0)[x] - negative(0)[x])));
-      if (negative.size === 2) {
-        intersections.push(intersectCache.temp[intersections.size].lerp(negative(1), positive(0), (faceTest - negative(1)[x]) / (positive(0)[x] - negative(1)[x])));
-      } else {
-        if (positive.size === 2) {
-          intersections.push(intersectCache.temp[intersections.size].lerp(negative(0), positive(1), (faceTest - negative(0)[x]) / (positive(1)[x] - negative(0)[x])));
-        }
-      }
-    }
-    if (intersections.size === 0) {
-      return true;
-    }
-    if (intersections.size === 1) {
-      if (yMin <= intersections(0)[y] && intersections(0)[y] <= yMax) {
-        zs.push(intersections(0).z);
-      }
-      return true;
-    }
-    if (intersections(1)[y] === intersections(0)[y]) {
-      if (yMin <= intersections(0)[y] && intersections(0)[y] <= yMax) {
-        zs.push(intersections(0).z);
-        zs.push(intersections(1).z);
-      }
-    } else {
-      var delta = (intersections(1).z - intersections(0).z) / (intersections(1)[y] - intersections(0)[y]);
-      if (intersections(0)[y] > yMax) {
-        zs.push(intersections(0).z + delta * (yMax - intersections(0)[y]));
-      } else {
-        if (intersections(0)[y] < yMin) {
-          zs.push(intersections(0).z + delta * (yMin - intersections(0)[y]));
-        } else {
-          zs.push(intersections(0).z);
-        }
-      }
-      if (intersections(1)[y] > yMax) {
-        zs.push(intersections(1).z + delta * (yMax - intersections(1)[y]));
-      } else {
-        if (intersections(1)[y] < yMin) {
-          zs.push(intersections(1).z + delta * (yMin - intersections(1)[y]));
-        } else {
-          zs.push(intersections(1).z);
-        }
-      }
-    }
-    return true;
-  }
   var _sceneAABB_LS = [new pc.Vec3, new pc.Vec3, new pc.Vec3, new pc.Vec3, new pc.Vec3, new pc.Vec3, new pc.Vec3, new pc.Vec3];
-  var iAABBTriIndexes = [0, 1, 2, 1, 2, 3, 4, 5, 6, 5, 6, 7, 0, 2, 4, 2, 4, 6, 1, 3, 5, 3, 5, 7, 0, 1, 4, 1, 4, 5, 2, 3, 6, 3, 6, 7];
-  function _getZFromAABB(w2sc, aabbMin, aabbMax, lcamMinX, lcamMaxX, lcamMinY, lcamMaxY) {
-    _sceneAABB_LS[0].x = _sceneAABB_LS[1].x = _sceneAABB_LS[2].x = _sceneAABB_LS[3].x = aabbMin.x;
-    _sceneAABB_LS[1].y = _sceneAABB_LS[3].y = _sceneAABB_LS[7].y = _sceneAABB_LS[5].y = aabbMin.y;
-    _sceneAABB_LS[2].z = _sceneAABB_LS[3].z = _sceneAABB_LS[6].z = _sceneAABB_LS[7].z = aabbMin.z;
-    _sceneAABB_LS[4].x = _sceneAABB_LS[5].x = _sceneAABB_LS[6].x = _sceneAABB_LS[7].x = aabbMax.x;
-    _sceneAABB_LS[0].y = _sceneAABB_LS[2].y = _sceneAABB_LS[4].y = _sceneAABB_LS[6].y = aabbMax.y;
-    _sceneAABB_LS[0].z = _sceneAABB_LS[1].z = _sceneAABB_LS[4].z = _sceneAABB_LS[5].z = aabbMax.z;
-    for (var i = 0;i < 8;++i) {
-      w2sc.transformPoint(_sceneAABB_LS[i], _sceneAABB_LS[i]);
-    }
-    var minz = 9999999999;
-    var maxz = -9999999999;
-    var vertices = intersectCache.vertices;
-    var positive = intersectCache.positive;
-    var zs = intersectCache.zCollection;
-    zs.size = 0;
-    for (var AABBTriIter = 0;AABBTriIter < 12;++AABBTriIter) {
-      vertices[0] = _sceneAABB_LS[iAABBTriIndexes[AABBTriIter * 3 + 0]];
-      vertices[1] = _sceneAABB_LS[iAABBTriIndexes[AABBTriIter * 3 + 1]];
-      vertices[2] = _sceneAABB_LS[iAABBTriIndexes[AABBTriIter * 3 + 2]];
-      var verticesWithinBound = 0;
-      _groupVertices("x", lcamMinX, true);
-      if (!_triXFace(zs, "x", "y", lcamMinX, lcamMinY, lcamMaxY)) {
-        continue;
-      }
-      verticesWithinBound += positive.size;
-      _groupVertices("x", lcamMaxX, false);
-      if (!_triXFace(zs, "x", "y", lcamMaxX, lcamMinY, lcamMaxY)) {
-        continue;
-      }
-      verticesWithinBound += positive.size;
-      _groupVertices("y", lcamMinY, true);
-      if (!_triXFace(zs, "y", "x", lcamMinY, lcamMinX, lcamMaxX)) {
-        continue;
-      }
-      verticesWithinBound += positive.size;
-      _groupVertices("y", lcamMaxY, false);
-      _triXFace(zs, "y", "x", lcamMaxY, lcamMinX, lcamMaxX);
-      if (verticesWithinBound + positive.size == 12) {
-        zs.push(vertices[0].z);
-        zs.push(vertices[1].z);
-        zs.push(vertices[2].z);
-      }
-    }
-    var z;
-    for (var j = 0, len = zs.size;j < len;j++) {
-      z = zs(j);
-      if (z < minz) {
-        minz = z;
-      }
-      if (z > maxz) {
-        maxz = z;
-      }
-    }
-    return {min:minz, max:maxz};
-  }
   function _getZFromAABBSimple(w2sc, aabbMin, aabbMax, lcamMinX, lcamMaxX, lcamMinY, lcamMaxY) {
     _sceneAABB_LS[0].x = _sceneAABB_LS[1].x = _sceneAABB_LS[2].x = _sceneAABB_LS[3].x = aabbMin.x;
     _sceneAABB_LS[1].y = _sceneAABB_LS[3].y = _sceneAABB_LS[7].y = _sceneAABB_LS[5].y = aabbMin.y;
@@ -9207,13 +8794,9 @@ pc.extend(pc, function() {
   function ForwardRenderer(graphicsDevice) {
     this.device = graphicsDevice;
     var device = this.device;
-    this._depthDrawCalls = 0;
     this._shadowDrawCalls = 0;
     this._forwardDrawCalls = 0;
     this._skinDrawCalls = 0;
-    this._instancedDrawCalls = 0;
-    this._immediateRendered = 0;
-    this._removedByInstancing = 0;
     this._camerasRendered = 0;
     this._materialSwitches = 0;
     this._shadowMapUpdates = 0;
@@ -9228,17 +8811,6 @@ pc.extend(pc, function() {
     var library = device.getProgramLibrary();
     this.library = library;
     this.frontToBack = false;
-    this._depthShaderStatic = library.getProgram("depth", {skin:false});
-    this._depthShaderSkin = library.getProgram("depth", {skin:true});
-    this._depthShaderStaticOp = {};
-    this._depthShaderSkinOp = {};
-    var chan = ["r", "g", "b", "a"];
-    for (var c = 0;c < 4;c++) {
-      this._depthShaderStaticOp[chan[c]] = library.getProgram("depth", {skin:false, opacityMap:true, opacityChannel:chan[c]});
-      this._depthShaderSkinOp[chan[c]] = library.getProgram("depth", {skin:true, opacityMap:true, opacityChannel:chan[c]});
-      this._depthShaderStaticOp[chan[c]] = library.getProgram("depth", {skin:false, opacityMap:true, opacityChannel:chan[c]});
-      this._depthShaderSkinOp[chan[c]] = library.getProgram("depth", {skin:true, opacityMap:true, opacityChannel:chan[c]});
-    }
     var scope = device.scope;
     this.projId = scope.resolve("matrix_projection");
     this.viewId = scope.resolve("matrix_view");
@@ -9248,6 +8820,7 @@ pc.extend(pc, function() {
     this.viewPosId = scope.resolve("view_position");
     this.nearClipId = scope.resolve("camera_near");
     this.farClipId = scope.resolve("camera_far");
+    this.cameraParamsId = scope.resolve("camera_params");
     this.shadowMapLightRadiusId = scope.resolve("light_radius");
     this.fogColorId = scope.resolve("fog_color");
     this.fogStartId = scope.resolve("fog_start");
@@ -9258,7 +8831,6 @@ pc.extend(pc, function() {
     this.poseMatrixId = scope.resolve("matrix_pose[0]");
     this.boneTextureId = scope.resolve("texture_poseMap");
     this.boneTextureSizeId = scope.resolve("texture_poseMapSize");
-    this.skinPosOffsetId = scope.resolve("skinPosOffset");
     this.alphaTestId = scope.resolve("alpha_ref");
     this.opacityMapId = scope.resolve("texture_opacityMap");
     this.ambientId = scope.resolve("light_globalAmbient");
@@ -9403,7 +8975,7 @@ pc.extend(pc, function() {
     }
     viewMat.copy(viewInvMat).invert();
     camera.frustum.update(projMat, viewMat);
-  }, setCamera:function(camera, cullBorder) {
+  }, setCamera:function(camera, target, clear, cullBorder) {
     var vrDisplay = camera.vrDisplay;
     if (!vrDisplay || !vrDisplay.presenting) {
       projMat = camera.getProjectionMatrix();
@@ -9474,8 +9046,8 @@ pc.extend(pc, function() {
     }
     this.nearClipId.setValue(camera._nearClip);
     this.farClipId.setValue(camera._farClip);
+    this.cameraParamsId.setValue(camera._shaderParams.data);
     var device = this.device;
-    var target = camera.renderTarget;
     device.setRenderTarget(target);
     device.updateBegin();
     var rect = camera.getRect();
@@ -9487,7 +9059,9 @@ pc.extend(pc, function() {
     var h = Math.floor(rect.height * pixelHeight);
     device.setViewport(x, y, w, h);
     device.setScissor(x, y, w, h);
-    device.clear(camera._clearOptions);
+    if (clear) {
+      device.clear(camera._clearOptions);
+    }
     rect = camera._scissorRect;
     x = Math.floor(rect.x * pixelWidth);
     y = Math.floor(rect.y * pixelHeight);
@@ -9500,7 +9074,6 @@ pc.extend(pc, function() {
   }, dispatchGlobalLights:function(scene) {
     var i;
     this.mainLight = -1;
-    var scope = this.device.scope;
     this.ambientColor[0] = scene.ambientLight.data[0];
     this.ambientColor[1] = scene.ambientLight.data[1];
     this.ambientColor[2] = scene.ambientLight.data[2];
@@ -9511,7 +9084,7 @@ pc.extend(pc, function() {
     }
     this.ambientId.setValue(this.ambientColor);
     this.exposureId.setValue(scene.exposure);
-    if (scene._skyboxModel) {
+    if (scene.skyboxModel) {
       this.skyboxIntensityId.setValue(scene.skyboxIntensity);
     }
   }, _resolveLight:function(scope, i) {
@@ -9533,12 +9106,12 @@ pc.extend(pc, function() {
     this.lightCookieIntId[i] = scope.resolve(light + "_cookieIntensity");
     this.lightCookieMatrixId[i] = scope.resolve(light + "_cookieMatrix");
     this.lightCookieOffsetId[i] = scope.resolve(light + "_cookieOffset");
-  }, dispatchDirectLights:function(scene, mask) {
-    var dirs = scene._globalLights;
+  }, dispatchDirectLights:function(dirs, scene, mask) {
     var numDirs = dirs.length;
     var i;
     var directional, wtm;
     var cnt = 0;
+    this.mainLight = -1;
     var scope = this.device.scope;
     for (i = 0;i < numDirs;i++) {
       if (!(dirs[i]._mask & mask)) {
@@ -9647,12 +9220,6 @@ pc.extend(pc, function() {
       params[2] = bias;
       params[3] = 1 / spot.attenuationEnd;
       this.lightShadowParamsId[cnt].setValue(params);
-      if (this.mainLight < 0) {
-        this.lightShadowMatrixVsId[cnt].setValue(spot._shadowMatrix.data);
-        this.lightShadowParamsVsId[cnt].setValue(params);
-        this.lightPosVsId[cnt].setValue(spot._position.data);
-        this.mainLight = i;
-      }
     }
     if (spot._cookie) {
       this.lightCookieId[cnt].setValue(spot._cookie);
@@ -9676,12 +9243,11 @@ pc.extend(pc, function() {
         this.lightCookieOffsetId[cnt].setValue(spot._cookieOffset.data);
       }
     }
-  }, dispatchLocalLights:function(scene, mask, usedDirLights, staticLightList) {
+  }, dispatchLocalLights:function(sortedLights, scene, mask, usedDirLights, staticLightList) {
     var i;
     var point, spot;
-    var localLights = scene._localLights;
-    var pnts = localLights[pc.LIGHTTYPE_POINT - 1];
-    var spts = localLights[pc.LIGHTTYPE_SPOT - 1];
+    var pnts = sortedLights[pc.LIGHTTYPE_POINT];
+    var spts = sortedLights[pc.LIGHTTYPE_SPOT];
     var numDirs = usedDirLights;
     var numPnts = pnts.length;
     var numSpts = spts.length;
@@ -9728,8 +9294,8 @@ pc.extend(pc, function() {
         spot = staticLightList[staticId];
       }
     }
-  }, cull:function(camera, drawCalls) {
-    culled.length = 0;
+  }, cull:function(camera, drawCalls, visibleList) {
+    var visibleLength = 0;
     var i, drawCall, visible;
     var drawCallsCount = drawCalls.length;
     var cullingMask = camera.cullingMask || 4294967295;
@@ -9742,9 +9308,11 @@ pc.extend(pc, function() {
         if (drawCall.mask && (drawCall.mask & cullingMask) === 0) {
           continue;
         }
-        culled.push(drawCall);
+        visibleList[visibleLength] = drawCall;
+        visibleLength++;
+        drawCall.visibleThisFrame = true;
       }
-      return culled;
+      return visibleLength;
     }
     for (i = 0;i < drawCallsCount;i++) {
       drawCall = drawCalls[i];
@@ -9756,53 +9324,34 @@ pc.extend(pc, function() {
         if (drawCall.mask && (drawCall.mask & cullingMask) === 0) {
           continue;
         }
-        if (drawCall.layer > pc.LAYER_FX) {
-          if (drawCall.cull) {
-            visible = this._isVisible(camera, drawCall);
-          }
+        if (drawCall.cull) {
+          visible = this._isVisible(camera, drawCall);
         }
         if (visible) {
-          culled.push(drawCall);
+          visibleList[visibleLength] = drawCall;
+          visibleLength++;
+          drawCall.visibleThisFrame = true;
         }
       } else {
-        culled.push(drawCall);
+        visibleList[visibleLength] = drawCall;
+        visibleLength++;
+        drawCall.visibleThisFrame = true;
       }
     }
-    return culled;
-  }, calculateSortDistances:function(drawCalls, camPos, camFwd, frontToBack) {
-    var i, drawCall, btype, meshPos;
-    var tempx, tempy, tempz;
-    var drawCallsCount = drawCalls.length;
-    for (i = 0;i < drawCallsCount;i++) {
-      drawCall = drawCalls[i];
-      if (drawCall.command) {
-        continue;
-      }
-      if (drawCall.layer <= pc.scene.LAYER_FX) {
-        continue;
-      }
-      btype = drawCall.material.blendType;
-      if (btype !== pc.BLEND_NONE) {
-        meshPos = drawCall.aabb.center.data;
-        tempx = meshPos[0] - camPos[0];
-        tempy = meshPos[1] - camPos[1];
-        tempz = meshPos[2] - camPos[2];
-        drawCall.zdist = tempx * camFwd[0] + tempy * camFwd[1] + tempz * camFwd[2];
-      } else {
-        if (drawCall.material.alphaTest || drawCall.material.alphaToCoverage) {
-          drawCall.zdist = Number.MAX_VALUE;
-        } else {
-          if (drawCall.zdist !== undefined) {
-            delete drawCall.zdist;
+    return visibleLength;
+  }, cullLights:function(camera, lights) {
+    var i, light, type;
+    for (i = 0;i < lights.length;i++) {
+      light = lights[i];
+      type = light._type;
+      if (light.castShadows && light._enabled && light.shadowUpdateMode !== pc.SHADOWUPDATE_NONE) {
+        if (type !== pc.LIGHTTYPE_DIRECTIONAL) {
+          light.getBoundingSphere(tempSphere);
+          if (!camera.frustum.containsSphere(tempSphere)) {
+            continue;
           }
+          light.visibleThisFrame = true;
         }
-      }
-      if (frontToBack && btype === pc.BLEND_NONE) {
-        meshPos = drawCall.aabb.center.data;
-        tempx = meshPos[0] - camPos[0];
-        tempy = meshPos[1] - camPos[1];
-        tempz = meshPos[2] - camPos[2];
-        drawCall.zdist2 = tempx * camFwd[0] + tempy * camFwd[1] + tempz * camFwd[2];
       }
     }
   }, updateCpuSkinMatrices:function(drawCalls) {
@@ -9814,7 +9363,7 @@ pc.extend(pc, function() {
     for (i = 0;i < drawCallsCount;i++) {
       skin = drawCalls[i].skinInstance;
       if (skin) {
-        skin.updateMatrices();
+        skin.updateMatrices(drawCalls[i].node);
         skin._dirty = true;
       }
     }
@@ -9822,6 +9371,9 @@ pc.extend(pc, function() {
     var i, skin;
     var drawCallsCount = drawCalls.length;
     for (i = 0;i < drawCallsCount;i++) {
+      if (!drawCalls[i].visibleThisFrame) {
+        continue;
+      }
       skin = drawCalls[i].skinInstance;
       if (skin) {
         if (skin._dirty) {
@@ -9843,74 +9395,13 @@ pc.extend(pc, function() {
     var i, morph;
     var drawCallsCount = drawCalls.length;
     for (i = 0;i < drawCallsCount;i++) {
+      if (!drawCalls[i].visibleThisFrame) {
+        continue;
+      }
       morph = drawCalls[i].morphInstance;
       if (morph && morph._dirty) {
         morph.update(drawCalls[i].mesh);
         morph._dirty = false;
-      }
-    }
-  }, sortDrawCalls:function(drawCalls, sortFunc, keyType) {
-    var drawCallsCount = drawCalls.length;
-    if (drawCallsCount === 0) {
-      return;
-    }
-    drawCalls.sort(sortFunc);
-  }, prepareInstancing:function(device, drawCalls, keyType, shaderType) {
-    if (!device.extInstancing) {
-      return;
-    }
-    var drawCallsCount = drawCalls.length;
-    var i, j, meshInstance, mesh, next, autoInstances, key, data;
-    var offset = 0;
-    if (device.enableAutoInstancing) {
-      for (i = 0;i < drawCallsCount - 1;i++) {
-        meshInstance = drawCalls[i];
-        mesh = meshInstance.mesh;
-        key = meshInstance._key[keyType];
-        next = i + 1;
-        autoInstances = 0;
-        if (drawCalls[next].mesh === mesh && drawCalls[next]._key[keyType] === key) {
-          for (j = 0;j < 16;j++) {
-            pc._autoInstanceBufferData[offset + j] = meshInstance.node.worldTransform.data[j];
-          }
-          autoInstances = 1;
-          while (next !== drawCallsCount && drawCalls[next].mesh === mesh && drawCalls[next]._key[keyType] === key) {
-            for (j = 0;j < 16;j++) {
-              pc._autoInstanceBufferData[offset + autoInstances * 16 + j] = drawCalls[next].node.worldTransform.data[j];
-            }
-            autoInstances++;
-            next++;
-          }
-          data = meshInstance.instancingData;
-          if (!data) {
-            meshInstance.instancingData = data = {};
-          }
-          data.count = autoInstances;
-          data.offset = offset * 4;
-          data._buffer = pc._autoInstanceBuffer;
-          i = next - 1;
-        }
-        offset += autoInstances * 16;
-      }
-      if (offset > 0) {
-        pc._autoInstanceBuffer.unlock();
-      }
-    }
-    for (i = 0;i < drawCallsCount;i++) {
-      meshInstance = drawCalls[i];
-      if (meshInstance.instancingData) {
-        if (!(meshInstance._shaderDefs & pc.SHADERDEF_INSTANCING)) {
-          meshInstance._shaderDefs |= pc.SHADERDEF_INSTANCING;
-          meshInstance._shader[shaderType] = null;
-        }
-        if (!meshInstance.instancingData._buffer) {
-          meshInstance.instancingData._buffer = new pc.VertexBuffer(device, pc._instanceVertexFormat, meshInstance.instancingData.count, meshInstance.instancingData.usage, meshInstance.instancingData.buffer);
-        }
-      } else {
-        if (meshInstance._shaderDefs & pc.SHADERDEF_INSTANCING) {
-          meshInstance._shaderDefs &= ~pc.SHADERDEF_INSTANCING;
-          meshInstance._shader[shaderType] = null;
-        }
       }
     }
   }, setBaseConstants:function(device, material) {
@@ -9922,7 +9413,6 @@ pc.extend(pc, function() {
   }, setSkinning:function(device, meshInstance, material) {
     if (meshInstance.skinInstance) {
       this._skinDrawCalls++;
-      this.skinPosOffsetId.setValue(meshInstance.skinInstance.rootNode.getPosition().data);
       if (device.supportsBoneTextures) {
         boneTexture = meshInstance.skinInstance.boneTexture;
         this.boneTextureId.setValue(boneTexture);
@@ -9974,119 +9464,55 @@ pc.extend(pc, function() {
       device.draw(mesh.primitive[style]);
       return 0;
     }
-  }, findShadowShader:function(meshInstance, type, shadowType, scene) {
-    if (shadowType >= numShadowModes) {
-      shadowType -= numShadowModes;
-    }
-    var material = meshInstance.material;
-    var smode = shadowType + type * numShadowModes;
-    if (!material.shader) {
-      material.updateShader(this.device, scene, meshInstance._shaderDefs, meshInstance._staticLightList);
-    }
-    return this.library.getProgram("depthrgba", {skin:!!meshInstance.skinInstance, opacityMap:!!material.opacityMap, opacityChannel:material.opacityMap ? material.opacityMapChannel || "r" : null, shadowType:shadowType, instancing:meshInstance.instancingData, type:type, chunks:material.chunks, attributes:material.shader.definition.attributes});
-  }, renderShadows:function(device, camera, drawCalls, lights, scene) {
-    var i, j, light, shadowShader, type, shadowCam, shadowCamNode, lightNode, passes, pass, frustumSize, shadowType, smode;
-    var unitPerTexel, delta, p;
-    var minx, miny, minz, maxx, maxy, maxz, centerx, centery;
-    var opChan;
-    var visible, cullTime, numInstances;
+  }, renderShadows:function(lights, cameraPass) {
+    var device = this.device;
+    var i, j, light, shadowShader, type, shadowCam, shadowCamNode, pass, passes, shadowType, smode;
+    var numInstances;
     var meshInstance, mesh, material;
     var style;
-    var emptyAabb;
-    var drawCallAabb;
+    var settings;
+    var visibleList, visibleLength;
     var passFlag = 1 << pc.SHADER_SHADOW;
     var paramName, parameter, parameters;
     for (i = 0;i < lights.length;i++) {
       light = lights[i];
       type = light._type;
-      if (light.castShadows && light._enabled && light.shadowUpdateMode !== pc.SHADOWUPDATE_NONE) {
+      if (!light.castShadows || !light._enabled) {
+        continue;
+      }
+      if (!light._shadowCamera) {
+        this.getShadowCamera(device, light);
+      }
+      if (light.shadowUpdateMode !== pc.SHADOWUPDATE_NONE && light.visibleThisFrame) {
         shadowCam = this.getShadowCamera(device, light);
         shadowCamNode = shadowCam._node;
-        lightNode = light._node;
+        pass = 0;
         passes = 1;
-        shadowCamNode.setPosition(lightNode.getPosition());
-        shadowCamNode.setRotation(lightNode.getRotation());
-        shadowCamNode.rotateLocal(-90, 0, 0);
         if (type === pc.LIGHTTYPE_DIRECTIONAL) {
-          _getFrustumPoints(camera, light.shadowDistance || camera._farClip, frustumPoints);
-          frustumSize = frustumDiagonal.sub2(frustumPoints[0], frustumPoints[6]).length();
-          frustumSize = Math.max(frustumSize, frustumDiagonal.sub2(frustumPoints[4], frustumPoints[6]).length());
-          shadowCamView.copy(shadowCamNode.getWorldTransform()).invert();
-          c2sc.copy(shadowCamView).mul(camera._node.worldTransform);
-          for (j = 0;j < 8;j++) {
-            c2sc.transformPoint(frustumPoints[j], frustumPoints[j]);
+          if (light._visibleLength[cameraPass] < 0) {
+            continue;
           }
-          minx = miny = minz = 1E6;
-          maxx = maxy = maxz = -1E6;
-          for (j = 0;j < 8;j++) {
-            p = frustumPoints[j];
-            if (p.x < minx) {
-              minx = p.x;
-            }
-            if (p.x > maxx) {
-              maxx = p.x;
-            }
-            if (p.y < miny) {
-              miny = p.y;
-            }
-            if (p.y > maxy) {
-              maxy = p.y;
-            }
-            if (p.z < minz) {
-              minz = p.z;
-            }
-            if (p.z > maxz) {
-              maxz = p.z;
-            }
-          }
-          unitPerTexel = frustumSize / light._shadowResolution;
-          delta = (frustumSize - (maxx - minx)) * .5;
-          minx = Math.floor((minx - delta) / unitPerTexel) * unitPerTexel;
-          delta = (frustumSize - (maxy - miny)) * .5;
-          miny = Math.floor((miny - delta) / unitPerTexel) * unitPerTexel;
-          maxx = minx + frustumSize;
-          maxy = miny + frustumSize;
-          centerx = (maxx + minx) * .5;
-          centery = (maxy + miny) * .5;
-          shadowCamNode.translateLocal(centerx, centery, 1E5);
-          shadowCam.projection = pc.PROJECTION_ORTHOGRAPHIC;
-          shadowCam.nearClip = 0;
-          shadowCam.farClip = 2E5;
-          shadowCam.aspectRatio = 1;
-          shadowCam.orthoHeight = frustumSize * .5;
+          settings = light._visibleCameraSettings[cameraPass];
+          shadowCamNode.setPosition(settings.x, settings.y, settings.z);
+          shadowCam.orthoHeight = settings.orthoHeight;
+          shadowCam.farClip = settings.farClip;
+          pass = cameraPass;
         } else {
           if (type === pc.LIGHTTYPE_SPOT) {
-            if (camera.frustumCulling && light.shadowUpdateMode === pc.SHADOWUPDATE_REALTIME) {
-              light.getBoundingSphere(tempSphere);
-              if (!camera.frustum.containsSphere(tempSphere)) {
-                continue;
-              }
-            }
-            shadowCam.projection = pc.PROJECTION_PERSPECTIVE;
-            shadowCam.nearClip = light.attenuationEnd / 1E3;
-            shadowCam.farClip = light.attenuationEnd;
-            shadowCam.aspectRatio = 1;
-            shadowCam.fov = light._outerConeAngle * 2;
             this.viewPosId.setValue(shadowCamNode.getPosition().data);
             this.shadowMapLightRadiusId.setValue(light.attenuationEnd);
           } else {
             if (type === pc.LIGHTTYPE_POINT) {
-              if (camera.frustumCulling && light.shadowUpdateMode === pc.SHADOWUPDATE_REALTIME) {
-                light.getBoundingSphere(tempSphere);
-                if (!camera.frustum.containsSphere(tempSphere)) {
-                  continue;
-                }
-              }
-              shadowCam.projection = pc.PROJECTION_PERSPECTIVE;
-              shadowCam.nearClip = light.attenuationEnd / 1E3;
-              shadowCam.farClip = light.attenuationEnd;
-              shadowCam.aspectRatio = 1;
-              shadowCam.fov = 90;
-              passes = 6;
               this.viewPosId.setValue(shadowCamNode.getPosition().data);
               this.shadowMapLightRadiusId.setValue(light.attenuationEnd);
+              passes = 6;
             }
           }
+        }
+        if (type !== pc.LIGHTTYPE_POINT) {
+          shadowCamView.setTRS(shadowCamNode.getPosition(), shadowCamNode.getRotation(), pc.Vec3.ONE).invert();
+          shadowCamViewProj.mul2(shadowCam.getProjectionMatrix(), shadowCamView);
+          light._shadowMatrix.mul2(scaleShift, shadowCamViewProj);
         }
         if (device.webgl2) {
           if (type === pc.LIGHTTYPE_POINT) {
@@ -10112,89 +9538,31 @@ pc.extend(pc, function() {
           light.shadowUpdateMode = pc.SHADOWUPDATE_NONE;
         }
         this._shadowMapUpdates += passes;
-        for (pass = 0;pass < passes;pass++) {
-          device.setBlending(false);
-          device.setDepthWrite(true);
-          device.setDepthTest(true);
-          if (light._isPcf && device.webgl2 && type !== pc.LIGHTTYPE_POINT) {
-            device.setColorWrite(false, false, false, false);
-          } else {
-            device.setColorWrite(true, true, true, true);
-          }
+        device.setBlending(false);
+        device.setDepthWrite(true);
+        device.setDepthTest(true);
+        if (light._isPcf && device.webgl2 && type !== pc.LIGHTTYPE_POINT) {
+          device.setColorWrite(false, false, false, false);
+        } else {
+          device.setColorWrite(true, true, true, true);
+        }
+        if (pass) {
+          passes = pass + 1;
+        } else {
+          pass = 0;
+        }
+        while (pass < passes) {
           if (type === pc.LIGHTTYPE_POINT) {
-            if (pass === 0) {
-              shadowCamNode.setEulerAngles(0, 90, 180);
-            } else {
-              if (pass === 1) {
-                shadowCamNode.setEulerAngles(0, -90, 180);
-              } else {
-                if (pass === 2) {
-                  shadowCamNode.setEulerAngles(90, 0, 0);
-                } else {
-                  if (pass === 3) {
-                    shadowCamNode.setEulerAngles(-90, 0, 0);
-                  } else {
-                    if (pass === 4) {
-                      shadowCamNode.setEulerAngles(0, 180, 180);
-                    } else {
-                      if (pass === 5) {
-                        shadowCamNode.setEulerAngles(0, 0, 180);
-                      }
-                    }
-                  }
-                }
-              }
-            }
-            shadowCamNode.setPosition(lightNode.getPosition());
+            shadowCamNode.setRotation(pointLightRotations[pass]);
             shadowCam.renderTarget = light._shadowCubeMap[pass];
           }
-          this.setCamera(shadowCam, type !== pc.LIGHTTYPE_POINT);
-          culled.length = 0;
-          for (j = 0, numInstances = drawCalls.length;j < numInstances;j++) {
-            meshInstance = drawCalls[j];
-            visible = true;
-            if (meshInstance.cull) {
-              visible = this._isVisible(shadowCam, meshInstance);
-            }
-            if (visible) {
-              culled.push(meshInstance);
-            }
-          }
-          this.updateGpuSkinMatrices(culled);
-          this.updateMorphing(culled);
+          this.setCamera(shadowCam, shadowCam.renderTarget, true, type !== pc.LIGHTTYPE_POINT);
+          visibleList = light._visibleList[pass];
+          visibleLength = light._visibleLength[pass];
           shadowType = light._shadowType;
           smode = shadowType + type * numShadowModes;
-          this.sortDrawCalls(culled, this.depthSortCompare, pc.SORTKEY_DEPTH);
-          this.prepareInstancing(device, culled, pc.SORTKEY_DEPTH, pc.SHADER_SHADOW + smode);
-          if (type === pc.LIGHTTYPE_DIRECTIONAL) {
-            emptyAabb = true;
-            for (j = 0;j < culled.length;j++) {
-              meshInstance = culled[j];
-              drawCallAabb = meshInstance.aabb;
-              if (emptyAabb) {
-                visibleSceneAabb.copy(drawCallAabb);
-                emptyAabb = false;
-              } else {
-                visibleSceneAabb.add(drawCallAabb);
-              }
-            }
-            var z = _getZFromAABBSimple(shadowCamView, visibleSceneAabb.getMin(), visibleSceneAabb.getMax(), minx, maxx, miny, maxy);
-            maxz = z.max;
-            if (z.min > minz) {
-              minz = z.min;
-            }
-            shadowCamNode.setPosition(lightNode.getPosition());
-            shadowCamNode.translateLocal(centerx, centery, maxz + directionalShadowEpsilon);
-            shadowCam.farClip = maxz - minz;
-            this.setCamera(shadowCam, true);
-          }
-          if (type !== pc.LIGHTTYPE_POINT) {
-            shadowCamView.setTRS(shadowCamNode.getPosition(), shadowCamNode.getRotation(), pc.Vec3.ONE).invert();
-            shadowCamViewProj.mul2(shadowCam.getProjectionMatrix(), shadowCamView);
-            light._shadowMatrix.mul2(scaleShift, shadowCamViewProj);
-          }
-          for (j = 0, numInstances = culled.length;j < numInstances;j++) {
-            meshInstance = culled[j];
+          for (j = 0, numInstances = visibleLength;j < numInstances;j++) {
+            meshInstance = visibleList[j];
             mesh = meshInstance.mesh;
             material = meshInstance.material;
             this.setBaseConstants(device, material);
@@ -10223,8 +9591,8 @@ pc.extend(pc, function() {
             }
             shadowShader = meshInstance._shader[pc.SHADER_SHADOW + smode];
             if (!shadowShader) {
-              shadowShader = this.findShadowShader(meshInstance, type, shadowType, scene);
-              meshInstance._shader[pc.SHADER_SHADOW + smode] = shadowShader;
+              this.updateShader(meshInstance, meshInstance._shaderDefs, null, pc.SHADER_SHADOW + smode);
+              shadowShader = meshInstance._shader[pc.SHADER_SHADOW + smode];
               meshInstance._key[pc.SORTKEY_DEPTH] = getDepthKey(meshInstance);
             }
             device.setShader(shadowShader);
@@ -10233,6 +9601,10 @@ pc.extend(pc, function() {
             device.setIndexBuffer(mesh.indexBuffer[style]);
             j += this.drawInstance(device, meshInstance, mesh, style);
             this._shadowDrawCalls++;
+          }
+          pass++;
+          if (type === pc.LIGHTTYPE_DIRECTIONAL) {
+            light._visibleLength[cameraPass] = -1;
           }
         }
         if (light._isVsm) {
@@ -10275,150 +9647,26 @@ pc.extend(pc, function() {
         this.polygonOffsetId.setValue(this.polygonOffset);
       }
     }
-  }, findDepthShader:function(meshInstance) {
-    var material = meshInstance.material;
-    return this.library.getProgram("depth", {skin:!!meshInstance.skinInstance, opacityMap:!!material.opacityMap, opacityChannel:material.opacityMap ? material.opacityMapChannel || "r" : null, instancing:meshInstance.instancingData});
-  }, filterDepthMapDrawCalls:function(drawCalls) {
-    filtered.length = 0;
-    var meshInstance;
-    for (var i = 0;i < drawCalls.length;i++) {
-      meshInstance = drawCalls[i];
-      if (!meshInstance.command && meshInstance.drawToDepth && meshInstance.material.blendType === pc.BLEND_NONE) {
-        filtered.push(meshInstance);
-      }
-    }
-    return filtered;
-  }, renderDepth:function(device, camera, drawCalls) {
-    if (camera._renderDepthRequests) {
-      var i;
-      var shadowType;
-      var rect = camera._rect;
-      var target = camera.renderTarget;
-      var width = target ? target.width : device.width;
-      var height = target ? target.height : device.height;
-      width = Math.floor(rect.width * width);
-      height = Math.floor(rect.height * height);
-      var meshInstance, mesh, material, style, depthShader;
-      var vrDisplay = camera.vrDisplay;
-      var halfWidth = device.width * .5;
-      drawCalls = this.filterDepthMapDrawCalls(drawCalls);
-      var drawCallsCount = drawCalls.length;
-      this.sortDrawCalls(drawCalls, this.depthSortCompare, pc.SORTKEY_DEPTH);
-      this.prepareInstancing(device, drawCalls, pc.SORTKEY_DEPTH, pc.SHADER_DEPTH);
-      if (camera._depthTarget && (camera._depthTarget.width !== width || camera._depthTarget.height !== height)) {
-        camera._depthTarget.destroy();
-        camera._depthTarget = null;
-      }
-      if (!camera._depthTarget) {
-        var colorBuffer = new pc.Texture(device, {format:pc.PIXELFORMAT_R8_G8_B8_A8, width:width, height:height});
-        colorBuffer.minFilter = pc.FILTER_NEAREST;
-        colorBuffer.magFilter = pc.FILTER_NEAREST;
-        colorBuffer.addressU = pc.ADDRESS_CLAMP_TO_EDGE;
-        colorBuffer.addressV = pc.ADDRESS_CLAMP_TO_EDGE;
-        camera._depthTarget = new pc.RenderTarget(device, colorBuffer, {depth:true, stencil:device.supportsStencil});
-      }
-      device.setBlending(false);
-      device.setColorWrite(true, true, true, true);
-      device.setDepthWrite(true);
-      device.setDepthTest(true);
-      var oldTarget = camera.renderTarget;
-      var oldClear = camera._clearOptions;
-      camera.renderTarget = camera._depthTarget;
-      camera._clearOptions = rgbaDepthClearOptions;
-      this.setCamera(camera);
-      for (i = 0;i < drawCallsCount;i++) {
-        meshInstance = drawCalls[i];
-        mesh = meshInstance.mesh;
-        material = meshInstance.material;
-        if (camera._cullFaces) {
-          if (camera._flipFaces) {
-            device.setCullMode(material.cull > 0 ? material.cull === pc.CULLFACE_FRONT ? pc.CULLFACE_BACK : pc.CULLFACE_FRONT : 0);
-          } else {
-            device.setCullMode(material.cull);
-          }
-        } else {
-          device.setCullMode(pc.CULLFACE_NONE);
-        }
-        if (material.opacityMap) {
-          this.opacityMapId.setValue(material.opacityMap);
-          this.alphaTestId.setValue(material.alphaTest);
-        }
-        this.setSkinning(device, meshInstance, material);
-        depthShader = meshInstance._shader[pc.SHADER_DEPTH];
-        if (!depthShader) {
-          depthShader = this.findDepthShader(meshInstance);
-          meshInstance._shader[pc.SHADER_DEPTH] = depthShader;
-          meshInstance._key[pc.SORTKEY_DEPTH] = getDepthKey(meshInstance);
-        }
-        device.setShader(depthShader);
-        style = meshInstance.renderStyle;
-        device.setVertexBuffer(meshInstance.morphInstance && meshInstance.morphInstance._vertexBuffer ? meshInstance.morphInstance._vertexBuffer : mesh.vertexBuffer, 0);
-        device.setIndexBuffer(mesh.indexBuffer[style]);
-        if (vrDisplay && vrDisplay.presenting) {
-          device.setViewport(0, 0, halfWidth, device.height);
-          this.viewProjId.setValue(viewProjMatL.data);
-          this.viewPosId.setValue(viewPosL.data);
-          i += this.drawInstance(device, meshInstance, mesh, style, true);
-          this._depthDrawCalls++;
-          device.setViewport(halfWidth, 0, halfWidth, device.height);
-          this.viewProjId.setValue(viewProjMatR.data);
-          this.viewPosId.setValue(viewPosR.data);
-          i += this.drawInstance2(device, meshInstance, mesh, style);
-          this._depthDrawCalls++;
-        } else {
-          i += this.drawInstance(device, meshInstance, mesh, style);
-          this._depthDrawCalls++;
-        }
-      }
-      camera.renderTarget = oldTarget;
-      camera._clearOptions = oldClear;
-    } else {
-      if (camera._depthTarget) {
-        camera._depthTarget.destroy();
-        camera._depthTarget = null;
-      }
-    }
-  }, renderForward:function(device, camera, drawCalls, scene, pass) {
-    var passFlag = 1 << pass;
-    var drawCallsCount = drawCalls.length;
+  }, updateShader:function(meshInstance, objDefs, staticLightList, pass, sortedLights) {
+    meshInstance.material._scene = this.scene;
+    meshInstance.material.updateShader(this.device, this.scene, objDefs, staticLightList, pass, sortedLights);
+    meshInstance._shader[pass] = meshInstance.material.shader;
+  }, renderForward:function(camera, drawCalls, drawCallsCount, sortedLights, pass, cullingMask, drawCallback, layer) {
+    var device = this.device;
+    var scene = this.scene;
     var vrDisplay = camera.vrDisplay;
-    this.sortDrawCalls(drawCalls, this.frontToBack ? this.sortCompare : this.sortCompareMesh, pc.SORTKEY_FORWARD);
-    this.prepareInstancing(device, drawCalls, pc.SORTKEY_FORWARD, pass);
+    var passFlag = 1 << pass;
+    var lightHash = layer ? layer._lightHash : 0;
     var i, drawCall, mesh, material, objDefs, variantKey, lightMask, style, usedDirLights;
-    var prevMeshInstance = null, prevMaterial = null, prevObjDefs, prevLightMask, prevStatic;
+    var prevMaterial = null, prevObjDefs, prevLightMask, prevStatic;
     var paramName, parameter, parameters;
     var stencilFront, stencilBack;
-    device.setColorWrite(true, true, true, true);
-    this.setCamera(camera);
-    this.dispatchGlobalLights(scene);
-    if (scene.fog !== pc.FOG_NONE) {
-      this.fogColor[0] = scene.fogColor.data[0];
-      this.fogColor[1] = scene.fogColor.data[1];
-      this.fogColor[2] = scene.fogColor.data[2];
-      if (scene.gammaCorrection) {
-        for (i = 0;i < 3;i++) {
-          this.fogColor[i] = Math.pow(this.fogColor[i], 2.2);
-        }
-      }
-      this.fogColorId.setValue(this.fogColor);
-      if (scene.fog === pc.FOG_LINEAR) {
-        this.fogStartId.setValue(scene.fogStart);
-        this.fogEndId.setValue(scene.fogEnd);
-      } else {
-        this.fogDensityId.setValue(scene.fogDensity);
-      }
-    }
-    this._screenSize.x = device.width;
-    this._screenSize.y = device.height;
-    this._screenSize.z = 1 / device.width;
-    this._screenSize.w = 1 / device.height;
-    this.screenSizeId.setValue(this._screenSize.data);
     var halfWidth = device.width * .5;
-    if (camera._depthTarget) {
-      this.depthMapId.setValue(camera._depthTarget.colorBuffer);
-    }
     for (i = 0;i < drawCallsCount;i++) {
       drawCall = drawCalls[i];
+      if (cullingMask && drawCall.mask && !(cullingMask & drawCall.mask)) {
+        continue;
+      }
       if (drawCall.command) {
         drawCall.command();
       } else {
@@ -10435,19 +9683,19 @@ pc.extend(pc, function() {
         }
         if (material !== prevMaterial) {
           this._materialSwitches++;
-          if (!drawCall._shader[pass] || drawCall._shaderDefs !== objDefs) {
+          if (!drawCall._shader[pass] || drawCall._shaderDefs !== objDefs || drawCall._lightHash !== lightHash) {
             if (!drawCall.isStatic) {
-              variantKey = pass + "_" + objDefs;
+              variantKey = pass + "_" + objDefs + "_" + lightHash;
               drawCall._shader[pass] = material.variants[variantKey];
               if (!drawCall._shader[pass]) {
-                material.updateShader(device, scene, objDefs, null, pass);
-                drawCall._shader[pass] = material.variants[variantKey] = material.shader;
+                this.updateShader(drawCall, objDefs, null, pass, sortedLights);
+                material.variants[variantKey] = drawCall._shader[pass];
               }
             } else {
-              material.updateShader(device, scene, objDefs, drawCall._staticLightList, pass);
-              drawCall._shader[pass] = material.shader;
+              this.updateShader(drawCall, objDefs, drawCall._staticLightList, pass, sortedLights);
             }
             drawCall._shaderDefs = objDefs;
+            drawCall._lightHash = lightHash;
           }
           device.setShader(drawCall._shader[pass]);
           parameters = material.parameters;
@@ -10461,8 +9709,8 @@ pc.extend(pc, function() {
             }
           }
           if (!prevMaterial || lightMask !== prevLightMask) {
-            usedDirLights = this.dispatchDirectLights(scene, lightMask);
-            this.dispatchLocalLights(scene, lightMask, usedDirLights, drawCall._staticLightList);
+            usedDirLights = this.dispatchDirectLights(sortedLights[pc.LIGHTTYPE_DIRECTIONAL], scene, lightMask);
+            this.dispatchLocalLights(sortedLights, scene, lightMask, usedDirLights, drawCall._staticLightList);
           }
           this.alphaTestId.setValue(material.alphaTest);
           device.setBlending(material.blend);
@@ -10488,32 +9736,38 @@ pc.extend(pc, function() {
           device.setDepthWrite(material.depthWrite);
           device.setDepthTest(material.depthTest);
           device.setAlphaToCoverage(material.alphaToCoverage);
-          stencilFront = material.stencilFront;
-          stencilBack = material.stencilBack;
-          if (stencilFront || stencilBack) {
-            device.setStencilTest(true);
-            if (stencilFront === stencilBack) {
-              device.setStencilFunc(stencilFront.func, stencilFront.ref, stencilFront.readMask);
-              device.setStencilOperation(stencilFront.fail, stencilFront.zfail, stencilFront.zpass, stencilFront.writeMask);
-            } else {
-              if (stencilFront) {
-                device.setStencilFuncFront(stencilFront.func, stencilFront.ref, stencilFront.readMask);
-                device.setStencilOperationFront(stencilFront.fail, stencilFront.zfail, stencilFront.zpass, stencilFront.writeMask);
-              } else {
-                device.setStencilFuncFront(pc.FUNC_ALWAYS, 0, 255);
-                device.setStencilOperationFront(pc.STENCILOP_KEEP, pc.STENCILOP_KEEP, pc.STENCILOP_KEEPP, 255);
-              }
-              if (stencilBack) {
-                device.setStencilFuncBack(stencilBack.func, stencilBack.ref, stencilBack.readMask);
-                device.setStencilOperationBack(stencilBack.fail, stencilBack.zfail, stencilBack.zpass, stencilBack.writeMask);
-              } else {
-                device.setStencilFuncBack(pc.FUNC_ALWAYS, 0, 255);
-                device.setStencilOperationBack(pc.STENCILOP_KEEP, pc.STENCILOP_KEEP, pc.STENCILOP_KEEP, 255);
-              }
-            }
+          if (material.depthBias || material.slopeDepthBias) {
+            device.setDepthBias(true);
+            device.setDepthBiasValues(material.depthBias, material.slopeDepthBias);
           } else {
-            device.setStencilTest(false);
+            device.setDepthBias(false);
           }
+        }
+        stencilFront = drawCall.stencilFront || material.stencilFront;
+        stencilBack = drawCall.stencilBack || material.stencilBack;
+        if (stencilFront || stencilBack) {
+          device.setStencilTest(true);
+          if (stencilFront === stencilBack) {
+            device.setStencilFunc(stencilFront.func, stencilFront.ref, stencilFront.readMask);
+            device.setStencilOperation(stencilFront.fail, stencilFront.zfail, stencilFront.zpass, stencilFront.writeMask);
+          } else {
+            if (stencilFront) {
+              device.setStencilFuncFront(stencilFront.func, stencilFront.ref, stencilFront.readMask);
+              device.setStencilOperationFront(stencilFront.fail, stencilFront.zfail, stencilFront.zpass, stencilFront.writeMask);
+            } else {
+              device.setStencilFuncFront(pc.FUNC_ALWAYS, 0, 255);
+              device.setStencilOperationFront(pc.STENCILOP_KEEP, pc.STENCILOP_KEEP, pc.STENCILOP_KEEPP, 255);
+            }
+            if (stencilBack) {
+              device.setStencilFuncBack(stencilBack.func, stencilBack.ref, stencilBack.readMask);
+              device.setStencilOperationBack(stencilBack.fail, stencilBack.zfail, stencilBack.zpass, stencilBack.writeMask);
+            } else {
+              device.setStencilFuncBack(pc.FUNC_ALWAYS, 0, 255);
+              device.setStencilOperationBack(pc.STENCILOP_KEEP, pc.STENCILOP_KEEP, pc.STENCILOP_KEEP, 255);
+            }
+          }
+        } else {
+          device.setStencilTest(false);
         }
         parameters = drawCall.parameters;
         for (paramName in parameters) {
@@ -10528,6 +9782,9 @@ pc.extend(pc, function() {
         device.setVertexBuffer(drawCall.morphInstance && drawCall.morphInstance._vertexBuffer ? drawCall.morphInstance._vertexBuffer : mesh.vertexBuffer, 0);
         style = drawCall.renderStyle;
         device.setIndexBuffer(mesh.indexBuffer[style]);
+        if (drawCallback) {
+          drawCallback(drawCall, i);
+        }
         if (vrDisplay && vrDisplay.presenting) {
           device.setViewport(0, 0, halfWidth, device.height);
           this.projId.setValue(projL.data);
@@ -10555,37 +9812,20 @@ pc.extend(pc, function() {
           for (paramName in parameters) {
             parameter = material.parameters[paramName];
             if (parameter) {
+              if (!parameter.scopeId) {
+                parameter.scopeId = device.scope.resolve(paramName);
+              }
               parameter.scopeId.setValue(parameter.data);
             }
           }
         }
         prevMaterial = material;
-        prevMeshInstance = drawCall;
         prevObjDefs = objDefs;
         prevLightMask = lightMask;
         prevStatic = drawCall.isStatic;
       }
     }
-    device.setStencilTest(false);
-    device.setAlphaToCoverage(false);
     device.updateEnd();
-  }, sortLights:function(scene) {
-    var light;
-    var lights = scene._lights;
-    scene._globalLights.length = 0;
-    scene._localLights[0].length = 0;
-    scene._localLights[1].length = 0;
-    for (i = 0;i < lights.length;i++) {
-      light = lights[i];
-      if (light._enabled) {
-        if (light._type === pc.LIGHTTYPE_DIRECTIONAL) {
-          scene._globalLights.push(light);
-        } else {
-          scene._localLights[light._type === pc.LIGHTTYPE_POINT ? 0 : 1].push(light);
-        }
-      }
-    }
-    return lights;
   }, setupInstancing:function(device) {
     if (!pc._instanceVertexFormat) {
       var formatDesc = [{semantic:pc.SEMANTIC_TEXCOORD2, components:4, type:pc.TYPE_FLOAT32}, {semantic:pc.SEMANTIC_TEXCOORD3, components:4, type:pc.TYPE_FLOAT32}, {semantic:pc.SEMANTIC_TEXCOORD4, components:4, type:pc.TYPE_FLOAT32}, {semantic:pc.SEMANTIC_TEXCOORD5, components:4, type:pc.TYPE_FLOAT32}];
@@ -10597,30 +9837,36 @@ pc.extend(pc, function() {
         pc._autoInstanceBufferData = new Float32Array(pc._autoInstanceBuffer.lock());
       }
     }
-  }, prepareStaticMeshes:function(device, scene) {
+  }, revertStaticMeshes:function(meshInstances) {
+    var i;
+    var drawCalls = meshInstances;
+    var drawCallsCount = drawCalls.length;
+    var drawCall;
+    var newDrawCalls = [];
+    var prevStaticSource;
+    for (i = 0;i < drawCallsCount;i++) {
+      drawCall = drawCalls[i];
+      if (drawCall._staticSource) {
+        if (drawCall._staticSource !== prevStaticSource) {
+          newDrawCalls.push(drawCall._staticSource);
+          prevStaticSource = drawCall._staticSource;
+        }
+      } else {
+        newDrawCalls.push(drawCall);
+      }
+    }
+    meshInstances.length = newDrawCalls.length;
+    for (i = 0;i < newDrawCalls.length;i++) {
+      meshInstances[i] = newDrawCalls[i];
+    }
+  }, prepareStaticMeshes:function(meshInstances, lights) {
     var i, j, k, v, s, index;
-    var drawCalls = scene.drawCalls;
-    var lights = scene._lights;
+    var device = this.device;
+    var scene = this.scene;
+    var drawCalls = meshInstances;
     var drawCallsCount = drawCalls.length;
     var drawCall, light;
     var newDrawCalls = [];
-    if (!scene._needsStaticPrepare) {
-      var prevStaticSource;
-      for (i = 0;i < drawCallsCount;i++) {
-        drawCall = drawCalls[i];
-        if (drawCall._staticSource) {
-          if (drawCall._staticSource !== prevStaticSource) {
-            newDrawCalls.push(drawCall._staticSource);
-            prevStaticSource = drawCall._staticSource;
-          }
-        } else {
-          newDrawCalls.push(drawCall);
-        }
-      }
-      drawCalls = newDrawCalls;
-      drawCallsCount = drawCalls.length;
-      newDrawCalls = [];
-    }
     var mesh;
     var indices, verts, numTris, elems, vertSize, offsetP, baseIndex;
     var _x, _y, _z;
@@ -10628,7 +9874,6 @@ pc.extend(pc, function() {
     var minv, maxv;
     var minVec = new pc.Vec3;
     var maxVec = new pc.Vec3;
-    var triAabb = new pc.BoundingBox;
     var localLightBounds = new pc.BoundingBox;
     var invMatrix = new pc.Mat4;
     var triLightComb = [];
@@ -10823,7 +10068,6 @@ pc.extend(pc, function() {
             instance.layer = drawCall.layer;
             instance.castShadow = drawCall.castShadow;
             instance._receiveShadow = drawCall._receiveShadow;
-            instance.drawToDepth = drawCall.drawToDepth;
             instance.cull = drawCall.cull;
             instance.pick = drawCall.pick;
             instance.mask = drawCall.mask;
@@ -10852,57 +10096,492 @@ pc.extend(pc, function() {
         }
       }
     }
-    scene.drawCalls = newDrawCalls;
-  }, render:function(scene, camera) {
-    var device = this.device;
-    scene._activeCamera = camera;
-    if (scene.updateShaders) {
-      scene.updateShadersFunc(device);
-      scene.updateShaders = false;
+    meshInstances.length = newDrawCalls.length;
+    for (i = 0;i < newDrawCalls.length;i++) {
+      meshInstances[i] = newDrawCalls[i];
     }
-    if (scene._needsStaticPrepare) {
-      this.prepareStaticMeshes(device, scene);
-      scene._needsStaticPrepare = false;
-    }
-    var target = camera.renderTarget;
-    var isHdr = false;
-    var oldExposure = scene.exposure;
-    if (target && target.colorBuffer) {
-      var format = target.colorBuffer.format;
-      if (format === pc.PIXELFORMAT_RGB16F || format === pc.PIXELFORMAT_RGB32F || format === pc.PIXELFORMAT_RGBA16F || format === pc.PIXELFORMAT_RGBA32F || format === pc.PIXELFORMAT_111110F) {
-        isHdr = true;
-        scene.exposure = 1;
+  }, updateShaders:function(drawCalls) {
+    var i;
+    var materials = [];
+    for (i = 0;i < drawCalls.length;i++) {
+      var drawCall = drawCalls[i];
+      if (drawCall.material !== undefined) {
+        if (materials.indexOf(drawCall.material) === -1) {
+          materials.push(drawCall.material);
+        }
       }
     }
+    for (i = 0;i < materials.length;i++) {
+      var mat = materials[i];
+      if (mat.updateShader !== pc.Material.prototype.updateShader) {
+        mat.clearVariants();
+        mat.shader = null;
+      }
+    }
+  }, beginFrame:function(comp) {
+    var device = this.device;
+    var scene = this.scene;
+    var meshInstances = comp._meshInstances;
+    var lights = comp._lights;
+    if (scene.updateSkybox) {
+      scene._updateSkybox(device);
+      scene.updateSkybox = false;
+    }
+    if (scene.updateShaders) {
+      this.updateShaders(meshInstances);
+      scene.updateShaders = false;
+      scene._shaderVersion++;
+    }
+    this.updateCpuSkinMatrices(meshInstances);
+    this.updateMorphedBounds(meshInstances);
     var i;
-    var drawCalls = scene.drawCalls;
-    var shadowCasters = scene.shadowCasters;
-    var lights = this.sortLights(scene);
-    var camPos = camera._node.getPosition().data;
-    var camFwd = camera._node.forward.data;
-    this.setupInstancing(device);
-    this.updateCameraFrustum(camera);
-    this.updateCpuSkinMatrices(drawCalls);
-    this.updateMorphedBounds(drawCalls);
-    this.renderShadows(device, camera, shadowCasters, lights, scene);
-    drawCalls = this.cull(camera, drawCalls);
-    this.calculateSortDistances(drawCalls, camPos, camFwd, this.frontToBack);
+    var len = meshInstances.length;
+    for (i = 0;i < len;i++) {
+      meshInstances[i].visibleThisFrame = false;
+    }
+    len = lights.length;
+    for (i = 0;i < len;i++) {
+      lights[i].visibleThisFrame = lights[i]._type === pc.LIGHTTYPE_DIRECTIONAL;
+    }
+  }, beginLayers:function(comp) {
+    var scene = this.scene;
+    var len = comp.layerList.length;
+    var layer;
+    var i, j;
+    var shaderVersion = this.scene._shaderVersion;
+    for (i = 0;i < len;i++) {
+      comp.layerList[i]._postRenderCounter = 0;
+    }
+    var transparent;
+    for (i = 0;i < len;i++) {
+      layer = comp.layerList[i];
+      layer._shaderVersion = shaderVersion;
+      layer._preRenderCalledForCameras = 0;
+      layer._postRenderCalledForCameras = 0;
+      transparent = comp.subLayerList[i];
+      if (transparent) {
+        layer._postRenderCounter |= 2;
+      } else {
+        layer._postRenderCounter |= 1;
+      }
+      layer._postRenderCounterMax = layer._postRenderCounter;
+      for (j = 0;j < layer.cameras.length;j++) {
+        if (!layer.instances.visibleOpaque[j]) {
+          layer.instances.visibleOpaque[j] = new pc.VisibleInstanceList;
+        }
+        if (!layer.instances.visibleTransparent[j]) {
+          layer.instances.visibleTransparent[j] = new pc.VisibleInstanceList;
+        }
+        layer.instances.visibleOpaque[j].done = false;
+        layer.instances.visibleTransparent[j].done = false;
+      }
+      if (layer._needsStaticPrepare && layer._staticLightHash) {
+        if (layer._staticPrepareDone) {
+          this.revertStaticMeshes(layer.opaqueMeshInstances);
+          this.revertStaticMeshes(layer.transparentMeshInstances);
+        }
+        this.prepareStaticMeshes(layer.opaqueMeshInstances, layer._lights);
+        this.prepareStaticMeshes(layer.transparentMeshInstances, layer._lights);
+        comp._dirty = true;
+        scene.updateShaders = true;
+        layer._needsStaticPrepare = false;
+        layer._staticPrepareDone = true;
+      }
+    }
+  }, cullLocalShadowmap:function(light, drawCalls) {
+    var i, type, shadowCam, shadowCamNode, passes, pass, numInstances, meshInstance, visibleList, vlen, visible;
+    var lightNode;
+    type = light._type;
+    if (type === pc.LIGHTTYPE_DIRECTIONAL) {
+      return;
+    }
+    light.visibleThisFrame = true;
+    shadowCam = this.getShadowCamera(this.device, light);
+    shadowCam.projection = pc.PROJECTION_PERSPECTIVE;
+    shadowCam.nearClip = light.attenuationEnd / 1E3;
+    shadowCam.farClip = light.attenuationEnd;
+    shadowCam.aspectRatio = 1;
+    if (type === pc.LIGHTTYPE_SPOT) {
+      shadowCam.fov = light._outerConeAngle * 2;
+      passes = 1;
+    } else {
+      shadowCam.fov = 90;
+      passes = 6;
+    }
+    shadowCamNode = shadowCam._node;
+    lightNode = light._node;
+    shadowCamNode.setPosition(lightNode.getPosition());
+    if (type === pc.LIGHTTYPE_SPOT) {
+      shadowCamNode.setRotation(lightNode.getRotation());
+      shadowCamNode.rotateLocal(-90, 0, 0);
+    }
+    for (pass = 0;pass < passes;pass++) {
+      if (type === pc.LIGHTTYPE_POINT) {
+        shadowCamNode.setRotation(pointLightRotations[pass]);
+        shadowCam.renderTarget = light._shadowCubeMap[pass];
+      }
+      this.updateCameraFrustum(shadowCam);
+      visibleList = light._visibleList[pass];
+      if (!visibleList) {
+        visibleList = light._visibleList[pass] = [];
+      }
+      light._visibleLength[pass] = 0;
+      vlen = 0;
+      for (i = 0, numInstances = drawCalls.length;i < numInstances;i++) {
+        meshInstance = drawCalls[i];
+        visible = true;
+        if (meshInstance.cull) {
+          visible = this._isVisible(shadowCam, meshInstance);
+        }
+        if (visible) {
+          visibleList[vlen] = meshInstance;
+          vlen++;
+          meshInstance.visibleThisFrame = true;
+        }
+      }
+      light._visibleLength[pass] = vlen;
+      if (visibleList.length !== vlen) {
+        visibleList.length = vlen;
+      }
+      visibleList.sort(this.depthSortCompare);
+    }
+  }, cullDirectionalShadowmap:function(light, drawCalls, camera, pass) {
+    var i, j, shadowCam, shadowCamNode, lightNode, frustumSize, vlen, visibleList;
+    var unitPerTexel, delta, p;
+    var minx, miny, minz, maxx, maxy, maxz, centerx, centery;
+    var visible, numInstances;
+    var meshInstance;
+    var emptyAabb;
+    var drawCallAabb;
+    var device = this.device;
+    light.visibleThisFrame = true;
+    shadowCam = this.getShadowCamera(device, light);
+    shadowCamNode = shadowCam._node;
+    lightNode = light._node;
+    shadowCamNode.setPosition(lightNode.getPosition());
+    shadowCamNode.setRotation(lightNode.getRotation());
+    shadowCamNode.rotateLocal(-90, 0, 0);
+    _getFrustumPoints(camera, light.shadowDistance || camera._farClip, frustumPoints);
+    frustumSize = frustumDiagonal.sub2(frustumPoints[0], frustumPoints[6]).length();
+    frustumSize = Math.max(frustumSize, frustumDiagonal.sub2(frustumPoints[4], frustumPoints[6]).length());
+    shadowCamView.copy(shadowCamNode.getWorldTransform()).invert();
+    c2sc.copy(shadowCamView).mul(camera._node.worldTransform);
+    for (j = 0;j < 8;j++) {
+      c2sc.transformPoint(frustumPoints[j], frustumPoints[j]);
+    }
+    minx = miny = minz = 1E6;
+    maxx = maxy = maxz = -1E6;
+    for (j = 0;j < 8;j++) {
+      p = frustumPoints[j];
+      if (p.x < minx) {
+        minx = p.x;
+      }
+      if (p.x > maxx) {
+        maxx = p.x;
+      }
+      if (p.y < miny) {
+        miny = p.y;
+      }
+      if (p.y > maxy) {
+        maxy = p.y;
+      }
+      if (p.z < minz) {
+        minz = p.z;
+      }
+      if (p.z > maxz) {
+        maxz = p.z;
+      }
+    }
+    unitPerTexel = frustumSize / light._shadowResolution;
+    delta = (frustumSize - (maxx - minx)) * .5;
+    minx = Math.floor((minx - delta) / unitPerTexel) * unitPerTexel;
+    delta = (frustumSize - (maxy - miny)) * .5;
+    miny = Math.floor((miny - delta) / unitPerTexel) * unitPerTexel;
+    maxx = minx + frustumSize;
+    maxy = miny + frustumSize;
+    centerx = (maxx + minx) * .5;
+    centery = (maxy + miny) * .5;
+    shadowCamNode.translateLocal(centerx, centery, 1E5);
+    shadowCam.projection = pc.PROJECTION_ORTHOGRAPHIC;
+    shadowCam.nearClip = 0;
+    shadowCam.farClip = 2E5;
+    shadowCam.aspectRatio = 1;
+    shadowCam.orthoHeight = frustumSize * .5;
+    this.updateCameraFrustum(shadowCam);
+    emptyAabb = true;
+    visibleList = light._visibleList[pass];
+    if (!visibleList) {
+      visibleList = light._visibleList[pass] = [];
+    }
+    vlen = light._visibleLength[pass] = 0;
+    for (j = 0, numInstances = drawCalls.length;j < numInstances;j++) {
+      meshInstance = drawCalls[j];
+      visible = true;
+      if (meshInstance.cull) {
+        visible = this._isVisible(shadowCam, meshInstance);
+      }
+      if (visible) {
+        visibleList[vlen] = meshInstance;
+        vlen++;
+        meshInstance.visibleThisFrame = true;
+        drawCallAabb = meshInstance.aabb;
+        if (emptyAabb) {
+          visibleSceneAabb.copy(drawCallAabb);
+          emptyAabb = false;
+        } else {
+          visibleSceneAabb.add(drawCallAabb);
+        }
+      }
+    }
+    light._visibleLength[pass] = vlen;
+    if (visibleList.length !== vlen) {
+      visibleList.length = vlen;
+    }
+    visibleList.sort(this.depthSortCompare);
+    var z = _getZFromAABBSimple(shadowCamView, visibleSceneAabb.getMin(), visibleSceneAabb.getMax(), minx, maxx, miny, maxy);
+    maxz = z.max;
+    if (z.min > minz) {
+      minz = z.min;
+    }
+    shadowCamNode.setPosition(lightNode.getPosition());
+    shadowCamNode.translateLocal(centerx, centery, maxz + directionalShadowEpsilon);
+    shadowCam.farClip = maxz - minz;
+    var settings = light._visibleCameraSettings[pass];
+    if (!settings) {
+      settings = light._visibleCameraSettings[pass] = {};
+    }
+    var lpos = shadowCamNode.getPosition().data;
+    settings.x = lpos[0];
+    settings.y = lpos[1];
+    settings.z = lpos[2];
+    settings.orthoHeight = shadowCam.orthoHeight;
+    settings.farClip = shadowCam.farClip;
+  }, gpuUpdate:function(drawCalls) {
     this.updateGpuSkinMatrices(drawCalls);
     this.updateMorphing(drawCalls);
-    for (i = 0;i < scene.immediateDrawCalls.length;i++) {
-      drawCalls.push(scene.immediateDrawCalls[i]);
-    }
-    this._immediateRendered += scene.immediateDrawCalls.length;
-    this.renderDepth(device, camera, drawCalls);
-    this.renderForward(device, camera, drawCalls, scene, isHdr ? pc.SHADER_FORWARDHDR : pc.SHADER_FORWARD);
+  }, clearView:function(camera, target, options) {
+    camera = camera.camera;
+    var device = this.device;
+    device.setRenderTarget(target);
+    device.updateBegin();
     device.setColorWrite(true, true, true, true);
-    if (scene.immediateDrawCalls.length > 0) {
-      scene.immediateDrawCalls = [];
+    device.setDepthWrite(true);
+    var rect = camera.getRect();
+    var pixelWidth = target ? target.width : device.width;
+    var pixelHeight = target ? target.height : device.height;
+    var x = Math.floor(rect.x * pixelWidth);
+    var y = Math.floor(rect.y * pixelHeight);
+    var w = Math.floor(rect.width * pixelWidth);
+    var h = Math.floor(rect.height * pixelHeight);
+    device.setViewport(x, y, w, h);
+    device.setScissor(x, y, w, h);
+    device.clear(options ? options : camera._clearOptions);
+  }, setSceneConstants:function() {
+    var i;
+    var device = this.device;
+    var scene = this.scene;
+    this.dispatchGlobalLights(scene);
+    if (scene.fog !== pc.FOG_NONE) {
+      this.fogColor[0] = scene.fogColor.data[0];
+      this.fogColor[1] = scene.fogColor.data[1];
+      this.fogColor[2] = scene.fogColor.data[2];
+      if (scene.gammaCorrection) {
+        for (i = 0;i < 3;i++) {
+          this.fogColor[i] = Math.pow(this.fogColor[i], 2.2);
+        }
+      }
+      this.fogColorId.setValue(this.fogColor);
+      if (scene.fog === pc.FOG_LINEAR) {
+        this.fogStartId.setValue(scene.fogStart);
+        this.fogEndId.setValue(scene.fogEnd);
+      } else {
+        this.fogDensityId.setValue(scene.fogDensity);
+      }
     }
-    if (isHdr) {
-      scene.exposure = oldExposure;
+    this._screenSize.x = device.width;
+    this._screenSize.y = device.height;
+    this._screenSize.z = 1 / device.width;
+    this._screenSize.w = 1 / device.height;
+    this.screenSizeId.setValue(this._screenSize.data);
+  }, renderComposition:function(comp) {
+    var device = this.device;
+    var camera;
+    var renderedRt = comp._renderedRt;
+    var renderedByCam = comp._renderedByCam;
+    var renderedLayer = comp._renderedLayer;
+    var i, layer, transparent, cameras, j, rt, k, processedThisCamera, processedThisCameraAndLayer, processedThisCameraAndRt;
+    this.beginLayers(comp);
+    var updated = comp._update();
+    if (updated & pc.COMPUPDATED_LIGHTS) {
+      this.scene.updateShaders = true;
     }
-    this._camerasRendered++;
+    this.beginFrame(comp);
+    this.setSceneConstants();
+    var renderedLength = 0;
+    var objects, drawCalls, visible;
+    for (i = 0;i < comp.layerList.length;i++) {
+      layer = comp.layerList[i];
+      if (!layer.enabled || !comp.subLayerEnabled[i]) {
+        continue;
+      }
+      transparent = comp.subLayerList[i];
+      objects = layer.instances;
+      cameras = layer.cameras;
+      for (j = 0;j < cameras.length;j++) {
+        camera = cameras[j];
+        if (!camera) {
+          continue;
+        }
+        camera.frameBegin(layer.renderTarget);
+        drawCalls = transparent ? layer.transparentMeshInstances : layer.opaqueMeshInstances;
+        processedThisCamera = false;
+        processedThisCameraAndLayer = false;
+        for (k = 0;k < renderedLength;k++) {
+          if (renderedByCam[k] === camera) {
+            processedThisCamera = true;
+            if (renderedLayer[k] === layer) {
+              processedThisCameraAndLayer = true;
+              break;
+            }
+          }
+        }
+        if (!processedThisCamera) {
+          this.updateCameraFrustum(camera.camera);
+          this._camerasRendered++;
+        }
+        if (!processedThisCameraAndLayer) {
+          this.cullLights(camera.camera, layer._lights);
+        }
+        if (!processedThisCamera || !processedThisCameraAndLayer) {
+          renderedByCam[renderedLength] = camera;
+          renderedLayer[renderedLength] = layer;
+          renderedLength++;
+        }
+        visible = transparent ? objects.visibleTransparent[j] : objects.visibleOpaque[j];
+        if (!visible.done) {
+          if (layer.onPreCull) {
+            layer.onPreCull(j);
+          }
+          visible.length = this.cull(camera.camera, drawCalls, visible.list);
+          visible.done = true;
+          if (layer.onPostCull) {
+            layer.onPostCull(j);
+          }
+        }
+        camera.frameEnd();
+      }
+    }
+    var light, casters;
+    for (i = 0;i < comp._lights.length;i++) {
+      light = comp._lights[i];
+      if (!light.visibleThisFrame) {
+        continue;
+      }
+      if (light._type === pc.LIGHTTYPE_DIRECTIONAL) {
+        continue;
+      }
+      if (!light.castShadows || !light._enabled || light.shadowUpdateMode === pc.SHADOWUPDATE_NONE) {
+        continue;
+      }
+      casters = comp._lightShadowCasters[i];
+      this.cullLocalShadowmap(light, casters);
+    }
+    renderedLength = 0;
+    var globalLightCounter = -1;
+    for (i = 0;i < comp._lights.length;i++) {
+      light = comp._lights[i];
+      if (light._type !== pc.LIGHTTYPE_DIRECTIONAL) {
+        continue;
+      }
+      globalLightCounter++;
+      if (!light.castShadows || !light._enabled || light.shadowUpdateMode === pc.SHADOWUPDATE_NONE) {
+        continue;
+      }
+      casters = comp._lightShadowCasters[i];
+      cameras = comp._globalLightCameras[globalLightCounter];
+      for (j = 0;j < cameras.length;j++) {
+        this.cullDirectionalShadowmap(light, casters, cameras[j].camera, comp._globalLightCameraIds[globalLightCounter][j]);
+      }
+    }
+    this.gpuUpdate(comp._meshInstances);
+    this.renderShadows(comp._sortedLights[pc.LIGHTTYPE_SPOT]);
+    this.renderShadows(comp._sortedLights[pc.LIGHTTYPE_POINT]);
+    renderedLength = 0;
+    var cameraPass;
+    var sortTime, draws, drawTime;
+    for (i = 0;i < comp._renderList.length;i++) {
+      layer = comp.layerList[comp._renderList[i]];
+      if (!layer.enabled || !comp.subLayerEnabled[comp._renderList[i]]) {
+        continue;
+      }
+      objects = layer.instances;
+      transparent = comp.subLayerList[comp._renderList[i]];
+      cameraPass = comp._renderListCamera[i];
+      camera = layer.cameras[cameraPass];
+      if (camera) {
+        camera.frameBegin(layer.renderTarget);
+      }
+      if (!transparent && layer.onPreRenderOpaque) {
+        layer.onPreRenderOpaque(cameraPass);
+      } else {
+        if (transparent && layer.onPreRenderTransparent) {
+          layer.onPreRenderTransparent(cameraPass);
+        }
+      }
+      if (!(layer._preRenderCalledForCameras & 1 << cameraPass)) {
+        if (layer.onPreRender) {
+          layer.onPreRender(cameraPass);
+        }
+        layer._preRenderCalledForCameras |= 1 << cameraPass;
+        if (layer.overrideClear) {
+          this.clearView(camera, layer.renderTarget, layer._clearOptions);
+        }
+      }
+      if (camera) {
+        rt = layer.renderTarget;
+        processedThisCameraAndRt = false;
+        for (k = 0;k < renderedLength;k++) {
+          if (renderedRt[k] === rt && renderedByCam[k] === camera) {
+            processedThisCameraAndRt = true;
+            break;
+          }
+        }
+        if (!processedThisCameraAndRt) {
+          if (!layer.overrideClear) {
+            this.clearView(camera, layer.renderTarget);
+          }
+          renderedRt[renderedLength] = rt;
+          renderedByCam[renderedLength] = camera;
+          renderedLength++;
+        }
+        this.renderShadows(layer._sortedLights[pc.LIGHTTYPE_DIRECTIONAL], cameraPass);
+        layer._sortVisible(transparent, camera.node, cameraPass);
+        visible = transparent ? objects.visibleTransparent[cameraPass] : objects.visibleOpaque[cameraPass];
+        this.scene._activeCamera = camera.camera;
+        this.setCamera(camera.camera, layer.renderTarget);
+        this.renderForward(camera.camera, visible.list, visible.length, layer._sortedLights, layer.shaderPass, layer.cullingMask, layer.onDrawCall, layer);
+        device.setColorWrite(true, true, true, true);
+        device.setStencilTest(false);
+        device.setAlphaToCoverage(false);
+        device.setDepthBias(false);
+        camera.frameEnd();
+      }
+      if (!transparent && layer.onPostRenderOpaque) {
+        layer.onPostRenderOpaque(cameraPass);
+      } else {
+        if (transparent && layer.onPostRenderTransparent) {
+          layer.onPostRenderTransparent(cameraPass);
+        }
+      }
+      if (layer.onPostRender && !(layer._postRenderCalledForCameras & 1 << cameraPass)) {
+        layer._postRenderCounter &= ~(transparent ? 2 : 1);
+        if (layer._postRenderCounter === 0) {
+          layer.onPostRender(cameraPass);
+          layer._postRenderCalledForCameras |= 1 << cameraPass;
+          layer._postRenderCounter = layer._postRenderCounterMax;
+        }
+      }
+    }
   }});
   return {ForwardRenderer:ForwardRenderer, gaussWeights:gaussWeights};
 }());
@@ -10936,6 +10615,7 @@ pc.extend(pc, function() {
     this._forward = new pc.Vec3;
     this._parent = null;
     this._children = [];
+    this._graphDepth = 0;
     this._enabled = true;
     this._enabledInHierarchy = false;
     this.scaleCompensation = false;
@@ -10974,6 +10654,9 @@ pc.extend(pc, function() {
   }});
   Object.defineProperty(GraphNode.prototype, "children", {get:function() {
     return this._children;
+  }});
+  Object.defineProperty(GraphNode.prototype, "graphDepth", {get:function() {
+    return this._graphDepth;
   }});
   pc.extend(GraphNode.prototype, {_notifyHierarchyStateChanged:function(node, enabled) {
     node._onHierarchyStateChanged(enabled);
@@ -11138,9 +10821,8 @@ pc.extend(pc, function() {
         parent = parent._parent;
       }
       return path;
-    } else {
-      return "";
     }
+    return "";
   }, getRoot:function() {
     var parent = this._parent;
     if (!parent) {
@@ -11359,9 +11041,22 @@ pc.extend(pc, function() {
       node._enabledInHierarchy = enabledInHierarchy;
       node._notifyHierarchyStateChanged(node, enabledInHierarchy);
     }
+    node._updateGraphDepth();
     node._dirtify();
     if (node.fire) {
       node.fire("insert", this);
+    }
+    if (this.fire) {
+      this.fire("childinsert", node);
+    }
+  }, _updateGraphDepth:function() {
+    if (this._parent) {
+      this._graphDepth = this._parent._graphDepth + 1;
+    } else {
+      this._graphDepth = 0;
+    }
+    for (var i = 0, len = this._children.length;i < len;i++) {
+      this._children[i]._updateGraphDepth();
     }
   }, removeChild:function(child) {
     var i;
@@ -11370,6 +11065,9 @@ pc.extend(pc, function() {
       if (this._children[i] === child) {
         this._children.splice(i, 1);
         child._parent = null;
+        if (this.fire) {
+          this.fire("childremove", child);
+        }
         return;
       }
     }
@@ -11545,9 +11243,11 @@ pc.extend(pc, function() {
     this._projection = pc.PROJECTION_PERSPECTIVE;
     this._nearClip = .1;
     this._farClip = 1E4;
+    this._shaderParams = new pc.Vec4;
     this._fov = 45;
     this._orthoHeight = 10;
     this._aspect = 16 / 9;
+    this._aspectRatioMode = pc.ASPECT_AUTO;
     this._horizontalFov = false;
     this.frustumCulling = false;
     this.cullingMask = 4294967295;
@@ -11570,14 +11270,17 @@ pc.extend(pc, function() {
     this.overrideCalculateProjection = false;
     this._cullFaces = true;
     this._flipFaces = false;
+    this._component = null;
   };
   Camera.prototype = {clone:function() {
     var clone = new pc.Camera;
     clone.projection = this._projection;
     clone.nearClip = this._nearClip;
     clone.farClip = this._farClip;
+    clone._shaderParams = this._shaderParams.clone();
     clone.fov = this._fov;
     clone.aspectRatio = this._aspect;
+    clone._aspectRatioMode = this._aspectRatioMode;
     clone.renderTarget = this.renderTarget;
     clone.setClearOptions(this.getClearOptions());
     clone.frustumCulling = this.frustumCulling;
@@ -11633,6 +11336,12 @@ pc.extend(pc, function() {
         var x = y * this._aspect;
         this._projMat.setOrtho(-x, x, -y, y, this._nearClip, this._farClip);
       }
+      var n = this._nearClip;
+      var f = this._farClip;
+      this._shaderParams.x = 1 / f;
+      this._shaderParams.y = f;
+      this._shaderParams.z = (1 - f / n) / 2;
+      this._shaderParams.w = (1 + f / n) / 2;
       this._projMatDirty = false;
     }
     return this._projMat;
@@ -11795,8 +11504,13 @@ pc.extend(pc, function() {
     this._isPcf = true;
     this._cacheShadowMap = false;
     this._isCachedShadowMap = false;
+    this._visibleLength = [0];
+    this._visibleList = [[]];
+    this._visibleCameraSettings = [];
   };
-  Light.prototype = {clone:function() {
+  Light.prototype = {destroy:function() {
+    this._destroyShadowMap();
+  }, clone:function() {
     var clone = new pc.Light;
     clone.type = this._type;
     clone.setColor(this._color);
@@ -11898,6 +11612,9 @@ pc.extend(pc, function() {
             if (rt.colorBuffer) {
               rt.colorBuffer.destroy();
             }
+            if (rt.depthBuffer) {
+              rt.depthBuffer.destroy();
+            }
             rt.destroy();
           }
         }
@@ -11947,6 +11664,9 @@ pc.extend(pc, function() {
     var stype = this._shadowType;
     this._shadowType = null;
     this.shadowType = stype;
+    if (this._scene !== null) {
+      this._scene.layers._dirtyLights = true;
+    }
   }});
   Object.defineProperty(Light.prototype, "mask", {get:function() {
     return this._mask;
@@ -12203,11 +11923,16 @@ pc.extend(pc, function() {
     this.depthWrite = true;
     this.stencilFront = null;
     this.stencilBack = null;
+    this.depthBias = 0;
+    this.slopeDepthBias = 0;
     this.redWrite = true;
     this.greenWrite = true;
     this.blueWrite = true;
     this.alphaWrite = true;
     this.meshInstances = [];
+    this._shaderVersion = 0;
+    this._scene = null;
+    this._dirtyBlend = false;
   };
   Object.defineProperty(Material.prototype, "shader", {get:function() {
     return this._shader;
@@ -12244,8 +11969,6 @@ pc.extend(pc, function() {
                     } else {
                       if (this.blend && this.blendSrc === pc.BLENDMODE_ONE && this.blendDst === pc.BLENDMODE_ONE_MINUS_SRC_ALPHA && this.blendEquation === pc.BLENDEQUATION_ADD) {
                         return pc.BLEND_PREMULTIPLIED;
-                      } else {
-                        return pc.BLEND_NORMAL;
                       }
                     }
                   }
@@ -12256,7 +11979,9 @@ pc.extend(pc, function() {
         }
       }
     }
+    return pc.BLEND_NORMAL;
   }, set:function(type) {
+    var prevBlend = this.blend !== pc.BLEND_NONE;
     switch(type) {
       case pc.BLEND_NONE:
         this.blend = false;
@@ -12319,6 +12044,13 @@ pc.extend(pc, function() {
         this.blendEquation = pc.BLENDEQUATION_MAX;
         break;
     }
+    if (prevBlend !== (this.blend !== pc.BLEND_NONE)) {
+      if (this._scene) {
+        this._scene.layers._dirtyBlend = true;
+      } else {
+        this._dirtyBlend = true;
+      }
+    }
     this._updateMeshInstanceKeys();
   }});
   Material.prototype._cloneInternal = function(clone) {
@@ -12329,7 +12061,7 @@ pc.extend(pc, function() {
     clone.parameters = {};
     for (var parameterName in this.parameters) {
       if (this.parameters.hasOwnProperty(parameterName)) {
-        clone.parameters[parameterName] = {scopeId:null, data:this.parameters[parameterName].data};
+        clone.parameters[parameterName] = {scopeId:null, data:this.parameters[parameterName].data, passFlags:this.parameters[parameterName].passFlags};
       }
     }
     clone.alphaTest = this.alphaTest;
@@ -12345,6 +12077,8 @@ pc.extend(pc, function() {
     clone.cull = this.cull;
     clone.depthTest = this.depthTest;
     clone.depthWrite = this.depthWrite;
+    clone.depthBias = this.depthBias;
+    clone.slopeDepthBias = this.slopeDepthBias;
     if (this.stencilFront) {
       clone.stencilFront = this.stencilFront.clone();
     }
@@ -12399,24 +12133,20 @@ pc.extend(pc, function() {
   Material.prototype.getParameter = function(name) {
     return this.parameters[name];
   };
-  Material.prototype.setParameter = function(arg, data, passFlags) {
+  Material.prototype.setParameter = function(name, data, passFlags) {
     if (passFlags === undefined) {
-      passFlags = 1 << pc.SHADER_FORWARD | 1 << pc.SHADER_FORWARDHDR;
+      passFlags = -524285;
     }
-    var name;
-    if (data === undefined && typeof arg === "object") {
-      var uniformObject = arg;
+    if (data === undefined && typeof name === "object") {
+      var uniformObject = name;
       if (uniformObject.length) {
         for (var i = 0;i < uniformObject.length;i++) {
           this.setParameter(uniformObject[i]);
         }
         return;
-      } else {
-        name = uniformObject.name;
-        data = uniformObject.value;
       }
-    } else {
-      name = arg;
+      name = uniformObject.name;
+      data = uniformObject.value;
     }
     var param = this.parameters[name];
     if (param) {
@@ -12495,20 +12225,7 @@ pc.extend(pc, function() {
       }
     }
   };
-  var StencilParameters = function(options) {
-    this.func = options.func === undefined ? pc.FUNC_ALWAYS : options.func;
-    this.ref = options.ref || 0;
-    this.readMask = options.readMask === undefined ? 255 : options.readMask;
-    this.writeMask = options.writeMask === undefined ? 255 : options.writeMask;
-    this.fail = options.fail || pc.STENCILOP_KEEP;
-    this.zfail = options.zfail || pc.STENCILOP_KEEP;
-    this.zpass = options.zpass || pc.STENCILOP_KEEP;
-  };
-  StencilParameters.prototype.clone = function() {
-    var clone = new pc.StencilParameters({func:this.func, ref:this.ref, readMask:this.readMask, writeMask:this.writeMask, fail:this.fail, zfail:this.zfail, zpass:this.zpass});
-    return clone;
-  };
-  return {Material:Material, StencilParameters:StencilParameters};
+  return {Material:Material};
 }());
 pc.extend(pc, function() {
   var BasicMaterial = function() {
@@ -12532,8 +12249,8 @@ pc.extend(pc, function() {
     if (this.colorMap) {
       this.setParameter("texture_diffuseMap", this.colorMap);
     }
-  }, updateShader:function(device) {
-    var options = {skin:!!this.meshInstances[0].skinInstance, vertexColors:this.vertexColors, diffuseMap:this.colorMap};
+  }, updateShader:function(device, scene, objDefs, staticLightList, pass, sortedLights) {
+    var options = {skin:!!this.meshInstances[0].skinInstance, vertexColors:this.vertexColors, diffuseMap:this.colorMap, pass:pass};
     var library = device.getProgramLibrary();
     this.shader = library.getProgram("basic", options);
   }});
@@ -12557,38 +12274,18 @@ pc.extend(pc, function() {
   return {DepthMaterial:DepthMaterial};
 }());
 pc.extend(pc, function() {
-  var _tempTiling = new pc.Vec3;
-  var _tempOffset = new pc.Vec3;
-  var lightBounds = new pc.BoundingBox;
-  var tempSphere = {center:null, radius:0};
   var StandardMaterial = function() {
     this.reset();
     this.update();
   };
   var _createTexture = function(param) {
-    if (param.data) {
-      if (param.data instanceof pc.Texture) {
-        return param.data;
-      } else {
-        return null;
-      }
-    } else {
-      return null;
-    }
+    return param.data instanceof pc.Texture ? param.data : null;
   };
   var _createCubemap = function(param) {
-    if (param.data) {
-      if (param.data instanceof pc.Texture) {
-        return param.data;
-      }
-    }
-    return null;
+    return param.data instanceof pc.Texture ? param.data : null;
   };
   var _createVec2 = function(param) {
     return new pc.Vec2(param.data[0], param.data[1]);
-  };
-  var _createVec3 = function(param) {
-    return new pc.Vec3(param.data[0], param.data[1], param.data[2]);
   };
   var _createBoundingBox = function(param) {
     var center, halfExtents;
@@ -12612,7 +12309,7 @@ pc.extend(pc, function() {
   var _propsInternalNull = [];
   var _propsInternalVec3 = [];
   var _prop2Uniform = {};
-  var _defineTex2D = function(obj, name, uv, channels) {
+  var _defineTex2D = function(obj, name, uv, channels, defChannel) {
     var privMap = "_" + name + "Map";
     var privMapTiling = privMap + "Tiling";
     var privMapOffset = privMap + "Offset";
@@ -12627,8 +12324,9 @@ pc.extend(pc, function() {
     obj[mapTransform] = null;
     obj[privMapUv] = uv;
     if (channels > 0) {
-      obj[privMapChannel] = channels > 1 ? "rgb" : "g";
-      obj[privMapVertexColorChannel] = channels > 1 ? "rgb" : "g";
+      var channel = defChannel ? defChannel : channels > 1 ? "rgb" : "g";
+      obj[privMapChannel] = channel;
+      obj[privMapVertexColorChannel] = channel;
     }
     obj[privMapVertexColor] = false;
     if (!pc._matTex2D) {
@@ -12943,21 +12641,19 @@ pc.extend(pc, function() {
       return null;
     }
     return transform;
-  }, _collectLights:function(lType, lights, lightsSorted, mask, staticLightList) {
+  }, _collectLights:function(lType, lights, lightsFiltered, mask, staticLightList) {
     var light;
     var i;
     for (i = 0;i < lights.length;i++) {
       light = lights[i];
       if (light._enabled) {
         if (light._mask & mask) {
-          if (light._type === lType) {
-            if (lType !== pc.LIGHTTYPE_DIRECTIONAL) {
-              if (light.isStatic) {
-                continue;
-              }
+          if (lType !== pc.LIGHTTYPE_DIRECTIONAL) {
+            if (light.isStatic) {
+              continue;
             }
-            lightsSorted.push(light);
           }
+          lightsFiltered.push(light);
         }
       }
     }
@@ -12965,7 +12661,7 @@ pc.extend(pc, function() {
       for (i = 0;i < staticLightList.length;i++) {
         light = staticLightList[i];
         if (light._type === lType) {
-          lightsSorted.push(light);
+          lightsFiltered.push(light);
         }
       }
     }
@@ -13149,13 +12845,11 @@ pc.extend(pc, function() {
       this._mapXForms[uv][newID][j] = xform.data[j];
     }
     return newID + 1;
-  }, updateShader:function(device, scene, objDefs, staticLightList, pass) {
-    var i, c;
-    if (!this._scene) {
-      this._scene = scene;
+  }, updateShader:function(device, scene, objDefs, staticLightList, pass, sortedLights) {
+    if (!this._colorProcessed && this._scene) {
+      this._colorProcessed = true;
       this._processColor();
     }
-    var lights = scene._lights;
     this._mapXForms = [];
     var useTexCubeLod = device.useTexCubeLod;
     var useDp = !device.extTextureLod;
@@ -13228,43 +12922,56 @@ pc.extend(pc, function() {
       emissiveTint = (this.emissive.data[0] !== 1 || this.emissive.data[1] !== 1 || this.emissive.data[2] !== 1 || this.emissiveIntensity !== 1) && this.emissiveTint;
       emissiveTint = emissiveTint ? 3 : this.emissiveIntensity !== 1 ? 1 : 0;
     }
-    var options = {fog:this.useFog ? scene.fog : "none", gamma:this.useGammaTonemap ? scene.gammaCorrection : pc.GAMMA_NONE, toneMap:this.useGammaTonemap ? scene.toneMapping : -1, blendMapsWithColors:true, modulateAmbient:this.ambientTint, diffuseTint:diffuseTint, specularTint:specularTint ? 3 : 0, metalnessTint:this.useMetalness && this.metalness < 1 ? 1 : 0, glossTint:1, emissiveTint:emissiveTint, opacityTint:this.opacity !== 1 && this.blendType !== pc.BLEND_NONE ? 1 : 0, alphaTest:this.alphaTest >
-    0, alphaToCoverage:this.alphaToCoverage, needsNormalFloat:this.normalizeNormalMap, sphereMap:!!this.sphereMap, cubeMap:!!this.cubeMap, dpAtlas:!!this.dpAtlas, ambientSH:!!this.ambientSH, useSpecular:useSpecular, rgbmAmbient:rgbmAmbient, rgbmReflection:rgbmReflection, hdrAmbient:hdrAmbient, hdrReflection:hdrReflection, fixSeams:prefilteredCubeMap128 ? prefilteredCubeMap128.fixCubemapSeams : this.cubeMap ? this.cubeMap.fixCubemapSeams : false, prefilteredCubemap:!!prefilteredCubeMap128, emissiveFormat:this.emissiveMap ?
-    this.emissiveMap.rgbm ? 1 : this.emissiveMap.format === pc.PIXELFORMAT_RGBA32F ? 2 : 0 : null, lightMapFormat:this.lightMap ? this.lightMap.rgbm ? 1 : this.lightMap.format === pc.PIXELFORMAT_RGBA32F ? 2 : 0 : null, useRgbm:rgbmReflection || rgbmAmbient || (this.emissiveMap ? this.emissiveMap.rgbm : 0) || (this.lightMap ? this.lightMap.rgbm : 0), specularAA:this.specularAntialias, conserveEnergy:this.conserveEnergy, occludeSpecular:this.occludeSpecular, occludeSpecularFloat:this.occludeSpecularIntensity !==
-    1, occludeDirect:this.occludeDirect, shadingModel:this.shadingModel, fresnelModel:this.fresnelModel, packedNormal:this.normalMap ? this.normalMap.format === pc.PIXELFORMAT_DXT5 : false, forceFragmentPrecision:this.forceFragmentPrecision, fastTbn:this.fastTbn, cubeMapProjection:this.cubeMapProjection, chunks:this.chunks, customFragmentShader:this.customFragmentShader, refraction:!!this.refraction, useMetalness:this.useMetalness, blendType:this.blendType, skyboxIntensity:prefilteredCubeMap128 ===
-    globalSky128 && prefilteredCubeMap128 && scene.skyboxIntensity !== 1, forceUv1:this.forceUv1, useTexCubeLod:useTexCubeLod, msdf:!!this.msdfMap, pixelSnap:this.pixelSnap, twoSidedLighting:this.twoSidedLighting};
-    if (pass === pc.SHADER_FORWARDHDR) {
-      if (options.gamma) {
-        options.gamma = pc.GAMMA_SRGBHDR;
+    var options;
+    var minimalOptions = pass > pc.SHADER_FORWARDHDR && pass <= pc.SHADER_PICK;
+    if (minimalOptions) {
+      options = {opacityTint:this.opacity !== 1 && this.blendType !== pc.BLEND_NONE, alphaTest:this.alphaTest > 0, forceFragmentPrecision:this.forceFragmentPrecision, chunks:this.chunks, blendType:this.blendType, forceUv1:this.forceUv1, pass:pass};
+    } else {
+      options = {fog:this.useFog ? scene.fog : "none", gamma:this.useGammaTonemap ? scene.gammaCorrection : pc.GAMMA_NONE, toneMap:this.useGammaTonemap ? scene.toneMapping : -1, blendMapsWithColors:true, ambientTint:this.ambientTint, diffuseTint:diffuseTint, specularTint:specularTint ? 3 : 0, metalnessTint:this.useMetalness && this.metalness < 1 ? 1 : 0, glossTint:1, emissiveTint:emissiveTint, opacityTint:this.opacity !== 1 && this.blendType !== pc.BLEND_NONE ? 1 : 0, alphaTest:this.alphaTest > 0, 
+      alphaToCoverage:this.alphaToCoverage, needsNormalFloat:this.normalizeNormalMap, sphereMap:!!this.sphereMap, cubeMap:!!this.cubeMap, dpAtlas:!!this.dpAtlas, ambientSH:!!this.ambientSH, useSpecular:useSpecular, rgbmAmbient:rgbmAmbient, rgbmReflection:rgbmReflection, hdrAmbient:hdrAmbient, hdrReflection:hdrReflection, fixSeams:prefilteredCubeMap128 ? prefilteredCubeMap128.fixCubemapSeams : this.cubeMap ? this.cubeMap.fixCubemapSeams : false, prefilteredCubemap:!!prefilteredCubeMap128, emissiveFormat:this.emissiveMap ? 
+      this.emissiveMap.rgbm ? 1 : this.emissiveMap.format === pc.PIXELFORMAT_RGBA32F ? 2 : 0 : null, lightMapFormat:this.lightMap ? this.lightMap.rgbm ? 1 : this.lightMap.format === pc.PIXELFORMAT_RGBA32F ? 2 : 0 : null, useRgbm:rgbmReflection || rgbmAmbient || (this.emissiveMap ? this.emissiveMap.rgbm : 0) || (this.lightMap ? this.lightMap.rgbm : 0), specularAntialias:this.specularAntialias, conserveEnergy:this.conserveEnergy, occludeSpecular:this.occludeSpecular, occludeSpecularFloat:this.occludeSpecularIntensity !== 
+      1, occludeDirect:this.occludeDirect, shadingModel:this.shadingModel, fresnelModel:this.fresnelModel, packedNormal:this.normalMap ? this.normalMap.format === pc.PIXELFORMAT_DXT5 : false, forceFragmentPrecision:this.forceFragmentPrecision, fastTbn:this.fastTbn, cubeMapProjection:this.cubeMapProjection, chunks:this.chunks, customFragmentShader:this.customFragmentShader, refraction:!!this.refraction, useMetalness:this.useMetalness, blendType:this.blendType, skyboxIntensity:prefilteredCubeMap128 === 
+      globalSky128 && prefilteredCubeMap128 && scene.skyboxIntensity !== 1, forceUv1:this.forceUv1, useTexCubeLod:useTexCubeLod, msdf:!!this.msdfMap, twoSidedLighting:this.twoSidedLighting, pixelSnap:this.pixelSnap, pass:pass};
+      if (pass === pc.SHADER_FORWARDHDR) {
+        if (options.gamma) {
+          options.gamma = pc.GAMMA_SRGBHDR;
+        }
+        options.toneMap = pc.TONEMAP_LINEAR;
       }
-      options.toneMap = pc.TONEMAP_LINEAR;
     }
     var hasUv0 = false;
     var hasUv1 = false;
     var hasVcolor = false;
     if (objDefs) {
-      options.noShadow = (objDefs & pc.SHADERDEF_NOSHADOW) !== 0;
+      if (!minimalOptions) {
+        options.noShadow = (objDefs & pc.SHADERDEF_NOSHADOW) !== 0;
+        if ((objDefs & pc.SHADERDEF_LM) !== 0) {
+          options.lightMapFormat = 1;
+          options.lightMap = true;
+          options.lightMapChannel = "rgb";
+          options.lightMapUv = 1;
+          options.lightMapTransform = 0;
+          options.lightMapWithoutAmbient = !this.lightMap;
+          options.useRgbm = true;
+          if ((objDefs & pc.SHADERDEF_DIRLM) !== 0) {
+            options.dirLightMap = true;
+          }
+        }
+      }
       options.screenSpace = (objDefs & pc.SHADERDEF_SCREENSPACE) !== 0;
       options.skin = (objDefs & pc.SHADERDEF_SKIN) !== 0;
       options.useInstancing = (objDefs & pc.SHADERDEF_INSTANCING) !== 0;
-      if ((objDefs & pc.SHADERDEF_LM) !== 0) {
-        options.lightMapFormat = 1;
-        options.lightMap = true;
-        options.lightMapChannel = "rgb";
-        options.lightMapUv = 1;
-        options.lightMapTransform = 0;
-        options.lightMapWithoutAmbient = !this.lightMap;
-        options.useRgbm = true;
-        if ((objDefs & pc.SHADERDEF_DIRLM) !== 0) {
-          options.dirLightMap = true;
-        }
-      }
       hasUv0 = (objDefs & pc.SHADERDEF_UV0) !== 0;
       hasUv1 = (objDefs & pc.SHADERDEF_UV1) !== 0;
       hasVcolor = (objDefs & pc.SHADERDEF_VCOLOR) !== 0;
     }
+    var isOpacity;
     for (var p in pc._matTex2D) {
-      if (p === "opacity" && this.blendType === pc.BLEND_NONE && this.alphaTest === 0 && !this.alphaToCoverage) {
+      isOpacity = p === "opacity";
+      if (isOpacity && this.blendType === pc.BLEND_NONE && this.alphaTest === 0 && !this.alphaToCoverage) {
+        continue;
+      }
+      if (minimalOptions && !isOpacity) {
         continue;
       }
       var cname;
@@ -13297,20 +13004,27 @@ pc.extend(pc, function() {
         }
       }
     }
-    options.aoMapUv = options.aoMapUv || this.aoUvSet;
     this._mapXForms = null;
-    if (this.useLighting) {
-      var lightsSorted = [];
+    if (this.useLighting && !minimalOptions) {
+      var lightsFiltered = [];
       var mask = objDefs ? objDefs >> 16 : 1;
-      this._collectLights(pc.LIGHTTYPE_DIRECTIONAL, lights, lightsSorted, mask);
-      this._collectLights(pc.LIGHTTYPE_POINT, lights, lightsSorted, mask, staticLightList);
-      this._collectLights(pc.LIGHTTYPE_SPOT, lights, lightsSorted, mask, staticLightList);
-      options.lights = lightsSorted;
+      if (sortedLights) {
+        this._collectLights(pc.LIGHTTYPE_DIRECTIONAL, sortedLights[pc.LIGHTTYPE_DIRECTIONAL], lightsFiltered, mask);
+        this._collectLights(pc.LIGHTTYPE_POINT, sortedLights[pc.LIGHTTYPE_POINT], lightsFiltered, mask, staticLightList);
+        this._collectLights(pc.LIGHTTYPE_SPOT, sortedLights[pc.LIGHTTYPE_SPOT], lightsFiltered, mask, staticLightList);
+      }
+      options.lights = lightsFiltered;
     } else {
       options.lights = [];
     }
-    if (options.lights.length === 0) {
-      options.noShadow = false;
+    if (!minimalOptions) {
+      options.aoMapUv = options.aoMapUv || this.aoUvSet;
+      if (options.lights.length === 0) {
+        options.noShadow = false;
+      }
+    }
+    if (this.onUpdateShader) {
+      options = this.onUpdateShader(options);
     }
     var library = device.getProgramLibrary();
     this.shader = library.getProgram("standard", options);
@@ -13324,6 +13038,7 @@ pc.extend(pc, function() {
     obj.dirtyShader = true;
     obj.dirtyColor = true;
     obj._scene = null;
+    obj._colorProcessed = false;
     _defineColor(obj, "ambient", new pc.Color(.7, .7, .7));
     _defineColor(obj, "diffuse", new pc.Color(1, 1, 1));
     _defineColor(obj, "specular", new pc.Color(0, 0, 0));
@@ -13393,7 +13108,7 @@ pc.extend(pc, function() {
     _defineTex2D(obj, "normal", 0, -1);
     _defineTex2D(obj, "metalness", 0, 1);
     _defineTex2D(obj, "gloss", 0, 1);
-    _defineTex2D(obj, "opacity", 0, 1);
+    _defineTex2D(obj, "opacity", 0, 1, "a");
     _defineTex2D(obj, "height", 0, 1);
     _defineTex2D(obj, "ao", 0, 1);
     _defineTex2D(obj, "light", 1, 3);
@@ -13428,6 +13143,7 @@ pc.extend(pc, function() {
 }());
 pc.extend(pc, function() {
   var id = 0;
+  var _tmpAabb = new pc.BoundingBox;
   var Mesh = function() {
     this._refCount = 0;
     this.id = id++;
@@ -13459,20 +13175,22 @@ pc.extend(pc, function() {
     this._mesh = mesh;
     mesh._refCount++;
     this.material = material;
-    this._shaderDefs = 1 << 16;
+    this._shaderDefs = pc.MASK_DYNAMIC << 16;
     this._shaderDefs |= mesh.vertexBuffer.format.hasUv0 ? pc.SHADERDEF_UV0 : 0;
     this._shaderDefs |= mesh.vertexBuffer.format.hasUv1 ? pc.SHADERDEF_UV1 : 0;
     this._shaderDefs |= mesh.vertexBuffer.format.hasColor ? pc.SHADERDEF_VCOLOR : 0;
+    this._lightHash = 0;
     this.visible = true;
     this.layer = pc.LAYER_WORLD;
     this.renderStyle = pc.RENDERSTYLE_SOLID;
     this.castShadow = false;
     this._receiveShadow = true;
     this._screenSpace = false;
-    this.drawToDepth = true;
+    this._noDepthDrawGl1 = false;
     this.cull = true;
     this.pick = true;
     this._updateAabb = true;
+    this._updateAabbFunc = null;
     this.updateKey();
     this._skinInstance = null;
     this.morphInstance = null;
@@ -13480,7 +13198,11 @@ pc.extend(pc, function() {
     this.aabb = new pc.BoundingBox;
     this._boneAabb = null;
     this._aabbVer = -1;
+    this.drawOrder = 0;
+    this.visibleThisFrame = 0;
     this.parameters = {};
+    this.stencilFront = null;
+    this.stencilBack = null;
   };
   Object.defineProperty(MeshInstance.prototype, "mesh", {get:function() {
     return this._mesh;
@@ -13494,8 +13216,12 @@ pc.extend(pc, function() {
     }
   }});
   Object.defineProperty(MeshInstance.prototype, "aabb", {get:function() {
+    var aabb;
     if (!this._updateAabb) {
       return this._aabb;
+    }
+    if (this._updateAabbFunc) {
+      return this._updateAabbFunc(this._aabb);
     }
     if (this.skinInstance) {
       var numBones = this.mesh.skin.boneNames.length;
@@ -13508,7 +13234,7 @@ pc.extend(pc, function() {
         var vertSize = this.mesh.vertexBuffer.format.size;
         var index;
         var offsetP, offsetI, offsetW;
-        var j, k, l, p;
+        var j, k, l;
         for (i = 0;i < elems.length;i++) {
           if (elems[i].name === pc.SEMANTIC_POSITION) {
             offsetP = elems[i].offset;
@@ -13647,7 +13373,6 @@ pc.extend(pc, function() {
             }
           }
         }
-        var aabb;
         for (i = 0;i < numBones;i++) {
           aabb = new pc.BoundingBox;
           aabb.setMinMax(boneMin[i], boneMax[i]);
@@ -13666,24 +13391,30 @@ pc.extend(pc, function() {
           continue;
         }
         this._boneAabb[i].setFromTransformedAabb(this.mesh.boneAabb[i], this.skinInstance.matrices[i]);
-        this._boneAabb[i].center.add(this.skinInstance.rootNode.getPosition());
       }
+      var rootNodeTransform = this.node.getWorldTransform();
       var first = true;
       for (i = 0;i < this.mesh.boneAabb.length;i++) {
         if (!boneUsed[i]) {
           continue;
         }
         if (first) {
-          this._aabb.center.copy(this._boneAabb[i].center);
-          this._aabb.halfExtents.copy(this._boneAabb[i].halfExtents);
+          _tmpAabb.center.copy(this._boneAabb[i].center);
+          _tmpAabb.halfExtents.copy(this._boneAabb[i].halfExtents);
           first = false;
         } else {
-          this._aabb.add(this._boneAabb[i]);
+          _tmpAabb.add(this._boneAabb[i]);
         }
       }
+      this._aabb.setFromTransformedAabb(_tmpAabb, rootNodeTransform);
     } else {
       if (this.node._aabbVer !== this._aabbVer) {
-        this._aabb.setFromTransformedAabb(this.mesh.aabb, this.node.getWorldTransform());
+        aabb = this.mesh ? this.mesh.aabb : this._aabb;
+        if (!this.mesh) {
+          aabb.center.set(0, 0, 0);
+          aabb.halfExtents.set(0, 0, 0);
+        }
+        this._aabb.setFromTransformedAabb(aabb, this.node.getWorldTransform());
         this._aabbVer = this.node._aabbVer;
       }
     }
@@ -13705,10 +13436,25 @@ pc.extend(pc, function() {
         meshInstances.splice(i, 1);
       }
     }
+    var prevBlend = this._material ? this._material.blendType !== pc.BLEND_NONE : false;
+    var prevMat = this._material;
     this._material = material;
     if (this._material) {
       this._material.meshInstances.push(this);
       this.updateKey();
+    }
+    if (material) {
+      if (material.blendType !== pc.BLEND_NONE !== prevBlend) {
+        var scene = material._scene;
+        if (!scene && prevMat && prevMat._scene) {
+          scene = prevMat._scene;
+        }
+        if (scene) {
+          scene.layers._dirtyBlend = true;
+        } else {
+          material._dirtyBlend = true;
+        }
+      }
     }
   }});
   Object.defineProperty(MeshInstance.prototype, "layer", {get:function() {
@@ -13788,14 +13534,14 @@ pc.extend(pc, function() {
   return {Command:Command, Mesh:Mesh, MeshInstance:MeshInstance, InstancingData:InstancingData, _getDrawcallSortKey:getKey};
 }());
 pc.extend(pc, function() {
+  var _invMatrix = new pc.Mat4;
   var Skin = function(graphicsDevice, ibp, boneNames) {
     this.device = graphicsDevice;
     this.inverseBindPose = ibp;
     this.boneNames = boneNames;
   };
-  var SkinInstance = function(skin, node) {
+  var SkinInstance = function(skin) {
     this.skin = skin;
-    this.rootNode = node;
     this._dirty = true;
     this.bones = [];
     var numBones = skin.inverseBindPose.length;
@@ -13825,13 +13571,11 @@ pc.extend(pc, function() {
       this.matrices[i] = new pc.Mat4;
     }
   };
-  SkinInstance.prototype = {updateMatrices:function() {
-    var pos = this.rootNode.getPosition();
+  SkinInstance.prototype = {updateMatrices:function(rootNode) {
+    _invMatrix.copy(rootNode.getWorldTransform()).invert();
     for (var i = this.bones.length - 1;i >= 0;i--) {
-      this.matrices[i].mul2(this.bones[i].getWorldTransform(), this.skin.inverseBindPose[i]);
-      this.matrices[i].data[12] -= pos.x;
-      this.matrices[i].data[13] -= pos.y;
-      this.matrices[i].data[14] -= pos.z;
+      this.matrices[i].mul2(_invMatrix, this.bones[i].getWorldTransform());
+      this.matrices[i].mul2(this.matrices[i], this.skin.inverseBindPose[i]);
     }
   }, updateMatrixPalette:function() {
     var pe;
@@ -14112,7 +13856,6 @@ pc.extend(pc, function() {
           }
         }
         vertexArrays[vertexArrays.indexOf(vertexArray)] = splitVertexArray;
-        var base = 0;
         for (j = 0;j < partitions.length;j++) {
           partition = partitions[j];
           mesh = {aabb:{min:[0, 0, 0], max:[0, 0, 0]}, vertices:splitVertexArray, skin:splitSkins[j], indices:partitionedIndices.splice(0, partition.indexCount), type:"triangles", base:0, count:partition.indexCount};
@@ -14125,7 +13868,6 @@ pc.extend(pc, function() {
               }
             }
           }
-          base += partition.indexCount;
         }
         for (j = 0;j < partitions.length;j++) {
           partition = partitions[j];
@@ -14209,9 +13951,8 @@ pc.extend(pc, function() {
       return;
     }
     this.aabb.copy(this._baseAabb);
-    var numVerts = this._baseBuffer.numVertices;
     var numIndices;
-    var i, j, k, target, index, id;
+    var i, j, target, index, id;
     var x, y, z;
     var vertSizeF = this._vertSizeF;
     var offsetPF = this._offsetPF;
@@ -14311,7 +14052,6 @@ pc.extend(pc, function() {
     if (!this._vertexData) {
       this._setBaseMesh(mesh);
     }
-    var numVerts = this.morph._baseBuffer.numVertices;
     var numIndices, index;
     var targets = this.morph._targets;
     var weights = this._weights;
@@ -14320,7 +14060,6 @@ pc.extend(pc, function() {
     var offsetPF = this.morph._offsetPF;
     var offsetNF = this.morph._offsetNF;
     var offsetTF = this.morph._offsetTF;
-    var baseData = this.morph._baseData;
     var vdata = this._vertexData;
     vdata.set(this.morph._baseData);
     for (var i = 0;i < targets.length;i++) {
@@ -14409,7 +14148,7 @@ pc.extend(pc, function() {
     var cloneMorphInstances = [];
     for (i = 0;i < this.skinInstances.length;i++) {
       var skin = this.skinInstances[i].skin;
-      var cloneSkinInstance = new pc.SkinInstance(skin, cloneGraph);
+      var cloneSkinInstance = new pc.SkinInstance(skin);
       var bones = [];
       for (j = 0;j < skin.boneNames.length;j++) {
         var boneName = skin.boneNames[j];
@@ -14582,7 +14321,6 @@ pc.extend(pc, function() {
   var randomPos = new pc.Vec3;
   var randomPosTformed = new pc.Vec3;
   var tmpVec3 = new pc.Vec3;
-  var velocityV = new pc.Vec3;
   var bMin = new pc.Vec3;
   var bMax = new pc.Vec3;
   var setPropertyTarget;
@@ -14628,17 +14366,6 @@ pc.extend(pc, function() {
       colors[i * 4 + 3] = pack3NFloats(qC[i], qD[i], qE[i]);
     }
     return colors;
-  }
-  function syncToCpu(device, targ) {
-    var tex = targ._colorBuffer;
-    var pixels = new Uint8Array(tex.width * tex.height * 4);
-    var gl = device.gl;
-    device.setFramebuffer(targ._glFrameBuffer);
-    gl.readPixels(0, 0, tex.width, tex.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-    if (!tex._levels) {
-      tex._levels = [];
-    }
-    tex._levels[0] = pixels;
   }
   var ParticleEmitter = function(graphicsDevice, options) {
     this.graphicsDevice = graphicsDevice;
@@ -14798,6 +14525,7 @@ pc.extend(pc, function() {
     this.simTime = 0;
     this.simTimeTotal = 0;
     this.beenReset = false;
+    this._layer = null;
     this.rebuild();
   };
   function calcEndTime(emitter) {
@@ -14852,11 +14580,6 @@ pc.extend(pc, function() {
     mat3.data[8] = mat4.data[10];
   }
   ParticleEmitter.prototype = {onChangeCamera:function() {
-    if (this.depthSoftening > 0) {
-      if (this.camera) {
-        this.camera.requestDepthMap();
-      }
-    }
     this.regenShader();
     this.resetMaterial();
   }, calculateBoundsMad:function() {
@@ -14871,7 +14594,6 @@ pc.extend(pc, function() {
     if (!this.node) {
       return;
     }
-    var pos = this.node.getPosition();
     this.prevWorldBoundsSize.copy(this.worldBoundsSize);
     this.prevWorldBoundsCenter.copy(this.worldBounds.center);
     this.worldBoundsNoTrail.setFromTransformedAabb(this.localBounds, this.node.getWorldTransform());
@@ -14997,8 +14719,7 @@ pc.extend(pc, function() {
     bMax.z = maxz + maxScale;
     this.localBounds.setMinMax(bMin, bMax);
   }, rebuild:function() {
-    var i, len;
-    var precision = this.precision;
+    var i;
     var gd = this.graphicsDevice;
     if (this.colorMap === null) {
       this.colorMap = ParticleEmitter.DEFAULT_PARAM_TEXTURE;
@@ -15097,9 +14818,10 @@ pc.extend(pc, function() {
     this.regenShader();
     this.resetMaterial();
     this.meshInstance = new pc.MeshInstance(this.node, mesh, this.material);
+    this.meshInstance.pick = false;
     this.meshInstance.updateKey();
-    this.meshInstance.drawToDepth = false;
     this.meshInstance.cull = true;
+    this.meshInstance._noDepthDrawGl1 = true;
     this.meshInstance.aabb = this.worldBounds;
     this.meshInstance._updateAabb = false;
     this._initializeTextures();
@@ -15249,14 +14971,13 @@ pc.extend(pc, function() {
           this.emitter.onChangeCamera();
         }
       }
-      var shader = programLib.getProgram("particle", {useCpu:this.emitter.useCpu, normal:this.emitter.normalOption, halflambert:this.emitter.halfLambert, stretch:this.emitter.stretch, alignToMotion:this.emitter.alignToMotion, soft:this.emitter.depthSoftening, mesh:this.emitter.useMesh, gamma:this.emitter.scene ? this.emitter.scene.gammaCorrection : 0, toneMap:this.emitter.scene ? this.emitter.scene.toneMapping : 0, fog:this.emitter.scene && !this.emitter.noFog ? this.emitter.scene.fog : "none", wrap:this.emitter.wrap &&
+      var shader = programLib.getProgram("particle", {useCpu:this.emitter.useCpu, normal:this.emitter.normalOption, halflambert:this.emitter.halfLambert, stretch:this.emitter.stretch, alignToMotion:this.emitter.alignToMotion, soft:this.emitter.depthSoftening, mesh:this.emitter.useMesh, gamma:this.emitter.scene ? this.emitter.scene.gammaCorrection : 0, toneMap:this.emitter.scene ? this.emitter.scene.toneMapping : 0, fog:this.emitter.scene && !this.emitter.noFog ? this.emitter.scene.fog : "none", wrap:this.emitter.wrap && 
       this.emitter.wrapBounds, localSpace:this.emitter.localSpace, blend:this.blendType, animTex:this.emitter._isAnimated(), animTexLoop:this.emitter.animLoop, pack8:this.emitter.pack8});
       this.setShader(shader);
     };
     this.material.updateShader();
   }, resetMaterial:function() {
     var material = this.material;
-    var gd = this.graphicsDevice;
     material.setParameter("stretch", this.stretch);
     if (this._isAnimated()) {
       material.setParameter("animTexParams", this.animParams.data);
@@ -15324,14 +15045,9 @@ pc.extend(pc, function() {
         meshData = new Float32Array(this.mesh.vertexBuffer.lock());
         stride = meshData.length / this.mesh.vertexBuffer.numVertices;
       }
-      var id, rnd;
+      var id;
       for (i = 0;i < psysVertCount;i++) {
         id = Math.floor(i / this.numParticleVerts);
-        if (this.useCpu) {
-          if (i % this.numParticleVerts === 0) {
-            rnd = this.particleTex[i * particleTexChannels + 0 + this.numParticlesPot * 2 * particleTexChannels];
-          }
-        }
         if (!this.useMesh) {
           var vertID = i % 4;
           data[i * 4] = particleVerts[vertID][0];
@@ -15406,14 +15122,6 @@ pc.extend(pc, function() {
     }
   }, resetTime:function() {
     this.endTime = calcEndTime(this);
-  }, onEnableDepth:function() {
-    if (this.depthSoftening > 0 && this.camera) {
-      this.camera.requestDepthMap();
-    }
-  }, onDisableDepth:function() {
-    if (this.depthSoftening > 0 && this.camera) {
-      this.camera.releaseDepthMap();
-    }
   }, finishFrame:function() {
     if (this.useCpu) {
       this.vertexBuffer.unlock();
@@ -15429,27 +15137,6 @@ pc.extend(pc, function() {
       params.y = 1 / this.animTilesY;
       params.z = this.animNumFrames * this.animSpeed;
       params.w = this.animNumFrames - 1;
-    }
-    if (this.lighting) {
-      if (!this.scene) {
-        console.error("There is no scene defined for lighting particles");
-        return;
-      }
-      for (i = 0;i < 6;i++) {
-        this.lightCube[i * 3] = this.scene.ambientLight.data[0];
-        this.lightCube[i * 3 + 1] = this.scene.ambientLight.data[1];
-        this.lightCube[i * 3 + 2] = this.scene.ambientLight.data[2];
-      }
-      var dirs = this.scene._globalLights;
-      for (i = 0;i < dirs.length;i++) {
-        for (c = 0;c < 6;c++) {
-          var weight = Math.max(this.lightCubeDir[c].dot(dirs[i]._direction), 0) * dirs[i]._intensity;
-          this.lightCube[c * 3] += dirs[i]._color.data[0] * weight;
-          this.lightCube[c * 3 + 1] += dirs[i]._color.data[1] * weight;
-          this.lightCube[c * 3 + 2] += dirs[i]._color.data[2] * weight;
-        }
-      }
-      this.constantLightCube.setValue(this.lightCube);
     }
     if (this.scene) {
       if (this.camera != this.scene._activeCamera) {
@@ -15559,14 +15246,11 @@ pc.extend(pc, function() {
         rndFactor3Vec.data[2] = this.particleTex[id * particleTexChannels + 2 + this.numParticlesPot * 2 * particleTexChannels];
         var particleRate = this.rate + (this.rate2 - this.rate) * rndFactor;
         var particleLifetime = this.lifetime;
-        var startSpawnTime = -particleRate * id;
         var life = this.particleTex[id * particleTexChannels + 3 + this.numParticlesPot * particleTexChannels] + delta;
         var nlife = saturate(life / particleLifetime);
         var scale = 0;
         var alphaDiv = 0;
         var angle = 0;
-        var len;
-        var interpolation;
         var particleEnabled = life > 0 && life < particleLifetime;
         if (particleEnabled) {
           c = nlife * precision1;
@@ -15730,8 +15414,8 @@ pc.extend(pc, function() {
           this.vbToSort[i] = [i, particleDistance[Math.floor(this.vbCPU[i * this.numParticleVerts * 4 + 3])]];
         }
         this.vbOld.set(this.vbCPU);
-        this.vbToSort.sort(function(a, b) {
-          return a[1] - b[1];
+        this.vbToSort.sort(function(p1, p2) {
+          return p1[1] - p2[1];
         });
         for (i = 0;i < this.numParticles;i++) {
           var src = this.vbToSort[i][0] * this.numParticleVerts * 4;
@@ -15799,21 +15483,32 @@ function encodeFloatRG(v) {
   return [encX, encY];
 }
 ;pc.extend(pc, function() {
-  function sortDrawCalls(drawCallA, drawCallB) {
-    if (drawCallA.layer === drawCallB.layer) {
-      if (drawCallA.drawOrder && drawCallB.drawOrder) {
-        return drawCallA.drawOrder - drawCallB.drawOrder;
+  var _deviceDeprecationWarning = false;
+  var _getSelectionDeprecationWarning = false;
+  var _prepareDeprecationWarning = false;
+  var Picker = function(app, width, height) {
+    if (app instanceof pc.GraphicsDevice) {
+      app = pc.Application.getApplication();
+      if (!_deviceDeprecationWarning) {
+        _deviceDeprecationWarning = true;
       }
     }
-    return drawCallB.key - drawCallA.key;
-  }
-  var Picker = function(device, width, height) {
-    this.device = device;
+    this.app = app;
+    this.device = app.graphicsDevice;
+    var device = this.device;
     this.library = device.getProgramLibrary();
     this.pickColor = new Float32Array(4);
+    this.pickColor[3] = 1;
     this.scene = null;
     this.drawCalls = [];
+    this.layer = null;
+    this.layerComp = null;
     this.clearOptions = {color:[1, 1, 1, 1], depth:1, flags:pc.CLEARFLAG_COLOR | pc.CLEARFLAG_DEPTH};
+    var self = this;
+    this._clearDepthOptions = {depth:1, flags:pc.CLEARFLAG_DEPTH};
+    this.clearDepthCommand = new pc.Command(0, 0, function() {
+      device.clear(self._clearDepthOptions);
+    });
     this.resize(width, height);
     this._ignoreOpacityFor = null;
   };
@@ -15826,25 +15521,27 @@ function encodeFloatRG(v) {
       width = rect.width;
       height = rect.height;
     } else {
-      y = this._pickBufferTarget.height - (y + (height || 1));
+      y = this.layer.renderTarget.height - (y + (height || 1));
     }
     width = width || 1;
     height = height || 1;
     var prevRenderTarget = device.renderTarget;
-    device.setRenderTarget(this._pickBufferTarget);
+    device.setRenderTarget(this.layer.renderTarget);
     device.updateBegin();
     var pixels = new Uint8Array(4 * width * height);
     device.readPixels(x, y, width, height, pixels);
     device.updateEnd();
     device.setRenderTarget(prevRenderTarget);
     var selection = [];
+    var drawCalls = this.layer.instances.visibleOpaque[0].list;
+    var r, g, b, index;
     for (var i = 0;i < width * height;i++) {
-      var r = pixels[4 * i + 0];
-      var g = pixels[4 * i + 1];
-      var b = pixels[4 * i + 2];
-      var index = r << 16 | g << 8 | b;
+      r = pixels[4 * i + 0];
+      g = pixels[4 * i + 1];
+      b = pixels[4 * i + 2];
+      index = r << 16 | g << 8 | b;
       if (index !== 16777215) {
-        var selectedMeshInstance = this.drawCalls[index];
+        var selectedMeshInstance = drawCalls[index];
         if (selection.indexOf(selectedMeshInstance) === -1) {
           selection.push(selectedMeshInstance);
         }
@@ -15852,107 +15549,152 @@ function encodeFloatRG(v) {
     }
     return selection;
   };
-  Picker.prototype.prepare = function(camera, scene) {
+  Picker.prototype.prepare = function(camera, scene, arg) {
     var device = this.device;
+    var i, j;
+    var self = this;
+    if (camera instanceof pc.Camera) {
+      camera = camera._component;
+    }
     this.scene = scene;
-    var prevRenderTarget = device.renderTarget;
-    device.setRenderTarget(this._pickBufferTarget);
-    device.updateBegin();
-    device.setViewport(0, 0, this._pickBufferTarget.width, this._pickBufferTarget.height);
-    device.setScissor(0, 0, this._pickBufferTarget.width, this._pickBufferTarget.height);
-    device.clear(this.clearOptions);
-    var i;
-    var mesh, meshInstance, material;
-    var type;
-    var shader, isLastSelected;
-    var scope = device.scope;
-    var modelMatrixId = scope.resolve("matrix_model");
-    var boneTextureId = scope.resolve("texture_poseMap");
-    var boneTextureSizeId = scope.resolve("texture_poseMapSize");
-    var skinPosOffsetId = scope.resolve("skinPosOffset");
-    var poseMatrixId = scope.resolve("matrix_pose[0]");
-    var pickColorId = scope.resolve("uColor");
-    var projId = scope.resolve("matrix_projection");
-    var viewProjId = scope.resolve("matrix_viewProjection");
-    var opacityMapId = scope.resolve("texture_opacityMap");
-    var alphaTestId = scope.resolve("alpha_ref");
-    var wtm = camera._node.getWorldTransform();
-    var projMat = camera.getProjectionMatrix();
-    var viewMat = wtm.clone().invert();
-    var viewProjMat = new pc.Mat4;
-    viewProjMat.mul2(projMat, viewMat);
-    projId.setValue(projMat.data);
-    viewProjId.setValue(viewProjMat.data);
-    this.drawCalls = scene.drawCalls.slice(0);
-    this.drawCalls.sort(sortDrawCalls);
-    for (i = 0;i < this.drawCalls.length;i++) {
-      if (this.drawCalls[i].command) {
-        this.drawCalls[i].command();
-      } else {
-        if (!this.drawCalls[i].pick) {
-          continue;
+    var sourceLayer = null;
+    var sourceRt = null;
+    if (arg instanceof pc.Layer) {
+      sourceLayer = arg;
+    } else {
+      sourceRt = arg;
+    }
+    if (!this.layer) {
+      var pickColorId = device.scope.resolve("uColor");
+      this.layer = new pc.Layer({name:"Picker", shaderPass:pc.SHADER_PICK, opaqueSortMode:pc.SORTMODE_NONE, onEnable:function() {
+        if (this.renderTarget) {
+          return;
         }
-        meshInstance = this.drawCalls[i];
-        mesh = meshInstance.mesh;
-        material = meshInstance.material;
-        type = mesh.primitive[pc.RENDERSTYLE_SOLID].type;
-        var isSolid = type === pc.PRIMITIVE_TRIANGLES || type === pc.PRIMITIVE_TRISTRIP || type === pc.PRIMITIVE_TRIFAN;
-        var isPickable = material instanceof pc.StandardMaterial || material instanceof pc.BasicMaterial;
-        if (isSolid && isPickable) {
-          device.setBlending(false);
-          device.setCullMode(material.cull);
-          device.setDepthWrite(material.depthWrite);
-          device.setDepthTest(material.depthTest);
-          modelMatrixId.setValue(meshInstance.node.worldTransform.data);
-          if (meshInstance.skinInstance) {
-            skinPosOffsetId.setValue(meshInstance.node.getPosition().data);
-            if (device.supportsBoneTextures) {
-              boneTextureId.setValue(meshInstance.skinInstance.boneTexture);
-              var w = meshInstance.skinInstance.boneTexture.width;
-              var h = meshInstance.skinInstance.boneTexture.height;
-              boneTextureSizeId.setValue([w, h]);
-            } else {
-              poseMatrixId.setValue(meshInstance.skinInstance.matrixPalette);
-            }
-          }
-          if (material.opacityMap) {
-            opacityMapId.setValue(material.opacityMap);
-            alphaTestId.setValue(meshInstance === this._ignoreOpacityFor ? 0 : material.alphaTest);
-          }
-          this.pickColor[0] = (i >> 16 & 255) / 255;
-          this.pickColor[1] = (i >> 8 & 255) / 255;
-          this.pickColor[2] = (i & 255) / 255;
-          this.pickColor[3] = 1;
-          pickColorId.setValue(this.pickColor);
-          shader = meshInstance._shader[pc.SHADER_PICK];
-          if (!shader) {
-            shader = this.library.getProgram("pick", {skin:!!meshInstance.skinInstance, screenSpace:meshInstance.screenSpace, opacityMap:!!material.opacityMap, opacityChannel:material.opacityMap ? material.opacityMapChannel || "r" : null});
-            meshInstance._shader[pc.SHADER_PICK] = shader;
-          }
-          device.setShader(shader);
-          device.setVertexBuffer(meshInstance.morphInstance && meshInstance.morphInstance._vertexBuffer ? meshInstance.morphInstance._vertexBuffer : mesh.vertexBuffer, 0);
-          device.setIndexBuffer(mesh.indexBuffer[pc.RENDERSTYLE_SOLID]);
-          device.draw(mesh.primitive[pc.RENDERSTYLE_SOLID]);
+        var colorBuffer = new pc.Texture(device, {format:pc.PIXELFORMAT_R8_G8_B8_A8, width:self.width, height:self.height});
+        colorBuffer.minFilter = pc.FILTER_NEAREST;
+        colorBuffer.magFilter = pc.FILTER_NEAREST;
+        colorBuffer.addressU = pc.ADDRESS_CLAMP_TO_EDGE;
+        colorBuffer.addressV = pc.ADDRESS_CLAMP_TO_EDGE;
+        this.renderTarget = new pc.RenderTarget(device, colorBuffer, {depth:true});
+      }, onDisable:function() {
+        if (!this.renderTarget) {
+          return;
+        }
+        this.renderTarget._colorBuffer.destroy();
+        this.renderTarget.destroy();
+        this.renderTarget = null;
+      }, onDrawCall:function(meshInstance, i) {
+        self.pickColor[0] = (i >> 16 & 255) / 255;
+        self.pickColor[1] = (i >> 8 & 255) / 255;
+        self.pickColor[2] = (i & 255) / 255;
+        pickColorId.setValue(self.pickColor);
+        device.setBlending(false);
+      }, onPreCull:function() {
+        this.oldAspectMode = this.cameras[0].aspectRatioMode;
+        this.oldAspect = this.cameras[0].aspectRatio;
+        this.cameras[0].aspectRatioMode = pc.ASPECT_MANUAL;
+        var rt = sourceRt ? sourceRt : sourceLayer ? sourceLayer.renderTarget : null;
+        this.cameras[0].aspectRatio = this.cameras[0].calculateAspectRatio(rt);
+        self.app.renderer.updateCameraFrustum(this.cameras[0].camera);
+      }, onPostCull:function() {
+        this.cameras[0].aspectRatioMode = this.oldAspectMode;
+        this.cameras[0].aspectRatio = this.oldAspect;
+      }});
+      this.layerComp = new pc.LayerComposition;
+      this.layerComp.pushOpaque(this.layer);
+      this.meshInstances = this.layer.opaqueMeshInstances;
+      this._instancesVersion = -1;
+    }
+    var instanceList, instanceListLength, drawCall;
+    if (!sourceLayer) {
+      this.layer.clearMeshInstances();
+      var layers = scene.layers.layerList;
+      var subLayerEnabled = scene.layers.subLayerEnabled;
+      var isTransparent = scene.layers.subLayerList;
+      var layer;
+      var layerCamId, transparent;
+      for (i = 0;i < layers.length;i++) {
+        if (layers[i].overrideClear && layers[i]._clearDepthBuffer) {
+          layers[i]._pickerCleared = false;
         }
       }
+      for (i = 0;i < layers.length;i++) {
+        layer = layers[i];
+        if (layer.renderTarget !== sourceRt || !layer.enabled || !subLayerEnabled[i]) {
+          continue;
+        }
+        layerCamId = layer.cameras.indexOf(camera);
+        if (layerCamId < 0) {
+          continue;
+        }
+        if (layer.overrideClear && layer._clearDepthBuffer && !layer._pickerCleared) {
+          this.meshInstances.push(this.clearDepthCommand);
+          layer._pickerCleared = true;
+        }
+        transparent = isTransparent[i];
+        instanceList = transparent ? layer.instances.transparentMeshInstances : layer.instances.opaqueMeshInstances;
+        instanceListLength = instanceList.length;
+        for (j = 0;j < instanceListLength;j++) {
+          drawCall = instanceList[j];
+          if (drawCall.pick) {
+            this.meshInstances.push(drawCall);
+          }
+        }
+      }
+    } else {
+      if (this._instancesVersion !== sourceLayer._version) {
+        this.layer.clearMeshInstances();
+        instanceList = sourceLayer.instances.opaqueMeshInstances;
+        instanceListLength = instanceList.length;
+        for (j = 0;j < instanceListLength;j++) {
+          drawCall = instanceList[j];
+          if (drawCall.pick) {
+            this.meshInstances.push(drawCall);
+          }
+        }
+        instanceList = sourceLayer.instances.transparentMeshInstances;
+        instanceListLength = instanceList.length;
+        for (j = 0;j < instanceListLength;j++) {
+          drawCall = instanceList[j];
+          if (drawCall.pick) {
+            this.meshInstances.push(drawCall);
+          }
+        }
+        this._instancesVersion = sourceLayer._version;
+      }
     }
-    device.setViewport(0, 0, device.width, device.height);
-    device.setScissor(0, 0, device.width, device.height);
-    device.updateEnd();
-    device.setRenderTarget(prevRenderTarget);
+    if (this.layer.cameras[0] !== camera) {
+      this.layer.clearCameras();
+      this.layer.addCamera(camera);
+    }
+    this.onLayerPreRender(this.layer, sourceLayer, sourceRt);
+    this.app.renderer.renderComposition(this.layerComp);
+    this.onLayerPostRender(this.layer);
+  };
+  Picker.prototype.onLayerPreRender = function(layer, sourceLayer, sourceRt) {
+    if (this.width !== layer.renderTarget.width || this.height !== layer.renderTarget.height) {
+      layer.onDisable();
+      layer.onEnable();
+    }
+    layer.oldClear = layer.cameras[0].camera._clearOptions;
+    layer.oldAspectMode = layer.cameras[0].aspectRatioMode;
+    layer.oldAspect = layer.cameras[0].aspectRatio;
+    layer.cameras[0].camera._clearOptions = this.clearOptions;
+    layer.cameras[0].aspectRatioMode = pc.ASPECT_MANUAL;
+    var rt = sourceRt ? sourceRt : sourceLayer ? sourceLayer.renderTarget : null;
+    layer.cameras[0].aspectRatio = layer.cameras[0].calculateAspectRatio(rt);
+  };
+  Picker.prototype.onLayerPostRender = function(layer) {
+    layer.cameras[0].camera._clearOptions = layer.oldClear;
+    layer.cameras[0].aspectRatioMode = layer.oldAspectMode;
+    layer.cameras[0].aspectRatio = layer.oldAspect;
   };
   Picker.prototype.resize = function(width, height) {
-    var colorBuffer = new pc.Texture(this.device, {format:pc.PIXELFORMAT_R8_G8_B8_A8, width:width, height:height, mipmaps:false, minFilter:pc.FILTER_NEAREST, magFilter:pc.FILTER_NEAREST});
-    this._pickBufferTarget = new pc.RenderTarget(this.device, colorBuffer, {depth:true});
+    this.width = width;
+    this.height = height;
   };
   Object.defineProperty(Picker.prototype, "renderTarget", {get:function() {
-    return this._pickBufferTarget;
-  }});
-  Object.defineProperty(Picker.prototype, "width", {get:function() {
-    return this._pickBufferTarget.width;
-  }});
-  Object.defineProperty(Picker.prototype, "height", {get:function() {
-    return this._pickBufferTarget.height;
+    return this.layer.renderTarget;
   }});
   return {Picker:Picker};
 }());
@@ -15969,7 +15711,6 @@ pc.calculateNormals = function(positions, indices) {
   var p1p2 = new pc.Vec3;
   var p1p3 = new pc.Vec3;
   var faceNormal = new pc.Vec3;
-  var vertexNormal = new pc.Vec3;
   var normals = [];
   for (i = 0;i < positions.length;i++) {
     normals[i] = 0;
@@ -16473,6 +16214,7 @@ pc.createPlane = function(device, opts) {
   var normals = [];
   var uvs = [];
   var indices = [];
+  var vcounter = 0;
   for (i = 0;i <= ws;i++) {
     for (j = 0;j <= ls;j++) {
       x = -he.x + 2 * he.x * i / ws;
@@ -16484,9 +16226,10 @@ pc.createPlane = function(device, opts) {
       normals.push(0, 1, 0);
       uvs.push(u, v);
       if (i < ws && j < ls) {
-        indices.push(j + i * (ws + 1), j + (i + 1) * (ws + 1), j + i * (ws + 1) + 1);
-        indices.push(j + (i + 1) * (ws + 1), j + (i + 1) * (ws + 1) + 1, j + i * (ws + 1) + 1);
+        indices.push(vcounter + ls + 1, vcounter + 1, vcounter);
+        indices.push(vcounter + ls + 1, vcounter + ls + 2, vcounter + 1);
       }
+      vcounter++;
     }
   }
   var options = {normals:normals, uvs:uvs, uvs1:uvs, indices:indices};
@@ -16504,16 +16247,15 @@ pc.createBox = function(device, opts) {
   var faceAxes = [[0, 1, 3], [4, 5, 7], [3, 2, 6], [1, 0, 4], [1, 4, 2], [5, 0, 6]];
   var faceNormals = [[0, 0, 1], [0, 0, -1], [0, 1, 0], [0, -1, 0], [1, 0, 0], [-1, 0, 0]];
   var sides = {FRONT:0, BACK:1, TOP:2, BOTTOM:3, RIGHT:4, LEFT:5};
-  var side, i, j;
   var positions = [];
   var normals = [];
   var uvs = [];
   var uvs1 = [];
   var indices = [];
+  var vcounter = 0;
   var generateFace = function(side, uSegments, vSegments) {
-    var x, y, z, u, v;
+    var u, v;
     var i, j;
-    var offset = positions.length / 3;
     for (i = 0;i <= uSegments;i++) {
       for (j = 0;j <= vSegments;j++) {
         var temp1 = new pc.Vec3;
@@ -16537,9 +16279,10 @@ pc.createBox = function(device, opts) {
         v += Math.floor(side / 3) / 3;
         uvs1.push(u, v);
         if (i < uSegments && j < vSegments) {
-          indices.push(offset + j + i * (uSegments + 1), offset + j + (i + 1) * (uSegments + 1), offset + j + i * (uSegments + 1) + 1);
-          indices.push(offset + j + (i + 1) * (uSegments + 1), offset + j + (i + 1) * (uSegments + 1) + 1, offset + j + i * (uSegments + 1) + 1);
+          indices.push(vcounter + vSegments + 1, vcounter + 1, vcounter);
+          indices.push(vcounter + vSegments + 1, vcounter + vSegments + 2, vcounter + 1);
         }
+        vcounter++;
       }
     }
   };
@@ -16558,51 +16301,1052 @@ pc.createBox = function(device, opts) {
 pc.Scene.defaultMaterial = new pc.StandardMaterial;
 pc.Scene.defaultMaterial.shadingModel = pc.SPECULAR_BLINN;
 pc.extend(pc, function() {
-  var normals = [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1];
-  var indices = [0, 1, 3, 2, 3, 1];
-  var Sprite = function(device) {
-    this._device = device;
-    this._pixelsPerUnit = 1;
-    this._atlas = null;
-    this._meshes = [];
-    this._frameKeys = null;
+  var keyA, keyB, sortPos, sortDir;
+  function sortManual(drawCallA, drawCallB) {
+    return drawCallA.drawOrder - drawCallB.drawOrder;
+  }
+  function sortMaterialMesh(drawCallA, drawCallB) {
+    keyA = drawCallA._key[pc.SORTKEY_FORWARD];
+    keyB = drawCallB._key[pc.SORTKEY_FORWARD];
+    if (keyA === keyB && drawCallA.mesh && drawCallB.mesh) {
+      return drawCallB.mesh.id - drawCallA.mesh.id;
+    }
+    return keyB - keyA;
+  }
+  function sortBackToFront(drawCallA, drawCallB) {
+    return drawCallB.zdist - drawCallA.zdist;
+  }
+  function sortFrontToBack(drawCallA, drawCallB) {
+    return drawCallA.zdist - drawCallB.zdist;
+  }
+  var sortCallbacks = [null, sortManual, sortMaterialMesh, sortBackToFront, sortFrontToBack];
+  function sortCameras(camA, camB) {
+    return camA.priority - camB.priority;
+  }
+  function sortLights(lightA, lightB) {
+    return lightB.key - lightA.key;
+  }
+  var layerCounter = 0;
+  var VisibleInstanceList = function() {
+    this.list = [];
+    this.length = 0;
+    this.done = false;
+  };
+  var InstanceList = function() {
+    this.opaqueMeshInstances = [];
+    this.transparentMeshInstances = [];
+    this.shadowCasters = [];
+    this.visibleOpaque = [];
+    this.visibleTransparent = [];
+  };
+  var Layer = function(options) {
+    if (options.id !== undefined) {
+      this.id = options.id;
+      layerCounter = Math.max(this.id + 1, layerCounter);
+    } else {
+      this.id = layerCounter++;
+    }
+    this.name = options.name;
+    this._enabled = options.enabled === undefined ? true : options.enabled;
+    this._refCounter = this._enabled ? 1 : 0;
+    this.opaqueSortMode = options.opaqueSortMode === undefined ? pc.SORTMODE_MATERIALMESH : options.opaqueSortMode;
+    this.transparentSortMode = options.transparentSortMode === undefined ? pc.SORTMODE_BACK2FRONT : options.transparentSortMode;
+    this.renderTarget = options.renderTarget;
+    this.shaderPass = options.shaderPass === undefined ? pc.SHADER_FORWARD : options.shaderPass;
+    this.passThrough = options.passThrough === undefined ? false : options.passThrough;
+    this.overrideClear = options.overrideClear === undefined ? false : options.overrideClear;
+    this._clearColor = new pc.Color(0, 0, 0, 1);
+    if (options.clearColor) {
+      this._clearColor.copy(options.clearColor);
+    }
+    this._clearColorBuffer = options.clearColorBuffer === undefined ? false : options.clearColorBuffer;
+    this._clearDepthBuffer = options.clearDepthBuffer === undefined ? false : options.clearDepthBuffer;
+    this._clearStencilBuffer = options.clearStencilBuffer === undefined ? false : options.clearStencilBuffer;
+    this._clearOptions = {color:this._clearColor.data, depth:1, stencil:0, flags:(this._clearColorBuffer ? pc.CLEARFLAG_COLOR : 0) | (this._clearDepthBuffer ? pc.CLEARFLAG_DEPTH : 0) | (this._clearStencilBuffer ? pc.CLEARFLAG_STENCIL : 0)};
+    this.onPreCull = options.onPreCull;
+    this.onPreRender = options.onPreRender;
+    this.onPreRenderOpaque = options.onPreRenderOpaque;
+    this.onPreRenderTransparent = options.onPreRenderTransparent;
+    this.onPostCull = options.onPostCull;
+    this.onPostRender = options.onPostRender;
+    this.onPostRenderOpaque = options.onPostRenderOpaque;
+    this.onPostRenderTransparent = options.onPostRenderTransparent;
+    this.onDrawCall = options.onDrawCall;
+    this.onEnable = options.onEnable;
+    this.onDisable = options.onDisable;
+    if (this._enabled && this.onEnable) {
+      this.onEnable();
+    }
+    this.layerReference = options.layerReference;
+    this.instances = options.layerReference ? options.layerReference.instances : new InstanceList;
+    this.cullingMask = options.cullingMask ? options.cullingMask : 4294967295;
+    this.opaqueMeshInstances = this.instances.opaqueMeshInstances;
+    this.transparentMeshInstances = this.instances.transparentMeshInstances;
+    this.shadowCasters = this.instances.shadowCasters;
+    this._lightComponents = [];
+    this._lights = [];
+    this._sortedLights = [[], [], []];
+    this.cameras = [];
+    this._dirty = false;
+    this._dirtyLights = false;
+    this._dirtyCameras = false;
+    this._cameraHash = 0;
+    this._lightHash = 0;
+    this._staticLightHash = 0;
+    this._needsStaticPrepare = true;
+    this._staticPrepareDone = false;
+    this._shaderVersion = -1;
+    this._version = 0;
+    this._lightCube = null;
+  };
+  Object.defineProperty(Layer.prototype, "enabled", {get:function() {
+    return this._enabled;
+  }, set:function(val) {
+    if (val !== this._enabled) {
+      this._enabled = val;
+      if (val) {
+        this.incrementCounter();
+        if (this.onEnable) {
+          this.onEnable();
+        }
+      } else {
+        this.decrementCounter();
+        if (this.onDisable) {
+          this.onDisable();
+        }
+      }
+    }
+  }});
+  Object.defineProperty(Layer.prototype, "clearColor", {get:function() {
+    return this._clearColor;
+  }, set:function(val) {
+    this._clearColor.copy(val);
+  }});
+  Layer.prototype._updateClearFlags = function() {
+    var flags = 0;
+    if (this._clearColorBuffer) {
+      flags = flags | pc.CLEARFLAG_COLOR;
+    }
+    if (this._clearDepthBuffer) {
+      flags = flags | pc.CLEARFLAG_DEPTH;
+    }
+    if (this._clearStencilBuffer) {
+      flags = flags | pc.CLEARFLAG_STENCIL;
+    }
+    this._clearOptions.flags = flags;
+  };
+  Object.defineProperty(Layer.prototype, "clearColorBuffer", {get:function() {
+    return this._clearColorBuffer;
+  }, set:function(val) {
+    this._clearColorBuffer = val;
+    this._updateClearFlags();
+  }});
+  Object.defineProperty(Layer.prototype, "clearDepthBuffer", {get:function() {
+    return this._clearDepthBuffer;
+  }, set:function(val) {
+    this._clearDepthBuffer = val;
+    this._updateClearFlags();
+  }});
+  Object.defineProperty(Layer.prototype, "clearStencilBuffer", {get:function() {
+    return this._clearStencilBuffer;
+  }, set:function(val) {
+    this._clearStencilBuffer = val;
+    this._updateClearFlags();
+  }});
+  Layer.prototype.incrementCounter = function() {
+    if (this._refCounter === 0) {
+      this._enabled = true;
+      if (this.onEnable) {
+        this.onEnable();
+      }
+    }
+    this._refCounter++;
+  };
+  Layer.prototype.decrementCounter = function() {
+    if (this._refCounter === 1) {
+      this._enabled = false;
+      if (this.onDisable) {
+        this.onDisable();
+      }
+    } else {
+      if (this._refCounter === 0) {
+        return;
+      }
+    }
+    this._refCounter--;
+  };
+  Layer.prototype.addMeshInstances = function(meshInstances, skipShadowCasters) {
+    var sceneShaderVer = this._shaderVersion;
+    var m, arr, mat;
+    var casters = this.shadowCasters;
+    for (var i = 0;i < meshInstances.length;i++) {
+      m = meshInstances[i];
+      mat = m.material;
+      if (mat.blendType === pc.BLEND_NONE) {
+        arr = this.opaqueMeshInstances;
+      } else {
+        arr = this.transparentMeshInstances;
+      }
+      if (arr.indexOf(m) < 0) {
+        arr.push(m);
+      }
+      if (!skipShadowCasters && m.castShadow && casters.indexOf(m) < 0) {
+        casters.push(m);
+      }
+      if (!this.passThrough && sceneShaderVer >= 0 && mat._shaderVersion !== sceneShaderVer) {
+        if (mat.updateShader !== pc.Material.prototype.updateShader) {
+          mat.clearVariants();
+          mat.shader = null;
+        }
+        mat._shaderVersion = sceneShaderVer;
+      }
+    }
+    if (!this.passThrough) {
+      this._dirty = true;
+    }
+  };
+  Layer.prototype.removeMeshInstances = function(meshInstances, skipShadowCasters) {
+    var i, j, m, spliceOffset, spliceCount, len, drawCall;
+    var opaque = this.opaqueMeshInstances;
+    var transparent = this.transparentMeshInstances;
+    var casters = this.shadowCasters;
+    for (i = 0;i < meshInstances.length;i++) {
+      m = meshInstances[i];
+      spliceOffset = -1;
+      spliceCount = 0;
+      len = opaque.length;
+      for (j = 0;j < len;j++) {
+        drawCall = opaque[j];
+        if (drawCall === m) {
+          spliceOffset = j;
+          spliceCount = 1;
+          break;
+        }
+        if (drawCall._staticSource === m) {
+          if (spliceOffset < 0) {
+            spliceOffset = j;
+          }
+          spliceCount++;
+        } else {
+          if (spliceOffset >= 0) {
+            break;
+          }
+        }
+      }
+      if (spliceOffset >= 0) {
+        opaque.splice(spliceOffset, spliceCount);
+      }
+      spliceOffset = -1;
+      spliceCount = 0;
+      len = transparent.length;
+      for (j = 0;j < len;j++) {
+        drawCall = transparent[j];
+        if (drawCall === m) {
+          spliceOffset = j;
+          spliceCount = 1;
+          break;
+        }
+        if (drawCall._staticSource === m) {
+          if (spliceOffset < 0) {
+            spliceOffset = j;
+          }
+          spliceCount++;
+        } else {
+          if (spliceOffset >= 0) {
+            break;
+          }
+        }
+      }
+      if (spliceOffset >= 0) {
+        transparent.splice(spliceOffset, spliceCount);
+      }
+      if (skipShadowCasters) {
+        continue;
+      }
+      j = casters.indexOf(m);
+      if (j >= 0) {
+        casters.splice(j, 1);
+      }
+    }
+    this._dirty = true;
+  };
+  Layer.prototype.clearMeshInstances = function(skipShadowCasters) {
+    if (this.opaqueMeshInstances.length === 0 && this.transparentMeshInstances.length === 0) {
+      if (skipShadowCasters || this.shadowCasters.length === 0) {
+        return;
+      }
+    }
+    this.opaqueMeshInstances.length = 0;
+    this.transparentMeshInstances.length = 0;
+    if (!skipShadowCasters) {
+      this.shadowCasters.length = 0;
+    }
+    if (!this.passThrough) {
+      this._dirty = true;
+    }
+  };
+  Layer.prototype.addLight = function(light) {
+    if (this._lightComponents.indexOf(light) >= 0) {
+      return;
+    }
+    this._lightComponents.push(light);
+    this._lights.push(light.light);
+    this._dirtyLights = true;
+    this._generateLightHash();
+  };
+  Layer.prototype.removeLight = function(light) {
+    var id = this._lightComponents.indexOf(light);
+    if (id < 0) {
+      return;
+    }
+    this._lightComponents.splice(id, 1);
+    id = this._lights.indexOf(light.light);
+    this._lights.splice(id, 1);
+    this._dirtyLights = true;
+    this._generateLightHash();
+  };
+  Layer.prototype.clearLights = function() {
+    this._lightComponents.length = 0;
+    this._lights.length = 0;
+    this._dirtyLights = true;
+  };
+  Layer.prototype.addShadowCasters = function(meshInstances) {
+    var m;
+    var arr = this.shadowCasters;
+    for (var i = 0;i < meshInstances.length;i++) {
+      m = meshInstances[i];
+      if (!m.castShadow) {
+        continue;
+      }
+      if (arr.indexOf(m) < 0) {
+        arr.push(m);
+      }
+    }
+    this._dirtyLights = true;
+  };
+  Layer.prototype.removeShadowCasters = function(meshInstances) {
+    var id;
+    var arr = this.shadowCasters;
+    for (var i = 0;i < meshInstances.length;i++) {
+      id = arr.indexOf(meshInstances[i]);
+      if (id >= 0) {
+        arr.splice(id, 1);
+      }
+    }
+    this._dirtyLights = true;
+  };
+  Layer.prototype._generateLightHash = function() {
+    if (this._lights.length > 0) {
+      this._lights.sort(sortLights);
+      var str = "";
+      var strStatic = "";
+      for (var i = 0;i < this._lights.length;i++) {
+        if (this._lights[i].isStatic) {
+          strStatic += this._lights[i].key;
+        } else {
+          str += this._lights[i].key;
+        }
+      }
+      if (str.length === 0) {
+        this._lightHash = 0;
+      } else {
+        this._lightHash = pc.hashCode(str);
+      }
+      if (strStatic.length === 0) {
+        this._staticLightHash = 0;
+      } else {
+        this._staticLightHash = pc.hashCode(strStatic);
+      }
+    } else {
+      this._lightHash = 0;
+      this._staticLightHash = 0;
+    }
+  };
+  Layer.prototype._generateCameraHash = function() {
+    if (this.cameras.length > 1) {
+      this.cameras.sort(sortCameras);
+      var str = "";
+      for (var i = 0;i < this.cameras.length;i++) {
+        str += this.cameras[i].entity._guid;
+      }
+      this._cameraHash = pc.hashCode(str);
+    } else {
+      this._cameraHash = 0;
+    }
+    this._dirtyCameras = true;
+  };
+  Layer.prototype.addCamera = function(camera) {
+    if (this.cameras.indexOf(camera) >= 0) {
+      return;
+    }
+    this.cameras.push(camera);
+    this._generateCameraHash();
+  };
+  Layer.prototype.removeCamera = function(camera) {
+    var id = this.cameras.indexOf(camera);
+    if (id < 0) {
+      return;
+    }
+    this.cameras.splice(id, 1);
+    this._generateCameraHash();
+  };
+  Layer.prototype.clearCameras = function() {
+    this.cameras.length = 0;
+    this._cameraHash = 0;
+    this._dirtyCameras = true;
+  };
+  Layer.prototype._sortCameras = function() {
+    this._generateCameraHash();
+  };
+  Layer.prototype._calculateSortDistances = function(drawCalls, drawCallsCount, camPos, camFwd) {
+    var i, drawCall, meshPos;
+    var tempx, tempy, tempz;
+    for (i = 0;i < drawCallsCount;i++) {
+      drawCall = drawCalls[i];
+      if (drawCall.command) {
+        continue;
+      }
+      if (drawCall.layer <= pc.scene.LAYER_FX) {
+        continue;
+      }
+      meshPos = drawCall.aabb.center.data;
+      tempx = meshPos[0] - camPos[0];
+      tempy = meshPos[1] - camPos[1];
+      tempz = meshPos[2] - camPos[2];
+      drawCall.zdist = tempx * camFwd[0] + tempy * camFwd[1] + tempz * camFwd[2];
+    }
+  };
+  Layer.prototype._sortVisible = function(transparent, cameraNode, cameraPass) {
+    var objects = this.instances;
+    var sortMode = transparent ? this.transparentSortMode : this.opaqueSortMode;
+    if (sortMode === pc.SORTMODE_NONE) {
+      return;
+    }
+    var visible = transparent ? objects.visibleTransparent[cameraPass] : objects.visibleOpaque[cameraPass];
+    if (sortMode === pc.SORTMODE_BACK2FRONT || sortMode === pc.SORTMODE_FRONT2BACK) {
+      sortPos = cameraNode.getPosition().data;
+      sortDir = cameraNode.forward.data;
+      this._calculateSortDistances(visible.list, visible.length, sortPos, sortDir);
+    }
+    if (visible.list.length !== visible.length) {
+      visible.list.length = visible.length;
+    }
+    visible.list.sort(sortCallbacks[sortMode]);
+  };
+  return {Layer:Layer, InstanceList:InstanceList, VisibleInstanceList:VisibleInstanceList};
+}());
+pc.extend(pc, function() {
+  var LayerComposition = function() {
+    this.layerList = [];
+    this.subLayerList = [];
+    this.subLayerEnabled = [];
+    this._dirty = false;
+    this._dirtyBlend = false;
+    this._dirtyLights = false;
+    this._dirtyCameras = false;
+    this._meshInstances = [];
+    this._lights = [];
+    this.cameras = [];
+    this._sortedLights = [[], [], []];
+    this._lightShadowCasters = [];
+    this._globalLightCameras = [];
+    this._globalLightCameraIds = [];
+    this._renderedRt = [];
+    this._renderedByCam = [];
+    this._renderedLayer = [];
+    this._renderList = [];
+    this._renderListCamera = [];
     pc.events.attach(this);
+  };
+  LayerComposition.prototype._sortLights = function(target) {
+    var light;
+    var lights = target._lights;
+    target._sortedLights[pc.LIGHTTYPE_DIRECTIONAL].length = 0;
+    target._sortedLights[pc.LIGHTTYPE_POINT].length = 0;
+    target._sortedLights[pc.LIGHTTYPE_SPOT].length = 0;
+    for (var i = 0;i < lights.length;i++) {
+      light = lights[i];
+      if (light._enabled) {
+        target._sortedLights[light._type].push(light);
+      }
+    }
+  };
+  LayerComposition.prototype._update = function() {
+    var i, j, k, l;
+    var layer;
+    var len = this.layerList.length;
+    var result = 0;
+    if (!this._dirty || !this._dirtyLights || !this._dirtyCameras) {
+      for (i = 0;i < len;i++) {
+        layer = this.layerList[i];
+        if (layer._dirty) {
+          this._dirty = true;
+        }
+        if (layer._dirtyLights) {
+          this._dirtyLights = true;
+        }
+        if (layer._dirtyCameras) {
+          this._dirtyCameras = true;
+        }
+      }
+    }
+    var arr;
+    if (this._dirty) {
+      result |= pc.COMPUPDATED_INSTANCES;
+      this._meshInstances.length = 0;
+      var mi;
+      for (i = 0;i < len;i++) {
+        layer = this.layerList[i];
+        if (layer.passThrough) {
+          continue;
+        }
+        arr = layer.opaqueMeshInstances;
+        for (j = 0;j < arr.length;j++) {
+          mi = arr[j];
+          if (this._meshInstances.indexOf(mi) < 0) {
+            this._meshInstances.push(mi);
+            if (mi.material && mi.material._dirtyBlend) {
+              this._dirtyBlend = true;
+              mi.material._dirtyBlend = false;
+            }
+          }
+        }
+        arr = layer.transparentMeshInstances;
+        for (j = 0;j < arr.length;j++) {
+          mi = arr[j];
+          if (this._meshInstances.indexOf(mi) < 0) {
+            this._meshInstances.push(mi);
+            if (mi.material && mi.material._dirtyBlend) {
+              this._dirtyBlend = true;
+              mi.material._dirtyBlend = false;
+            }
+          }
+        }
+      }
+      for (i = 0;i < len;i++) {
+        this.layerList[i]._dirty = false;
+        this.layerList[i]._version++;
+      }
+    }
+    if (this._dirtyBlend) {
+      result |= pc.COMPUPDATED_BLEND;
+      var opaqueOld, transparentOld, opaqueNew, transparentNew;
+      for (i = 0;i < len;i++) {
+        layer = this.layerList[i];
+        if (layer.passThrough) {
+          continue;
+        }
+        opaqueOld = layer.opaqueMeshInstances;
+        transparentOld = layer.transparentMeshInstances;
+        opaqueNew = [];
+        transparentNew = [];
+        for (j = 0;j < opaqueOld.length;j++) {
+          if (opaqueOld[j].material && opaqueOld[j].material.blendType !== pc.BLEND_NONE) {
+            transparentNew.push(opaqueOld[j]);
+          } else {
+            opaqueNew.push(opaqueOld[j]);
+          }
+        }
+        for (j = 0;j < transparentOld.length;j++) {
+          if (transparentOld[j].material && transparentOld[j].material.blendType !== pc.BLEND_NONE) {
+            transparentNew.push(transparentOld[j]);
+          } else {
+            opaqueNew.push(transparentOld[j]);
+          }
+        }
+        layer.opaqueMeshInstances.length = opaqueNew.length;
+        for (j = 0;j < opaqueNew.length;j++) {
+          layer.opaqueMeshInstances[j] = opaqueNew[j];
+        }
+        layer.transparentMeshInstances.length = transparentNew.length;
+        for (j = 0;j < transparentNew.length;j++) {
+          layer.transparentMeshInstances[j] = transparentNew[j];
+        }
+      }
+      this._dirtyBlend = false;
+    }
+    this._dirty = false;
+    var casters, lid, light;
+    if (this._dirtyLights || result & pc.COMPUPDATED_INSTANCES) {
+      result |= pc.COMPUPDATED_LIGHTS;
+      this._lights.length = 0;
+      this._lightShadowCasters.length = 0;
+      for (i = 0;i < len;i++) {
+        layer = this.layerList[i];
+        arr = layer._lights;
+        for (j = 0;j < arr.length;j++) {
+          light = arr[j];
+          lid = this._lights.indexOf(light);
+          if (lid < 0) {
+            this._lights.push(light);
+            lid = this._lights.length - 1;
+          }
+          casters = this._lightShadowCasters[lid];
+          if (!casters) {
+            this._lightShadowCasters[lid] = casters = [];
+          }
+        }
+      }
+    }
+    if (this._dirtyLights) {
+      this._sortLights(this);
+      this._dirtyLights = false;
+      for (i = 0;i < len;i++) {
+        layer = this.layerList[i];
+        this._sortLights(layer);
+        layer._dirtyLights = false;
+      }
+    }
+    if (result) {
+      for (i = 0;i < len;i++) {
+        layer = this.layerList[i];
+        arr = layer._lights;
+        for (j = 0;j < arr.length;j++) {
+          light = arr[j];
+          lid = this._lights.indexOf(light);
+          casters = this._lightShadowCasters[lid];
+          var meshInstances = layer.shadowCasters;
+          for (k = 0;k < meshInstances.length;k++) {
+            if (casters.indexOf(meshInstances[k]) < 0) {
+              casters.push(meshInstances[k]);
+            }
+          }
+        }
+      }
+    }
+    if (result & pc.COMPUPDATED_LIGHTS || this._dirtyCameras) {
+      this._globalLightCameras.length = 0;
+      var globalLights = this._sortedLights[pc.LIGHTTYPE_DIRECTIONAL];
+      for (l = 0;l < globalLights.length;l++) {
+        light = globalLights[l];
+        this._globalLightCameras[l] = [];
+        for (i = 0;i < len;i++) {
+          layer = this.layerList[i];
+          if (layer._sortedLights[pc.LIGHTTYPE_DIRECTIONAL].indexOf(light) < 0) {
+            continue;
+          }
+          for (k = 0;k < layer.cameras.length;k++) {
+            if (this._globalLightCameras[l].indexOf(layer.cameras[k]) >= 0) {
+              continue;
+            }
+            this._globalLightCameras[l].push(layer.cameras[k]);
+          }
+        }
+      }
+    }
+    var camera, index;
+    if (this._dirtyCameras) {
+      result |= pc.COMPUPDATED_CAMERAS;
+      this.cameras.length = 0;
+      for (i = 0;i < len;i++) {
+        layer = this.layerList[i];
+        for (j = 0;j < layer.cameras.length;j++) {
+          camera = layer.cameras[j];
+          index = this.cameras.indexOf(camera);
+          if (index < 0) {
+            index = this.cameras.length;
+            this.cameras.push(camera);
+          }
+        }
+      }
+      this._renderList.length = 0;
+      this._renderListCamera.length = 0;
+      var hash, hash2, groupLength, cam;
+      var skipCount = 0;
+      for (i = 0;i < len;i++) {
+        if (skipCount) {
+          skipCount--;
+          continue;
+        }
+        layer = this.layerList[i];
+        if (layer.cameras.length === 0 && !layer.isPostEffect) {
+          continue;
+        }
+        hash = layer._cameraHash;
+        if (hash === 0) {
+          this._renderList.push(i);
+          this._renderListCamera.push(0);
+        } else {
+          groupLength = 1;
+          for (j = i + 1;j < len;j++) {
+            hash2 = this.layerList[j]._cameraHash;
+            if (hash !== hash2) {
+              groupLength = j - i - 1;
+              break;
+            } else {
+              if (j === len - 1) {
+                groupLength = j - i;
+              }
+            }
+          }
+          if (groupLength === 1) {
+            for (cam = 0;cam < layer.cameras.length;cam++) {
+              this._renderList.push(i);
+              this._renderListCamera.push(cam);
+            }
+          } else {
+            cam = 0;
+            for (cam = 0;cam < layer.cameras.length;cam++) {
+              for (j = 0;j <= groupLength;j++) {
+                this._renderList.push(i + j);
+                this._renderListCamera.push(cam);
+              }
+            }
+            skipCount = groupLength;
+          }
+        }
+      }
+      this._dirtyCameras = false;
+      for (i = 0;i < len;i++) {
+        this.layerList[i]._dirtyCameras = false;
+      }
+    }
+    if (result & pc.COMPUPDATED_LIGHTS || result & pc.COMPUPDATED_CAMERAS) {
+      this._globalLightCameraIds.length = 0;
+      for (l = 0;l < this._globalLightCameras.length;l++) {
+        arr = [];
+        for (i = 0;i < this._globalLightCameras[l].length;i++) {
+          index = this.cameras.indexOf(this._globalLightCameras[l][i]);
+          if (index < 0) {
+            continue;
+          }
+          arr.push(index);
+        }
+        this._globalLightCameraIds.push(arr);
+      }
+    }
+    return result;
+  };
+  LayerComposition.prototype._isLayerAdded = function(layer) {
+    if (this.layerList.indexOf(layer) >= 0) {
+      return true;
+    }
+    return false;
+  };
+  LayerComposition.prototype._isSublayerAdded = function(layer, transparent) {
+    for (var i = 0;i < this.layerList.length;i++) {
+      if (this.layerList[i] === layer && this.subLayerList[i] === transparent) {
+        return true;
+      }
+    }
+    return false;
+  };
+  LayerComposition.prototype.push = function(layer) {
+    if (this._isLayerAdded(layer)) {
+      return;
+    }
+    this.layerList.push(layer);
+    this.layerList.push(layer);
+    this.subLayerList.push(false);
+    this.subLayerList.push(true);
+    this.subLayerEnabled.push(true);
+    this.subLayerEnabled.push(true);
+    this._dirty = true;
+    this._dirtyLights = true;
+    this._dirtyCameras = true;
+    this.fire("add", layer);
+  };
+  LayerComposition.prototype.insert = function(layer, index) {
+    if (this._isLayerAdded(layer)) {
+      return;
+    }
+    this.layerList.splice(index, 0, layer, layer);
+    this.subLayerList.splice(index, 0, false, true);
+    this.subLayerEnabled.splice(index, 0, true, true);
+    this._dirty = true;
+    this._dirtyLights = true;
+    this._dirtyCameras = true;
+    this.fire("add", layer);
+  };
+  LayerComposition.prototype.remove = function(layer) {
+    var id = this.layerList.indexOf(layer);
+    while (id >= 0) {
+      this.layerList.splice(id, 1);
+      this.subLayerList.splice(id, 1);
+      this.subLayerEnabled.splice(id, 1);
+      id = this.layerList.indexOf(layer);
+      this._dirty = true;
+      this._dirtyLights = true;
+      this._dirtyCameras = true;
+      this.fire("remove", layer);
+    }
+  };
+  LayerComposition.prototype.pushOpaque = function(layer) {
+    if (this._isSublayerAdded(layer, false)) {
+      return;
+    }
+    this.layerList.push(layer);
+    this.subLayerList.push(false);
+    this.subLayerEnabled.push(true);
+    this._dirty = true;
+    this._dirtyLights = true;
+    this._dirtyCameras = true;
+    this.fire("add", layer);
+  };
+  LayerComposition.prototype.insertOpaque = function(layer, index) {
+    if (this._isSublayerAdded(layer, false)) {
+      return;
+    }
+    this.layerList.splice(index, 0, layer);
+    this.subLayerList.splice(index, 0, false);
+    this.subLayerEnabled.splice(index, 0, true);
+    this._dirty = true;
+    this._dirtyLights = true;
+    this._dirtyCameras = true;
+    this.fire("add", layer);
+  };
+  LayerComposition.prototype.removeOpaque = function(layer) {
+    for (var i = 0;i < this.layerList.length;i++) {
+      if (this.layerList[i] === layer && !this.subLayerList[i]) {
+        this.layerList.splice(i, 1);
+        this.subLayerList.splice(i, 1);
+        this.subLayerEnabled.splice(i, 1);
+        this._dirty = true;
+        this._dirtyLights = true;
+        this._dirtyCameras = true;
+        if (this.layerList.indexOf(layer) < 0) {
+          this.fire("remove", layer);
+        }
+        return;
+      }
+    }
+  };
+  LayerComposition.prototype.pushTransparent = function(layer) {
+    if (this._isSublayerAdded(layer, true)) {
+      return;
+    }
+    this.layerList.push(layer);
+    this.subLayerList.push(true);
+    this.subLayerEnabled.push(true);
+    this._dirty = true;
+    this._dirtyLights = true;
+    this._dirtyCameras = true;
+    this.fire("add", layer);
+  };
+  LayerComposition.prototype.insertTransparent = function(layer, index) {
+    if (this._isSublayerAdded(layer, true)) {
+      return;
+    }
+    this.layerList.splice(index, 0, layer);
+    this.subLayerList.splice(index, 0, true);
+    this.subLayerEnabled.splice(index, 0, true);
+    this._dirty = true;
+    this._dirtyLights = true;
+    this._dirtyCameras = true;
+    this.fire("add", layer);
+  };
+  LayerComposition.prototype.removeTransparent = function(layer) {
+    for (var i = 0;i < this.layerList.length;i++) {
+      if (this.layerList[i] === layer && this.subLayerList[i]) {
+        this.layerList.splice(i, 1);
+        this.subLayerList.splice(i, 1);
+        this.subLayerEnabled.splice(i, 1);
+        this._dirty = true;
+        this._dirtyLights = true;
+        this._dirtyCameras = true;
+        if (this.layerList.indexOf(layer) < 0) {
+          this.fire("remove", layer);
+        }
+        return;
+      }
+    }
+  };
+  LayerComposition.prototype._getSublayerIndex = function(layer, transparent) {
+    var id = this.layerList.indexOf(layer);
+    if (id < 0) {
+      return -1;
+    }
+    if (this.subLayerList[id] !== transparent) {
+      id = this.layerList.indexOf(layer, id + 1);
+      if (id < 0) {
+        return -1;
+      }
+      if (this.subLayerList[id] !== transparent) {
+        return -1;
+      }
+    }
+    return id;
+  };
+  LayerComposition.prototype.getOpaqueIndex = function(layer) {
+    return this._getSublayerIndex(layer, false);
+  };
+  LayerComposition.prototype.getTransparentIndex = function(layer) {
+    return this._getSublayerIndex(layer, true);
+  };
+  LayerComposition.prototype.getLayerById = function(id) {
+    for (var i = 0;i < this.layerList.length;i++) {
+      if (this.layerList[i].id === id) {
+        return this.layerList[i];
+      }
+    }
+    return null;
+  };
+  LayerComposition.prototype.getLayerByName = function(name) {
+    for (var i = 0;i < this.layerList.length;i++) {
+      if (this.layerList[i].name === name) {
+        return this.layerList[i];
+      }
+    }
+    return null;
+  };
+  return {LayerComposition:LayerComposition};
+}());
+pc.extend(pc, function() {
+  pc.SPRITE_RENDERMODE_SIMPLE = 0;
+  pc.SPRITE_RENDERMODE_SLICED = 1;
+  pc.SPRITE_RENDERMODE_TILED = 2;
+  var spriteNormals = [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1];
+  var spriteIndices = [0, 1, 3, 2, 3, 1];
+  var Sprite = function(device, options) {
+    this._device = device;
+    this._pixelsPerUnit = options && options.pixelsPerUnit !== undefined ? options.pixelsPerUnit : 1;
+    this._renderMode = options && options.renderMode !== undefined ? options.renderMode : pc.SPRITE_RENDERMODE_SIMPLE;
+    this._atlas = options && options.atlas !== undefined ? options.atlas : null;
+    this._frameKeys = options && options.frameKeys !== undefined ? options.frameKeys : null;
+    this._meshes = [];
+    this._updatingProperties = false;
+    this._meshesDirty = false;
+    pc.events.attach(this);
+    if (this._atlas && this._frameKeys) {
+      this._createMeshes();
+    }
   };
   Sprite.prototype._createMeshes = function() {
     var i, len;
     for (i = 0, len = this._meshes.length;i < len;i++) {
-      this._meshes[i].vertexBuffer.destroy();
-      for (var j = 0, len2 = this._meshes[i].indexBuffer.length;j < len2;j++) {
-        this._meshes[i].indexBuffer[j].destroy();
+      var mesh = this._meshes[i];
+      if (!mesh) {
+        continue;
+      }
+      mesh.vertexBuffer.destroy();
+      for (var j = 0, len2 = mesh.indexBuffer.length;j < len2;j++) {
+        mesh.indexBuffer[j].destroy();
+      }
+    }
+    var count = this._frameKeys.length;
+    this._meshes = new Array(count);
+    var createMeshFunc = this.renderMode === pc.SPRITE_RENDERMODE_SLICED || this._renderMode === pc.SPRITE_RENDERMODE_TILED ? this._create9SliceMesh : this._createSimpleMesh;
+    for (i = 0;i < count;i++) {
+      var frame = this._atlas.frames[this._frameKeys[i]];
+      this._meshes[i] = frame ? createMeshFunc.call(this, frame) : null;
+    }
+    this.fire("set:meshes");
+  };
+  Sprite.prototype._createSimpleMesh = function(frame) {
+    var rect = frame.rect;
+    var texWidth = this._atlas.texture.width;
+    var texHeight = this._atlas.texture.height;
+    var w = rect.data[2] / this._pixelsPerUnit;
+    var h = rect.data[3] / this._pixelsPerUnit;
+    var hp = frame.pivot.x;
+    var vp = frame.pivot.y;
+    var positions = [-hp * w, -vp * h, 0, (1 - hp) * w, -vp * h, 0, (1 - hp) * w, (1 - vp) * h, 0, -hp * w, (1 - vp) * h, 0];
+    var lu = rect.data[0] / texWidth;
+    var bv = rect.data[1] / texHeight;
+    var ru = (rect.data[0] + rect.data[2]) / texWidth;
+    var tv = (rect.data[1] + rect.data[3]) / texHeight;
+    var uvs = [lu, bv, ru, bv, ru, tv, lu, tv];
+    var mesh = pc.createMesh(this._device, positions, {uvs:uvs, normals:spriteNormals, indices:spriteIndices});
+    return mesh;
+  };
+  Sprite.prototype._create9SliceMesh = function() {
+    var he = pc.Vec2.ONE;
+    var ws = 3;
+    var ls = 3;
+    var i, j;
+    var x, y, z, u, v;
+    var positions = [];
+    var normals = [];
+    var uvs = [];
+    var indices = [];
+    var vcounter = 0;
+    for (i = 0;i <= ws;i++) {
+      u = i === 0 || i === ws ? 0 : 1;
+      for (j = 0;j <= ls;j++) {
+        x = -he.x + 2 * he.x * (i <= 1 ? 0 : 3) / ws;
+        y = 0;
+        z = -(-he.y + 2 * he.y * (j <= 1 ? 0 : 3) / ls);
+        v = j === 0 || j === ls ? 0 : 1;
+        positions.push(-x, y, z);
+        normals.push(0, 1, 0);
+        uvs.push(u, v);
+        if (i < ws && j < ls) {
+          indices.push(vcounter + ls + 1, vcounter + 1, vcounter);
+          indices.push(vcounter + ls + 1, vcounter + ls + 2, vcounter + 1);
+        }
+        vcounter++;
+      }
+    }
+    var options = {normals:normals, uvs:uvs, indices:indices};
+    return pc.createMesh(this._device, positions, options);
+  };
+  Sprite.prototype._onSetFrames = function(frames) {
+    if (this._updatingProperties) {
+      this._meshesDirty = true;
+    } else {
+      this._createMeshes();
+    }
+  };
+  Sprite.prototype._onFrameChanged = function(frameKey, frame) {
+    var idx = this._frameKeys.indexOf(frameKey);
+    if (idx < 0) {
+      return;
+    }
+    if (frame) {
+      if (this.renderMode === pc.SPRITE_RENDERMODE_SIMPLE) {
+        this._meshes[idx] = this._createSimpleMesh(frame);
+      }
+    } else {
+      this._meshes[idx] = null;
+    }
+    this.fire("set:meshes");
+  };
+  Sprite.prototype._onFrameRemoved = function(frameKey) {
+    var idx = this._frameKeys.indexOf(frameKey);
+    if (idx < 0) {
+      return;
+    }
+    this._meshes[idx] = null;
+    this.fire("set:meshes");
+  };
+  Sprite.prototype.startUpdate = function() {
+    this._updatingProperties = true;
+    this._meshesDirty = false;
+  };
+  Sprite.prototype.endUpdate = function() {
+    this._updatingProperties = false;
+    if (this._meshesDirty && this._atlas && this._frameKeys) {
+      this._createMeshes();
+    }
+    this._meshesDirty = false;
+  };
+  Sprite.prototype.destroy = function() {
+    var i;
+    var len;
+    for (i = 0, len = this._meshes.length;i < len;i++) {
+      var mesh = this._meshes[i];
+      if (!mesh) {
+        continue;
+      }
+      mesh.vertexBuffer.destroy();
+      for (var j = 0, len2 = mesh.indexBuffer.length;j < len2;j++) {
+        mesh.indexBuffer[j].destroy();
       }
     }
     this._meshes.length = 0;
-    var count = this._frameKeys.length;
-    for (i = 0;i < count;i++) {
-      var mesh = null;
-      var frame = this._atlas.frames[this._frameKeys[i]];
-      if (frame) {
-        var rect = frame.rect;
-        var w = this._atlas.texture.width * rect.data[2] / this._pixelsPerUnit;
-        var h = this._atlas.texture.height * rect.data[3] / this._pixelsPerUnit;
-        var hp = frame.pivot.x;
-        var vp = frame.pivot.y;
-        var positions = [-hp * w, -vp * h, 0, (1 - hp) * w, -vp * h, 0, (1 - hp) * w, (1 - vp) * h, 0, -hp * w, (1 - vp) * h, 0];
-        var uvs = [rect.data[0], rect.data[1], rect.data[0] + rect.data[2], rect.data[1], rect.data[0] + rect.data[2], rect.data[1] + rect.data[3], rect.data[0], rect.data[1] + rect.data[3]];
-        mesh = pc.createMesh(this._device, positions, {uvs:uvs, normals:normals, indices:indices});
-        mesh.aabb.compute(positions);
-      }
-      this._meshes.push(mesh);
-    }
-    this.fire("set:meshes");
   };
   Object.defineProperty(Sprite.prototype, "frameKeys", {get:function() {
     return this._frameKeys;
   }, set:function(value) {
     this._frameKeys = value;
     if (this._atlas && this._frameKeys) {
-      this._createMeshes();
+      if (this._updatingProperties) {
+        this._meshesDirty = true;
+      } else {
+        this._createMeshes();
+      }
     }
+    this.fire("set:frameKeys", value);
   }});
   Object.defineProperty(Sprite.prototype, "atlas", {get:function() {
     return this._atlas;
@@ -16610,10 +17354,23 @@ pc.extend(pc, function() {
     if (value === this._atlas) {
       return;
     }
+    if (this._atlas) {
+      this._atlas.off("set:frames", this._onSetFrames, this);
+      this._atlas.off("set:frame", this._onFrameChanged, this);
+      this._atlas.off("remove:frame", this._onFrameRemoved, this);
+    }
     this._atlas = value;
     if (this._atlas && this._frameKeys) {
-      this._createMeshes();
+      this._atlas.on("set:frames", this._onSetFrames, this);
+      this._atlas.on("set:frame", this._onFrameChanged, this);
+      this._atlas.on("remove:frame", this._onFrameRemoved, this);
+      if (this._updatingProperties) {
+        this._meshesDirty = true;
+      } else {
+        this._createMeshes();
+      }
     }
+    this.fire("set:atlas", value);
   }});
   Object.defineProperty(Sprite.prototype, "pixelsPerUnit", {get:function() {
     return this._pixelsPerUnit;
@@ -16622,8 +17379,32 @@ pc.extend(pc, function() {
       return;
     }
     this._pixelsPerUnit = value;
-    if (this._atlas && this._frameKeys) {
-      this._createMeshes();
+    this.fire("set:pixelsPerUnit", value);
+    if (this._atlas && this._frameKeys && this.renderMode === pc.SPRITE_RENDERMODE_SIMPLE) {
+      if (this._updatingProperties) {
+        this._meshesDirty = true;
+      } else {
+        this._createMeshes();
+      }
+    }
+  }});
+  Object.defineProperty(Sprite.prototype, "renderMode", {get:function() {
+    return this._renderMode;
+  }, set:function(value) {
+    if (this._renderMode === value) {
+      return;
+    }
+    var prev = this._renderMode;
+    this._renderMode = value;
+    this.fire("set:renderMode", value);
+    if (prev === pc.SPRITE_RENDERMODE_SIMPLE || value === pc.SPRITE_RENDERMODE_SIMPLE) {
+      if (this._atlas && this._frameKeys) {
+        if (this._updatingProperties) {
+          this._meshesDirty = true;
+        } else {
+          this._createMeshes();
+        }
+      }
     }
   }});
   Object.defineProperty(Sprite.prototype, "meshes", {get:function() {
@@ -16633,10 +17414,63 @@ pc.extend(pc, function() {
 }());
 pc.extend(pc, function() {
   var TextureAtlas = function() {
-    this.texture = null;
-    this.frames = null;
+    this._texture = null;
+    this._frames = null;
+    pc.events.attach(this);
   };
+  TextureAtlas.prototype.setFrame = function(key, data) {
+    var frame = this._frames[key];
+    if (!frame) {
+      frame = {rect:data.rect.clone(), pivot:data.pivot.clone(), border:data.border.clone()};
+      this._frames[key] = frame;
+    } else {
+      frame.rect.copy(data.rect);
+      frame.pivot.copy(data.pivot);
+      frame.border.copy(data.border);
+    }
+    this.fire("set:frame", key.toString(), frame);
+  };
+  TextureAtlas.prototype.removeFrame = function(key) {
+    var frame = this._frames[key];
+    if (frame) {
+      delete this._frames[key];
+      this.fire("remove:frame", key.toString(), frame);
+    }
+  };
+  TextureAtlas.prototype.destroy = function() {
+    if (this._texture) {
+      this._texture.destroy();
+    }
+  };
+  Object.defineProperty(TextureAtlas.prototype, "texture", {get:function() {
+    return this._texture;
+  }, set:function(value) {
+    this._texture = value;
+    this.fire("set:texture", value);
+  }});
+  Object.defineProperty(TextureAtlas.prototype, "frames", {get:function() {
+    return this._frames;
+  }, set:function(value) {
+    this._frames = value;
+    this.fire("set:frames", value);
+  }});
   return {TextureAtlas:TextureAtlas};
+}());
+pc.extend(pc, function() {
+  var StencilParameters = function(options) {
+    this.func = options.func === undefined ? pc.FUNC_ALWAYS : options.func;
+    this.ref = options.ref || 0;
+    this.readMask = options.readMask === undefined ? 255 : options.readMask;
+    this.writeMask = options.writeMask === undefined ? 255 : options.writeMask;
+    this.fail = options.fail || pc.STENCILOP_KEEP;
+    this.zfail = options.zfail || pc.STENCILOP_KEEP;
+    this.zpass = options.zpass || pc.STENCILOP_KEEP;
+  };
+  StencilParameters.prototype.clone = function() {
+    var clone = new pc.StencilParameters({func:this.func, ref:this.ref, readMask:this.readMask, writeMask:this.writeMask, fail:this.fail, zfail:this.zfail, zpass:this.zpass});
+    return clone;
+  };
+  return {StencilParameters:StencilParameters};
 }());
 pc.extend(pc, function() {
   var Key = function Key(time, position, rotation, scale) {
@@ -16670,11 +17504,11 @@ pc.extend(pc, function() {
   Animation.prototype.getNodes = function() {
     return this._nodes;
   };
-  Animation.prototype.setDuration = function(value) {
-    this.duration = value;
+  Animation.prototype.setDuration = function(duration) {
+    this.duration = duration;
   };
-  Animation.prototype.setName = function(value) {
-    this.name = value;
+  Animation.prototype.setName = function(name) {
+    this.name = name;
   };
   Animation.prototype.addNode = function(node) {
     this._nodes.push(node);
@@ -17271,7 +18105,6 @@ pc.extend(pc, function() {
     Object.defineProperty(SoundInstance.prototype, "pitch", {get:function() {
       return this._pitch;
     }, set:function(pitch) {
-      var old = this._pitch;
       this._currentOffset = this.currentTime;
       this._startedAt = this._manager.context.currentTime;
       this._pitch = Math.max(Number(pitch) || 0, .01);
@@ -17575,9 +18408,8 @@ pc.extend(pc, function() {
     }
     if (this._duration) {
       return capTime(this._duration, this._sound.duration);
-    } else {
-      return this._sound.duration;
     }
+    return this._sound.duration;
   }, set:function(value) {
     this._duration = Math.max(0, Number(value) || 0);
     var isPlaying = this.isPlaying;
@@ -17671,22 +18503,21 @@ pc.extend(pc, function() {
         } else {
           if (distance > maxDistance) {
             return 0;
-          } else {
-            var result = 0;
-            if (distanceModel === pc.DISTANCE_LINEAR) {
-              result = 1 - rollOffFactor * (distance - refDistance) / (maxDistance - refDistance);
-            } else {
-              if (distanceModel === pc.DISTANCE_INVERSE) {
-                result = refDistance / (refDistance + rollOffFactor * (distance - refDistance));
-              } else {
-                if (distanceModel === pc.DISTANCE_EXPONENTIAL) {
-                  result = Math.pow(distance / refDistance, -rollOffFactor);
-                }
-              }
-            }
-            return pc.math.clamp(result, 0, 1);
           }
         }
+        var result = 0;
+        if (distanceModel === pc.DISTANCE_LINEAR) {
+          result = 1 - rollOffFactor * (distance - refDistance) / (maxDistance - refDistance);
+        } else {
+          if (distanceModel === pc.DISTANCE_INVERSE) {
+            result = refDistance / (refDistance + rollOffFactor * (distance - refDistance));
+          } else {
+            if (distanceModel === pc.DISTANCE_EXPONENTIAL) {
+              result = Math.pow(distance / refDistance, -rollOffFactor);
+            }
+          }
+        }
+        return pc.math.clamp(result, 0, 1);
       };
       SoundInstance3d = function(manager, sound, options) {
         options = options || {};
@@ -17834,11 +18665,7 @@ pc.extend(pc, function() {
     }, isPlaying:function() {
       return !this.paused && this.source.playbackState === this.source.PLAYING_STATE;
     }, getDuration:function() {
-      if (this.source) {
-        return this.source.buffer.duration;
-      } else {
-        return 0;
-      }
+      return this.source ? this.source.buffer.duration : 0;
     }, _createSource:function() {
       var context = this.manager.context;
       if (this.sound.buffer) {
@@ -17914,13 +18741,7 @@ pc.extend(pc, function() {
           this.source.playbackRate = pitch;
         }
       }, getDuration:function() {
-        if (this.source) {
-          var d = this.source.duration;
-          if (d === d) {
-            return d;
-          }
-        }
-        return 0;
+        return this.source && !isNaN(this.source.duration) ? this.source.duration : 0;
       }, isPlaying:function() {
         return !this.source.paused;
       }};
@@ -18009,22 +18830,21 @@ pc.extend(pc, function() {
         } else {
           if (distance > maxDistance) {
             return 0;
-          } else {
-            var result = 0;
-            if (distanceModel === pc.DISTANCE_LINEAR) {
-              result = 1 - rolloffFactor * (distance - refDistance) / (maxDistance - refDistance);
-            } else {
-              if (distanceModel === pc.DISTANCE_INVERSE) {
-                result = refDistance / (refDistance + rolloffFactor * (distance - refDistance));
-              } else {
-                if (distanceModel === pc.DISTANCE_EXPONENTIAL) {
-                  result = Math.pow(distance / refDistance, -rolloffFactor);
-                }
-              }
-            }
-            return pc.math.clamp(result, 0, 1);
           }
         }
+        var result = 0;
+        if (distanceModel === pc.DISTANCE_LINEAR) {
+          result = 1 - rolloffFactor * (distance - refDistance) / (maxDistance - refDistance);
+        } else {
+          if (distanceModel === pc.DISTANCE_INVERSE) {
+            result = refDistance / (refDistance + rolloffFactor * (distance - refDistance));
+          } else {
+            if (distanceModel === pc.DISTANCE_EXPONENTIAL) {
+              result = Math.pow(distance / refDistance, -rolloffFactor);
+            }
+          }
+        }
+        return pc.math.clamp(result, 0, 1);
       };
       Channel3d = function(manager, sound) {
         this.position = new pc.Vec3;
@@ -18075,10 +18895,10 @@ pc.extend(pc, function() {
   return {Channel3d:Channel3d};
 }());
 (function() {
-  var enums = {ACTION_MOUSE:"mouse", ACTION_KEYBOARD:"keyboard", ACTION_GAMEPAD:"gamepad", AXIS_MOUSE_X:"mousex", AXIS_MOUSE_Y:"mousey", AXIS_PAD_L_X:"padlx", AXIS_PAD_L_Y:"padly", AXIS_PAD_R_X:"padrx", AXIS_PAD_R_Y:"padry", AXIS_KEY:"key", EVENT_KEYDOWN:"keydown", EVENT_KEYUP:"keyup", EVENT_MOUSEDOWN:"mousedown", EVENT_MOUSEMOVE:"mousemove", EVENT_MOUSEUP:"mouseup", EVENT_MOUSEWHEEL:"mousewheel", EVENT_TOUCHSTART:"touchstart", EVENT_TOUCHEND:"touchend", EVENT_TOUCHMOVE:"touchmove", EVENT_TOUCHCANCEL:"touchcancel",
-  KEY_BACKSPACE:8, KEY_TAB:9, KEY_RETURN:13, KEY_ENTER:13, KEY_SHIFT:16, KEY_CONTROL:17, KEY_ALT:18, KEY_PAUSE:19, KEY_CAPS_LOCK:20, KEY_ESCAPE:27, KEY_SPACE:32, KEY_PAGE_UP:33, KEY_PAGE_DOWN:34, KEY_END:35, KEY_HOME:36, KEY_LEFT:37, KEY_UP:38, KEY_RIGHT:39, KEY_DOWN:40, KEY_PRINT_SCREEN:44, KEY_INSERT:45, KEY_DELETE:46, KEY_0:48, KEY_1:49, KEY_2:50, KEY_3:51, KEY_4:52, KEY_5:53, KEY_6:54, KEY_7:55, KEY_8:56, KEY_9:57, KEY_SEMICOLON:59, KEY_EQUAL:61, KEY_A:65, KEY_B:66, KEY_C:67, KEY_D:68, KEY_E:69,
-  KEY_F:70, KEY_G:71, KEY_H:72, KEY_I:73, KEY_J:74, KEY_K:75, KEY_L:76, KEY_M:77, KEY_N:78, KEY_O:79, KEY_P:80, KEY_Q:81, KEY_R:82, KEY_S:83, KEY_T:84, KEY_U:85, KEY_V:86, KEY_W:87, KEY_X:88, KEY_Y:89, KEY_Z:90, KEY_WINDOWS:91, KEY_CONTEXT_MENU:93, KEY_NUMPAD_0:96, KEY_NUMPAD_1:97, KEY_NUMPAD_2:98, KEY_NUMPAD_3:99, KEY_NUMPAD_4:100, KEY_NUMPAD_5:101, KEY_NUMPAD_6:102, KEY_NUMPAD_7:103, KEY_NUMPAD_8:104, KEY_NUMPAD_9:105, KEY_MULTIPLY:106, KEY_ADD:107, KEY_SEPARATOR:108, KEY_SUBTRACT:109, KEY_DECIMAL:110,
-  KEY_DIVIDE:111, KEY_F1:112, KEY_F2:113, KEY_F3:114, KEY_F4:115, KEY_F5:116, KEY_F6:117, KEY_F7:118, KEY_F8:119, KEY_F9:120, KEY_F10:121, KEY_F11:122, KEY_F12:123, KEY_COMMA:188, KEY_PERIOD:190, KEY_SLASH:191, KEY_OPEN_BRACKET:219, KEY_BACK_SLASH:220, KEY_CLOSE_BRACKET:221, KEY_META:224, MOUSEBUTTON_NONE:-1, MOUSEBUTTON_LEFT:0, MOUSEBUTTON_MIDDLE:1, MOUSEBUTTON_RIGHT:2, PAD_1:0, PAD_2:1, PAD_3:2, PAD_4:3, PAD_FACE_1:0, PAD_FACE_2:1, PAD_FACE_3:2, PAD_FACE_4:3, PAD_L_SHOULDER_1:4, PAD_R_SHOULDER_1:5,
+  var enums = {ACTION_MOUSE:"mouse", ACTION_KEYBOARD:"keyboard", ACTION_GAMEPAD:"gamepad", AXIS_MOUSE_X:"mousex", AXIS_MOUSE_Y:"mousey", AXIS_PAD_L_X:"padlx", AXIS_PAD_L_Y:"padly", AXIS_PAD_R_X:"padrx", AXIS_PAD_R_Y:"padry", AXIS_KEY:"key", EVENT_KEYDOWN:"keydown", EVENT_KEYUP:"keyup", EVENT_MOUSEDOWN:"mousedown", EVENT_MOUSEMOVE:"mousemove", EVENT_MOUSEUP:"mouseup", EVENT_MOUSEWHEEL:"mousewheel", EVENT_TOUCHSTART:"touchstart", EVENT_TOUCHEND:"touchend", EVENT_TOUCHMOVE:"touchmove", EVENT_TOUCHCANCEL:"touchcancel", 
+  KEY_BACKSPACE:8, KEY_TAB:9, KEY_RETURN:13, KEY_ENTER:13, KEY_SHIFT:16, KEY_CONTROL:17, KEY_ALT:18, KEY_PAUSE:19, KEY_CAPS_LOCK:20, KEY_ESCAPE:27, KEY_SPACE:32, KEY_PAGE_UP:33, KEY_PAGE_DOWN:34, KEY_END:35, KEY_HOME:36, KEY_LEFT:37, KEY_UP:38, KEY_RIGHT:39, KEY_DOWN:40, KEY_PRINT_SCREEN:44, KEY_INSERT:45, KEY_DELETE:46, KEY_0:48, KEY_1:49, KEY_2:50, KEY_3:51, KEY_4:52, KEY_5:53, KEY_6:54, KEY_7:55, KEY_8:56, KEY_9:57, KEY_SEMICOLON:59, KEY_EQUAL:61, KEY_A:65, KEY_B:66, KEY_C:67, KEY_D:68, KEY_E:69, 
+  KEY_F:70, KEY_G:71, KEY_H:72, KEY_I:73, KEY_J:74, KEY_K:75, KEY_L:76, KEY_M:77, KEY_N:78, KEY_O:79, KEY_P:80, KEY_Q:81, KEY_R:82, KEY_S:83, KEY_T:84, KEY_U:85, KEY_V:86, KEY_W:87, KEY_X:88, KEY_Y:89, KEY_Z:90, KEY_WINDOWS:91, KEY_CONTEXT_MENU:93, KEY_NUMPAD_0:96, KEY_NUMPAD_1:97, KEY_NUMPAD_2:98, KEY_NUMPAD_3:99, KEY_NUMPAD_4:100, KEY_NUMPAD_5:101, KEY_NUMPAD_6:102, KEY_NUMPAD_7:103, KEY_NUMPAD_8:104, KEY_NUMPAD_9:105, KEY_MULTIPLY:106, KEY_ADD:107, KEY_SEPARATOR:108, KEY_SUBTRACT:109, KEY_DECIMAL:110, 
+  KEY_DIVIDE:111, KEY_F1:112, KEY_F2:113, KEY_F3:114, KEY_F4:115, KEY_F5:116, KEY_F6:117, KEY_F7:118, KEY_F8:119, KEY_F9:120, KEY_F10:121, KEY_F11:122, KEY_F12:123, KEY_COMMA:188, KEY_PERIOD:190, KEY_SLASH:191, KEY_OPEN_BRACKET:219, KEY_BACK_SLASH:220, KEY_CLOSE_BRACKET:221, KEY_META:224, MOUSEBUTTON_NONE:-1, MOUSEBUTTON_LEFT:0, MOUSEBUTTON_MIDDLE:1, MOUSEBUTTON_RIGHT:2, PAD_1:0, PAD_2:1, PAD_3:2, PAD_4:3, PAD_FACE_1:0, PAD_FACE_2:1, PAD_FACE_3:2, PAD_FACE_4:3, PAD_L_SHOULDER_1:4, PAD_R_SHOULDER_1:5, 
   PAD_L_SHOULDER_2:6, PAD_R_SHOULDER_2:7, PAD_SELECT:8, PAD_START:9, PAD_L_STICK_BUTTON:10, PAD_R_STICK_BUTTON:11, PAD_UP:12, PAD_DOWN:13, PAD_LEFT:14, PAD_RIGHT:15, PAD_VENDOR:16, PAD_L_STICK_X:0, PAD_L_STICK_Y:1, PAD_R_STICK_X:2, PAD_R_STICK_Y:3};
   pc.extend(pc, enums);
   pc.input = {};
@@ -18220,7 +19040,7 @@ pc.extend(pc, function() {
       document.addEventListener("pointerlockchange", s, false);
     }
     document.exitPointerLock();
-  }, update:function(dt) {
+  }, update:function() {
     this._lastbuttons[0] = this._buttons[0];
     this._lastbuttons[1] = this._buttons[1];
     this._lastbuttons[2] = this._buttons[2];
@@ -18336,9 +19156,8 @@ pc.extend(pc, function() {
   function toKeyCode(s) {
     if (typeof s == "string") {
       return s.toUpperCase().charCodeAt(0);
-    } else {
-      return s;
     }
+    return s;
   }
   var _keyCodeToKeyIdentifier = {9:"Tab", 13:"Enter", 16:"Shift", 17:"Control", 18:"Alt", 27:"Escape", 37:"Left", 38:"Up", 39:"Right", 40:"Down", 46:"Delete", 91:"Win"};
   var Keyboard = function(element, options) {
@@ -18404,6 +19223,9 @@ pc.extend(pc, function() {
   };
   Keyboard.prototype._handleKeyUp = function(event) {
     var code = event.keyCode || event.charCode;
+    if (code === undefined) {
+      return;
+    }
     var id = this.toKeyIdentifier(code);
     delete this._keymap[id];
     this.fire("keyup", makeKeyboardEvent(event));
@@ -18415,8 +19237,6 @@ pc.extend(pc, function() {
     }
   };
   Keyboard.prototype._handleKeyPress = function(event) {
-    var code = event.keyCode || event.charCode;
-    var id = this.toKeyIdentifier(code);
     this.fire("keypress", makeKeyboardEvent(event));
     if (this.preventDefault) {
       event.preventDefault();
@@ -18425,7 +19245,7 @@ pc.extend(pc, function() {
       event.stopPropagation();
     }
   };
-  Keyboard.prototype.update = function(dt) {
+  Keyboard.prototype.update = function() {
     var prop;
     for (prop in this._lastmap) {
       delete this._lastmap[prop];
@@ -18451,7 +19271,7 @@ pc.extend(pc, function() {
     var id = this.toKeyIdentifier(keyCode);
     return !!!this._keymap[id] && !!this._lastmap[id];
   };
-  return {Keyboard:Keyboard};
+  return {Keyboard:Keyboard, KeyboardEvent:KeyboardEvent};
 }());
 pc.extend(pc, function() {
   var GamePads = function() {
@@ -18460,10 +19280,10 @@ pc.extend(pc, function() {
     this.previous = [];
     this.deadZone = .25;
   };
-  var MAPS = {DEFAULT:{buttons:["PAD_FACE_1", "PAD_FACE_2", "PAD_FACE_3", "PAD_FACE_4", "PAD_L_SHOULDER_1", "PAD_R_SHOULDER_1", "PAD_L_SHOULDER_2", "PAD_R_SHOULDER_2", "PAD_SELECT", "PAD_START", "PAD_L_STICK_BUTTON", "PAD_R_STICK_BUTTON", "PAD_UP", "PAD_DOWN", "PAD_LEFT", "PAD_RIGHT", "PAD_VENDOR"], axes:["PAD_L_STICK_X", "PAD_L_STICK_Y", "PAD_R_STICK_X", "PAD_R_STICK_Y"]}, PS3:{buttons:["PAD_FACE_1", "PAD_FACE_2", "PAD_FACE_4", "PAD_FACE_3", "PAD_L_SHOULDER_1", "PAD_R_SHOULDER_1", "PAD_L_SHOULDER_2",
+  var MAPS = {DEFAULT:{buttons:["PAD_FACE_1", "PAD_FACE_2", "PAD_FACE_3", "PAD_FACE_4", "PAD_L_SHOULDER_1", "PAD_R_SHOULDER_1", "PAD_L_SHOULDER_2", "PAD_R_SHOULDER_2", "PAD_SELECT", "PAD_START", "PAD_L_STICK_BUTTON", "PAD_R_STICK_BUTTON", "PAD_UP", "PAD_DOWN", "PAD_LEFT", "PAD_RIGHT", "PAD_VENDOR"], axes:["PAD_L_STICK_X", "PAD_L_STICK_Y", "PAD_R_STICK_X", "PAD_R_STICK_Y"]}, PS3:{buttons:["PAD_FACE_1", "PAD_FACE_2", "PAD_FACE_4", "PAD_FACE_3", "PAD_L_SHOULDER_1", "PAD_R_SHOULDER_1", "PAD_L_SHOULDER_2", 
   "PAD_R_SHOULDER_2", "PAD_SELECT", "PAD_START", "PAD_L_STICK_BUTTON", "PAD_R_STICK_BUTTON", "PAD_UP", "PAD_DOWN", "PAD_LEFT", "PAD_RIGHT", "PAD_VENDOR"], axes:["PAD_L_STICK_X", "PAD_L_STICK_Y", "PAD_R_STICK_X", "PAD_R_STICK_Y"]}};
   var PRODUCT_CODES = {"Product: 0268":"PS3"};
-  GamePads.prototype = {update:function(dt) {
+  GamePads.prototype = {update:function() {
     var i, j, l;
     var buttons, buttonsLen;
     for (i = 0, l = this.current.length;i < l;i++) {
@@ -18526,6 +19346,14 @@ pc.extend(pc, function() {
   return {GamePads:GamePads};
 }());
 pc.extend(pc, function() {
+  var Touch = function(touch) {
+    var coords = pc.getTouchTargetCoords(touch);
+    this.id = touch.identifier;
+    this.x = coords.x;
+    this.y = coords.y;
+    this.target = touch.target;
+    this.touch = touch;
+  };
   var TouchEvent = function(device, event) {
     this.element = event.target;
     this.event = event;
@@ -18551,14 +19379,6 @@ pc.extend(pc, function() {
     }
     return null;
   }};
-  var Touch = function(touch) {
-    var coords = pc.getTouchTargetCoords(touch);
-    this.id = touch.identifier;
-    this.x = coords.x;
-    this.y = coords.y;
-    this.target = touch.target;
-    this.touch = touch;
-  };
   var TouchDevice = function(element) {
     this._startHandler = this._handleTouchStart.bind(this);
     this._endHandler = this._handleTouchEnd.bind(this);
@@ -18597,8 +19417,6 @@ pc.extend(pc, function() {
   return {getTouchTargetCoords:function(touch) {
     var totalOffsetX = 0;
     var totalOffsetY = 0;
-    var canvasX = 0;
-    var canvasY = 0;
     var target = touch.target;
     while (!(target instanceof HTMLElement)) {
       target = target.parentNode;
@@ -18610,7 +19428,7 @@ pc.extend(pc, function() {
       currentElement = currentElement.offsetParent;
     } while (currentElement);
     return {x:touch.pageX - totalOffsetX, y:touch.pageY - totalOffsetY};
-  }, TouchDevice:TouchDevice};
+  }, TouchDevice:TouchDevice, TouchEvent:TouchEvent};
 }());
 pc.extend(pc, function() {
   var Controller = function(element, options) {
@@ -18882,6 +19700,9 @@ pc.extend(pc, function() {
   var _pd = new pc.Vec3;
   var _m = new pc.Vec3;
   var _sct = new pc.Vec3;
+  var scalarTriple = function(p1, p2, p3) {
+    return _sct.cross(p1, p2).dot(p3);
+  };
   var intersectLineQuad = function(p, q, corners) {
     _pq.sub2(q, p);
     _pa.sub2(corners[0], p);
@@ -18905,10 +19726,13 @@ pc.extend(pc, function() {
         return false;
       }
     }
+    if (_pq.sub2(corners[0], corners[2]).lengthSq() < 1E-4 * 1E-4) {
+      return false;
+    }
+    if (_pq.sub2(corners[1], corners[3]).lengthSq() < 1E-4 * 1E-4) {
+      return false;
+    }
     return true;
-  };
-  var scalarTriple = function(p1, p2, p3) {
-    return _sct.cross(p1, p2).dot(p3);
   };
   var ElementInputEvent = function(event, element) {
     this.event = event;
@@ -18997,7 +19821,6 @@ pc.extend(pc, function() {
       return;
     }
     this._attached = false;
-    this._target = null;
     window.removeEventListener("mouseup", this._upHandler, false);
     window.removeEventListener("mousedown", this._downHandler, false);
     window.removeEventListener("mousemove", this._moveHandler, false);
@@ -19007,6 +19830,7 @@ pc.extend(pc, function() {
     this._target.removeEventListener("touchend", this._touchendHandler, false);
     this._target.removeEventListener("touchmove", this._touchmoveHandler, false);
     this._target.removeEventListener("touchcancel", this._touchcancelHandler, false);
+    this._target = null;
   }, addElement:function(element) {
     if (this._elements.indexOf(element) === -1) {
       this._elements.push(element);
@@ -19050,10 +19874,11 @@ pc.extend(pc, function() {
     this._onElementMouseEvent(event);
   }, _handleTouchStart:function(event) {
     var cameras = this.app.systems.camera.cameras;
-    for (var i = cameras.length - 1;i >= 0;i--) {
+    var i, j, len;
+    for (i = cameras.length - 1;i >= 0;i--) {
       var camera = cameras[i];
       var done = 0;
-      for (var j = 0, len = event.changedTouches.length;j < len;j++) {
+      for (j = 0, len = event.changedTouches.length;j < len;j++) {
         if (this._touchedElements[event.changedTouches[j].identifier]) {
           done++;
           continue;
@@ -19170,8 +19995,6 @@ pc.extend(pc, function() {
   }, _calcTouchCoords:function(touch) {
     var totalOffsetX = 0;
     var totalOffsetY = 0;
-    var canvasX = 0;
-    var canvasY = 0;
     var target = touch.target;
     while (!(target instanceof HTMLElement)) {
       target = target.parentNode;
@@ -19256,8 +20079,9 @@ pc.extend(pc, function() {
       _x = sw * (_x - cameraLeft) / cameraWidth;
       _y = sh * (_y - cameraTop) / cameraHeight;
       var worldCorners = element.worldCorners;
-      var start = camera.entity.getPosition();
-      var end = vecA;
+      var start = vecA;
+      var end = vecB;
+      camera.screenToWorld(_x, _y, camera.nearClip, start);
       camera.screenToWorld(_x, _y, camera.farClip, end);
       if (intersectLineQuad(start, end, worldCorners)) {
         return true;
@@ -19320,7 +20144,6 @@ pc.extend(pc, function() {
       }
     }
   }, _getDisplays:function(callback) {
-    var self = this;
     if (navigator.getVRDisplays) {
       navigator.getVRDisplays().then(function(displays) {
         if (callback) {
@@ -19760,15 +20583,11 @@ pc.extend(pc, function() {
     var response;
     var header;
     var contentType;
-    var parameter;
     var parts;
     header = xhr.getResponseHeader("Content-Type");
     if (header) {
       parts = header.split(";");
       contentType = parts[0].trim();
-      if (parts[1]) {
-        parameter = parts[1].trim();
-      }
     }
     if (contentType === this.ContentType.JSON || url.split("?")[0].endsWith(".json")) {
       response = JSON.parse(xhr.responseText);
@@ -19827,7 +20646,7 @@ pc.extend(pc, function() {
         return;
       }
       var components = self.app.systems.script._components;
-      var i, s, scriptInstance, attributes;
+      var i, scriptInstance, attributes;
       var scriptInstances = [];
       var scriptInstancesInitialized = [];
       for (i = 0;i < components.length;i++) {
@@ -19854,6 +20673,9 @@ pc.extend(pc, function() {
         }
       }
       for (i = 0;i < scriptInstancesInitialized.length;i++) {
+        if (!scriptInstancesInitialized[i].enabled || scriptInstancesInitialized[i]._postInitialized) {
+          continue;
+        }
         scriptInstancesInitialized[i]._postInitialized = true;
         if (scriptInstancesInitialized[i].postInitialize) {
           scriptInstancesInitialized[i].postInitialize();
@@ -19862,10 +20684,9 @@ pc.extend(pc, function() {
     });
     return true;
   };
-  ScriptRegistry.prototype.remove = function(script) {
-    var name = script;
-    if (typeof script === "function") {
-      name = script.__name;
+  ScriptRegistry.prototype.remove = function(name) {
+    if (typeof name === "function") {
+      name = name.__name;
     }
     if (!this._scripts.hasOwnProperty(name)) {
       return false;
@@ -19908,71 +20729,44 @@ pc.extend(pc, function() {
           } else {
             if (typeof value === "boolean") {
               return 0 + value;
+            }
+          }
+        }
+        return null;
+      case "json":
+        if (typeof value === "object") {
+          return value;
+        }
+        try {
+          return JSON.parse(value);
+        } catch (ex) {
+          return null;
+        }
+      ;
+      case "asset":
+        if (value instanceof pc.Asset) {
+          return value;
+        } else {
+          if (typeof value === "number") {
+            return app.assets.get(value) || null;
+          } else {
+            if (typeof value === "string") {
+              return app.assets.get(parseInt(value, 10)) || null;
             } else {
               return null;
             }
           }
         }
-        break;
-      case "json":
-        if (typeof value === "object") {
-          return value;
-        } else {
-          try {
-            return JSON.parse(value);
-          } catch (ex) {
-            return null;
-          }
-        }
-        break;
-      case "asset":
-        if (args.array) {
-          var result = [];
-          if (value instanceof Array) {
-            for (i = 0;i < value.length;i++) {
-              if (value[i] instanceof pc.Asset) {
-                result.push(value[i]);
-              } else {
-                if (typeof value[i] === "number") {
-                  result.push(app.assets.get(value[i]) || null);
-                } else {
-                  if (typeof value[i] === "string") {
-                    result.push(app.assets.get(parseInt(value[i], 10)) || null);
-                  } else {
-                    result.push(null);
-                  }
-                }
-              }
-            }
-          }
-          return result;
-        } else {
-          if (value instanceof pc.Asset) {
-            return value;
-          } else {
-            if (typeof value === "number") {
-              return app.assets.get(value) || null;
-            } else {
-              if (typeof value === "string") {
-                return app.assets.get(parseInt(value, 10)) || null;
-              } else {
-                return null;
-              }
-            }
-          }
-        }
-        break;
+      ;
       case "entity":
         if (value instanceof pc.GraphNode) {
           return value;
         } else {
           if (typeof value === "string") {
             return app.root.findByGuid(value);
-          } else {
-            return null;
           }
         }
-        break;
+        return null;
       case "rgb":
       ;
       case "rgba":
@@ -19980,9 +20774,8 @@ pc.extend(pc, function() {
           if (old instanceof pc.Color) {
             old.copy(value);
             return old;
-          } else {
-            return value.clone();
           }
+          return value.clone();
         } else {
           if (value instanceof Array && value.length >= 3 && value.length <= 4) {
             for (i = 0;i < value.length;i++) {
@@ -20004,12 +20797,10 @@ pc.extend(pc, function() {
               }
               old.fromString(value);
               return old;
-            } else {
-              return null;
             }
           }
         }
-        break;
+        return null;
       case "vec2":
       ;
       case "vec3":
@@ -20020,9 +20811,8 @@ pc.extend(pc, function() {
           if (old instanceof pc["Vec" + len]) {
             old.copy(value);
             return old;
-          } else {
-            return value.clone();
           }
+          return value.clone();
         } else {
           if (value instanceof Array && value.length === len) {
             for (i = 0;i < value.length;i++) {
@@ -20037,11 +20827,9 @@ pc.extend(pc, function() {
               old.data[i] = value[i];
             }
             return old;
-          } else {
-            return null;
           }
         }
-        break;
+        return null;
       case "curve":
         if (value) {
           var curve;
@@ -20064,11 +20852,9 @@ pc.extend(pc, function() {
   };
   ScriptAttributes.prototype.add = function(name, args) {
     if (this.index[name]) {
-      console.warn("attribute '" + name + "' is already defined for script type '" + this.scriptType.name + "'");
       return;
     } else {
       if (pc.createScript.reservedAttributes[name]) {
-        console.warn("attribute '" + name + "' is a reserved attribute name");
         return;
       }
     }
@@ -20077,7 +20863,18 @@ pc.extend(pc, function() {
       return this.__attributes[name];
     }, set:function(raw) {
       var old = this.__attributes[name];
-      this.__attributes[name] = rawToValue(this.app, args, raw, old);
+      if (args.array) {
+        this.__attributes[name] = [];
+        if (raw) {
+          var i;
+          var len;
+          for (i = 0, len = raw.length;i < len;i++) {
+            this.__attributes[name].push(rawToValue(this.app, args, raw[i], old ? old[i] : null));
+          }
+        }
+      } else {
+        this.__attributes[name] = rawToValue(this.app, args, raw, old);
+      }
       this.fire("attr", name, this.__attributes[name], old);
       this.fire("attr:" + name, this.__attributes[name], old);
     }});
@@ -20098,21 +20895,18 @@ pc.extend(pc, function() {
   };
   var createScript = function(name, app) {
     if (pc.script.legacy) {
-      console.error("This project is using the legacy script system. You cannot call pc.createScript(). See: http://developer.playcanvas.com/en/user-manual/scripting/legacy/");
       return null;
     }
     if (createScript.reservedScripts[name]) {
       throw new Error("script name: '" + name + "' is reserved, please change script name");
     }
     var script = function(args) {
-      if (!args || !args.app || !args.entity) {
-        console.warn("script '" + name + "' has missing arguments in consructor");
-      }
       pc.events.attach(this);
       this.app = args.app;
       this.entity = args.entity;
       this._enabled = typeof args.enabled === "boolean" ? args.enabled : true;
       this._enabledOld = this.enabled;
+      this.__destroyed = false;
       this.__attributes = {};
       this.__attributesRaw = args.attributes || null;
       this.__scriptType = script;
@@ -20147,16 +20941,27 @@ pc.extend(pc, function() {
       }
     };
     Object.defineProperty(script.prototype, "enabled", {get:function() {
-      return this._enabled && this.entity.script.enabled && this.entity.enabled;
+      return this._enabled && !this._destroyed && this.entity.script.enabled && this.entity.enabled;
     }, set:function(value) {
-      value = !!value;
-      if (this._enabled !== value) {
-        this._enabled = value;
+      this._enabled = !!value;
+      if (this.enabled === this._enabledOld) {
+        return;
       }
-      if (this.enabled !== this._enabledOld) {
-        this._enabledOld = this.enabled;
-        this.fire(this.enabled ? "enable" : "disable");
-        this.fire("state", this.enabled);
+      this._enabledOld = this.enabled;
+      this.fire(this.enabled ? "enable" : "disable");
+      this.fire("state", this.enabled);
+      if (!this._initialized && this.enabled) {
+        this._initialized = true;
+        this.__initializeAttributes(true);
+        if (this.initialize) {
+          this.entity.script._scriptMethod(this, pc.ScriptComponent.scriptMethods.initialize);
+        }
+      }
+      if (this._initialized && !this._postInitialized && this.enabled && !this.entity.script._beingEnabled) {
+        this._postInitialized = true;
+        if (this.postInitialize) {
+          this.entity.script._scriptMethod(this, pc.ScriptComponent.scriptMethods.postInitialize);
+        }
       }
     }});
     var registry = app ? app.scripts : pc.Application.getApplication().scripts;
@@ -20171,7 +20976,7 @@ pc.extend(pc, function() {
     reservedScripts[createScript.reservedScripts[i]] = 1;
   }
   createScript.reservedScripts = reservedScripts;
-  createScript.reservedAttributes = ["app", "entity", "enabled", "_enabled", "_enabledOld", "__attributes", "__attributesRaw", "__scriptType", "_callbacks", "has", "on", "off", "fire", "once", "hasEvent"];
+  createScript.reservedAttributes = ["app", "entity", "enabled", "_enabled", "_enabledOld", "_destroyed", "__attributes", "__attributesRaw", "__scriptType", "_callbacks", "has", "on", "off", "fire", "once", "hasEvent"];
   var reservedAttributes = {};
   for (i = 0;i < createScript.reservedAttributes.length;i++) {
     reservedAttributes[createScript.reservedAttributes[i]] = 1;
@@ -20180,8 +20985,6 @@ pc.extend(pc, function() {
   return {createScript:createScript};
 }());
 pc.script = function() {
-  var _main = null;
-  var _loader = null;
   var _legacy = false;
   var _createdLoadingScreen = false;
   var script = {app:null, create:function(name, callback) {
@@ -20218,6 +21021,7 @@ pc.extend(pc, function() {
     Application._currentApplication = this;
     this._time = 0;
     this.timeScale = 1;
+    this.maxDeltaTime = .1;
     this.autoRender = true;
     this.renderNextFrame = false;
     this._librariesLoaded = false;
@@ -20241,7 +21045,163 @@ pc.extend(pc, function() {
     }
     this.scriptsOrder = options.scriptsOrder || [];
     this.scripts = new pc.ScriptRegistry(this);
+    var self = this;
+    this.defaultLayerWorld = new pc.Layer({name:"World", id:pc.LAYERID_WORLD});
+    if (this.graphicsDevice.webgl2) {
+      this.defaultLayerDepth = new pc.Layer({enabled:false, name:"Depth", id:pc.LAYERID_DEPTH, onEnable:function() {
+        if (this.renderTarget) {
+          return;
+        }
+        var depthBuffer = new pc.Texture(self.graphicsDevice, {format:pc.PIXELFORMAT_DEPTHSTENCIL, width:self.graphicsDevice.width, height:self.graphicsDevice.height});
+        depthBuffer.minFilter = pc.FILTER_NEAREST;
+        depthBuffer.magFilter = pc.FILTER_NEAREST;
+        depthBuffer.addressU = pc.ADDRESS_CLAMP_TO_EDGE;
+        depthBuffer.addressV = pc.ADDRESS_CLAMP_TO_EDGE;
+        this.renderTarget = new pc.RenderTarget({colorBuffer:null, depthBuffer:depthBuffer, autoResolve:false});
+        self.graphicsDevice.scope.resolve("uDepthMap").setValue(depthBuffer);
+      }, onDisable:function() {
+        if (!this.renderTarget) {
+          return;
+        }
+        this.renderTarget._depthBuffer.destroy();
+        this.renderTarget.destroy();
+        this.renderTarget = null;
+      }, onPreRenderOpaque:function(cameraPass) {
+        var gl = self.graphicsDevice.gl;
+        this.srcFbo = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+        if (!this.renderTarget || (this.renderTarget.width !== self.graphicsDevice.width || this.renderTarget.height !== self.graphicsDevice.height)) {
+          this.onDisable();
+          this.onEnable();
+        }
+        this.oldClear = this.cameras[cameraPass].camera._clearOptions;
+        this.cameras[cameraPass].camera._clearOptions = this.depthClearOptions;
+      }, onPostRenderOpaque:function(cameraPass) {
+        if (!this.renderTarget) {
+          return;
+        }
+        this.cameras[cameraPass].camera._clearOptions = this.oldClear;
+        var gl = self.graphicsDevice.gl;
+        self.graphicsDevice.setRenderTarget(this.renderTarget);
+        self.graphicsDevice.updateBegin();
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.srcFbo);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.renderTarget._glFrameBuffer);
+        gl.blitFramebuffer(0, 0, this.renderTarget.width, this.renderTarget.height, 0, 0, this.renderTarget.width, this.renderTarget.height, gl.DEPTH_BUFFER_BIT, gl.NEAREST);
+      }});
+      this.defaultLayerDepth.depthClearOptions = {flags:0};
+    } else {
+      this.defaultLayerDepth = new pc.Layer({enabled:false, name:"Depth", id:pc.LAYERID_DEPTH, shaderPass:pc.SHADER_DEPTH, onEnable:function() {
+        if (this.renderTarget) {
+          return;
+        }
+        var colorBuffer = new pc.Texture(self.graphicsDevice, {format:pc.PIXELFORMAT_R8_G8_B8_A8, width:self.graphicsDevice.width, height:self.graphicsDevice.height});
+        colorBuffer.minFilter = pc.FILTER_NEAREST;
+        colorBuffer.magFilter = pc.FILTER_NEAREST;
+        colorBuffer.addressU = pc.ADDRESS_CLAMP_TO_EDGE;
+        colorBuffer.addressV = pc.ADDRESS_CLAMP_TO_EDGE;
+        this.renderTarget = new pc.RenderTarget(self.graphicsDevice, colorBuffer, {depth:true, stencil:self.graphicsDevice.supportsStencil});
+        self.graphicsDevice.scope.resolve("uDepthMap").setValue(colorBuffer);
+      }, onDisable:function() {
+        if (!this.renderTarget) {
+          return;
+        }
+        this.renderTarget._colorBuffer.destroy();
+        this.renderTarget.destroy();
+        this.renderTarget = null;
+      }, onPostCull:function(cameraPass) {
+        var visibleObjects = this.instances.visibleOpaque[cameraPass];
+        var visibleList = visibleObjects.list;
+        var visibleLength = 0;
+        var layers = self.scene.layers.layerList;
+        var subLayerEnabled = self.scene.layers.subLayerEnabled;
+        var isTransparent = self.scene.layers.subLayerList;
+        var rt = self.defaultLayerWorld.renderTarget;
+        var cam = this.cameras[cameraPass];
+        var layer;
+        var j;
+        var layerVisibleList, layerCamId, layerVisibleListLength, drawCall, transparent;
+        for (var i = 0;i < layers.length;i++) {
+          layer = layers[i];
+          if (layer === this) {
+            break;
+          }
+          if (layer.renderTarget !== rt || !layer.enabled || !subLayerEnabled[i]) {
+            continue;
+          }
+          layerCamId = layer.cameras.indexOf(cam);
+          if (layerCamId < 0) {
+            continue;
+          }
+          transparent = isTransparent[i];
+          layerVisibleList = transparent ? layer.instances.visibleTransparent[layerCamId] : layer.instances.visibleOpaque[layerCamId];
+          layerVisibleListLength = layerVisibleList.length;
+          layerVisibleList = layerVisibleList.list;
+          for (j = 0;j < layerVisibleListLength;j++) {
+            drawCall = layerVisibleList[j];
+            if (drawCall.material && drawCall.material.depthWrite && !drawCall._noDepthDrawGl1) {
+              visibleList[visibleLength] = drawCall;
+              visibleLength++;
+            }
+          }
+        }
+        visibleObjects.length = visibleLength;
+      }, onPreRenderOpaque:function(cameraPass) {
+        if (!this.renderTarget || (this.renderTarget.width !== self.graphicsDevice.width || this.renderTarget.height !== self.graphicsDevice.height)) {
+          this.onDisable();
+          this.onEnable();
+        }
+        this.oldClear = this.cameras[cameraPass].camera._clearOptions;
+        this.cameras[cameraPass].camera._clearOptions = this.rgbaDepthClearOptions;
+      }, onDrawCall:function() {
+        self.graphicsDevice.setColorWrite(true, true, true, true);
+      }, onPostRenderOpaque:function(cameraPass) {
+        if (!this.renderTarget) {
+          return;
+        }
+        this.cameras[cameraPass].camera._clearOptions = this.oldClear;
+      }});
+      this.defaultLayerDepth.rgbaDepthClearOptions = {color:[254 / 255, 254 / 255, 254 / 255, 254 / 255], depth:1, flags:pc.CLEARFLAG_COLOR | pc.CLEARFLAG_DEPTH};
+    }
+    this.defaultLayerSkybox = new pc.Layer({enabled:false, name:"Skybox", id:pc.LAYERID_SKYBOX, opaqueSortMode:pc.SORTMODE_NONE});
+    this.defaultLayerUi = new pc.Layer({enabled:true, name:"UI", id:pc.LAYERID_UI, transparentSortMode:pc.SORTMODE_MANUAL, passThrough:true});
+    this.defaultLayerImmediate = new pc.Layer({enabled:true, name:"Immediate", id:pc.LAYERID_IMMEDIATE, opaqueSortMode:pc.SORTMODE_NONE, passThrough:true});
+    this.defaultLayerComposition = new pc.LayerComposition;
+    this.defaultLayerComposition.pushOpaque(this.defaultLayerWorld);
+    this.defaultLayerComposition.pushOpaque(this.defaultLayerDepth);
+    this.defaultLayerComposition.pushOpaque(this.defaultLayerSkybox);
+    this.defaultLayerComposition.pushTransparent(this.defaultLayerWorld);
+    this.defaultLayerComposition.pushOpaque(this.defaultLayerImmediate);
+    this.defaultLayerComposition.pushTransparent(this.defaultLayerImmediate);
+    this.defaultLayerComposition.pushTransparent(this.defaultLayerUi);
+    this.scene.layers = this.defaultLayerComposition;
+    this._immediateLayer = this.defaultLayerImmediate;
+    this.scene.on("set:layers", function(oldComp, newComp) {
+      var list = newComp.layerList;
+      var layer;
+      for (var i = 0;i < list.length;i++) {
+        layer = list[i];
+        switch(layer.id) {
+          case pc.LAYERID_DEPTH:
+            layer.onEnable = self.defaultLayerDepth.onEnable;
+            layer.onDisable = self.defaultLayerDepth.onDisable;
+            layer.onPreRenderOpaque = self.defaultLayerDepth.onPreRenderOpaque;
+            layer.onPostRenderOpaque = self.defaultLayerDepth.onPostRenderOpaque;
+            layer.depthClearOptions = self.defaultLayerDepth.depthClearOptions;
+            layer.rgbaDepthClearOptions = self.defaultLayerDepth.rgbaDepthClearOptions;
+            layer.shaderPass = self.defaultLayerDepth.shaderPass;
+            layer.onPostCull = self.defaultLayerDepth.onPostCull;
+            layer.onDrawCall = self.defaultLayerDepth.onDrawCall;
+            break;
+          case pc.LAYERID_UI:
+            layer.passThrough = self.defaultLayerUi.passThrough;
+            break;
+          case pc.LAYERID_IMMEDIATE:
+            layer.passThrough = self.defaultLayerImmediate.passThrough;
+            break;
+        }
+      }
+    });
     this.renderer = new pc.ForwardRenderer(this.graphicsDevice);
+    this.renderer.scene = this.scene;
     this.lightmapper = new pc.Lightmapper(this.graphicsDevice, this.root, this.scene, this.renderer, this.assets);
     this.once("prerender", this._firstBake, this);
     this.batcher = new pc.BatchManager(this.graphicsDevice, this.root, this.scene);
@@ -20281,25 +21241,27 @@ pc.extend(pc, function() {
     this.loader.addHandler("binary", new pc.BinaryHandler);
     this.loader.addHandler("textureatlas", new pc.TextureAtlasHandler(this.loader));
     this.loader.addHandler("sprite", new pc.SpriteHandler(this.assets, this.graphicsDevice));
-    var rigidbodysys = new pc.RigidBodyComponentSystem(this);
-    var collisionsys = new pc.CollisionComponentSystem(this);
-    var animationsys = new pc.AnimationComponentSystem(this);
-    var modelsys = new pc.ModelComponentSystem(this);
-    var camerasys = new pc.CameraComponentSystem(this);
-    var lightsys = new pc.LightComponentSystem(this);
+    new pc.RigidBodyComponentSystem(this);
+    new pc.CollisionComponentSystem(this);
+    new pc.AnimationComponentSystem(this);
+    new pc.ModelComponentSystem(this);
+    new pc.CameraComponentSystem(this);
+    new pc.LightComponentSystem(this);
     if (pc.script.legacy) {
       new pc.ScriptLegacyComponentSystem(this);
     } else {
       new pc.ScriptComponentSystem(this);
     }
-    var audiosourcesys = new pc.AudioSourceComponentSystem(this, this._audioManager);
-    var soundsys = new pc.SoundComponentSystem(this, this._audioManager);
-    var audiolistenersys = new pc.AudioListenerComponentSystem(this, this._audioManager);
-    var particlesystemsys = new pc.ParticleSystemComponentSystem(this);
-    var screensys = new pc.ScreenComponentSystem(this);
-    var elementsys = new pc.ElementComponentSystem(this);
-    var spritesys = new pc.SpriteComponentSystem(this);
-    var zonesys = new pc.ZoneComponentSystem(this);
+    new pc.AudioSourceComponentSystem(this, this._audioManager);
+    new pc.SoundComponentSystem(this, this._audioManager);
+    new pc.AudioListenerComponentSystem(this, this._audioManager);
+    new pc.ParticleSystemComponentSystem(this);
+    new pc.ScreenComponentSystem(this);
+    new pc.ElementComponentSystem(this);
+    new pc.SpriteComponentSystem(this);
+    new pc.LayoutGroupComponentSystem(this);
+    new pc.LayoutChildComponentSystem(this);
+    new pc.ZoneComponentSystem(this);
     this._visibilityChangeHandler = this.onVisibilityChange.bind(this);
     if (document.hidden !== undefined) {
       this._hiddenAttr = "hidden";
@@ -20325,11 +21287,7 @@ pc.extend(pc, function() {
   Application._currentApplication = null;
   Application._applications = {};
   Application.getApplication = function(id) {
-    if (id) {
-      return Application._applications[id];
-    } else {
-      return Application._currentApplication;
-    }
+    return id ? Application._applications[id] : Application._currentApplication;
   };
   var Progress = function(length) {
     this.length = length;
@@ -20350,8 +21308,6 @@ pc.extend(pc, function() {
       }
       var props = response.application_properties;
       var assets = response.assets;
-      var scripts = response.scripts;
-      var priorityScripts = response.priority_scripts;
       self._parseApplicationProperties(props, function(err) {
         self._onVrChange(props.vr);
         self._parseAssets(assets);
@@ -20428,7 +21384,9 @@ pc.extend(pc, function() {
         return;
       }
       var _loaded = function() {
+        self.systems.script.preloading = true;
         var entity = handler.open(url, data);
+        self.systems.script.preloading = false;
         self.loader.clearCache(url, "hierarchy");
         self.root.addChild(entity);
         pc.ComponentSystem.initialize(entity);
@@ -20464,7 +21422,9 @@ pc.extend(pc, function() {
     handler.load(url, function(err, data) {
       if (!err) {
         var _loaded = function() {
+          self.systems.script.preloading = true;
           var scene = handler.open(url, data);
+          self.systems.script.preloading = false;
           self.loader.clearCache(url, "scene");
           self.loader.patch({resource:scene, type:"scene"}, self.assets);
           self.root.addChild(scene.root);
@@ -20517,6 +21477,8 @@ pc.extend(pc, function() {
       callback();
     }
   }, _parseApplicationProperties:function(props, callback) {
+    var i;
+    var len;
     if (!props.useDevicePixelRatio) {
       props.useDevicePixelRatio = props.use_device_pixel_ratio;
     }
@@ -20541,10 +21503,34 @@ pc.extend(pc, function() {
         props.libraries.push(props.vrPolyfillUrl);
       }
     }
+    if (props.layers && props.layerOrder) {
+      var composition = new pc.LayerComposition;
+      var layers = {};
+      for (var key in props.layers) {
+        var data = props.layers[key];
+        data.id = parseInt(key, 10);
+        data.enabled = data.id !== pc.LAYERID_DEPTH;
+        layers[key] = new pc.Layer(data);
+      }
+      for (i = 0, len = props.layerOrder.length;i < len;i++) {
+        var sublayer = props.layerOrder[i];
+        var layer = layers[sublayer.layer];
+        if (!layer) {
+          continue;
+        }
+        if (sublayer.transparent) {
+          composition.pushTransparent(layer);
+        } else {
+          composition.pushOpaque(layer);
+        }
+        composition.subLayerEnabled[i] = sublayer.enabled;
+      }
+      this.scene.layers = composition;
+    }
     if (props.batchGroups) {
-      for (var i = 0, len = props.batchGroups.length;i < len;i++) {
+      for (i = 0, len = props.batchGroups.length;i < len;i++) {
         var grp = props.batchGroups[i];
-        this.batcher.addGroup(grp.name, grp.dynamic, grp.maxAabbSize, grp.id);
+        this.batcher.addGroup(grp.name, grp.dynamic, grp.maxAabbSize, grp.id, grp.layers);
       }
     }
     this._loadLibraries(props.libraries, callback);
@@ -20577,7 +21563,6 @@ pc.extend(pc, function() {
     }
   }, _parseAssets:function(assets) {
     var i, id;
-    var scripts = [];
     var list = [];
     var scriptsIndex = {};
     if (!pc.script.legacy) {
@@ -20603,7 +21588,7 @@ pc.extend(pc, function() {
     for (i = 0;i < list.length;i++) {
       var data = list[i];
       var asset = new pc.Asset(data.name, data.type, data.file, data.data);
-      asset.id = parseInt(data.id);
+      asset.id = parseInt(data.id, 10);
       asset.preload = data.preload ? data.preload : false;
       asset.tags.add(data.tags);
       this.assets.add(asset);
@@ -20670,17 +21655,11 @@ pc.extend(pc, function() {
     }
   }, render:function() {
     this.fire("prerender");
-    var cameras = this.systems.camera.cameras;
-    var camera = null;
-    var renderer = this.renderer;
     this.root.syncHierarchy();
     this.batcher.updateAll();
-    for (var i = 0, len = cameras.length;i < len;i++) {
-      camera = cameras[i];
-      camera.frameBegin();
-      renderer.render(this.scene, camera.camera);
-      camera.frameEnd();
-    }
+    pc._skipRenderCounter = 0;
+    this.renderer.renderComposition(this.scene.layers);
+    this.fire("postrender");
   }, _fillFrameStats:function(now, dt, ms) {
     var stats = this.stats.frame;
     stats.dt = dt;
@@ -20727,14 +21706,14 @@ pc.extend(pc, function() {
     this.renderer._forwardTime = 0;
     stats = this.stats.drawCalls;
     stats.forward = this.renderer._forwardDrawCalls;
-    stats.depth = this.renderer._depthDrawCalls;
+    stats.depth = 0;
     stats.shadow = this.renderer._shadowDrawCalls;
     stats.skinned = this.renderer._skinDrawCalls;
-    stats.immediate = this.renderer._immediateRendered;
-    stats.instanced = this.renderer._instancedDrawCalls;
-    stats.removedByInstancing = this.renderer._removedByInstancing;
+    stats.immediate = 0;
+    stats.instanced = 0;
+    stats.removedByInstancing = 0;
     stats.total = this.graphicsDevice._drawCallsPerFrame;
-    stats.misc = stats.total - (stats.forward + stats.depth + stats.shadow);
+    stats.misc = stats.total - (stats.forward + stats.shadow);
     this.renderer._depthDrawCalls = 0;
     this.renderer._shadowDrawCalls = 0;
     this.renderer._forwardDrawCalls = 0;
@@ -20793,7 +21772,7 @@ pc.extend(pc, function() {
     document.exitFullscreen();
   }, isHidden:function() {
     return document[this._hiddenAttr];
-  }, onVisibilityChange:function(e) {
+  }, onVisibilityChange:function() {
     if (this.isHidden()) {
       this._audioManager.suspend();
     } else {
@@ -20923,6 +21902,9 @@ pc.extend(pc, function() {
     this.batcher.generate();
   }, destroy:function() {
     Application._applications[this.graphicsDevice.canvas.id] = null;
+    if (Application._currentApplication === this) {
+      Application._currentApplication = null;
+    }
     this.off("librariesloaded");
     document.removeEventListener("visibilitychange", this._visibilityChangeHandler);
     document.removeEventListener("mozvisibilitychange", this._visibilityChangeHandler);
@@ -20935,12 +21917,14 @@ pc.extend(pc, function() {
       this.mouse.off("mousedown");
       this.mouse.off("mousewheel");
       this.mouse.off("mousemove");
+      this.mouse.detach();
       this.mouse = null;
     }
     if (this.keyboard) {
       this.keyboard.off("keydown");
       this.keyboard.off("keyup");
       this.keyboard.off("keypress");
+      this.keyboard.detach();
       this.keyboard = null;
     }
     if (this.touch) {
@@ -20948,7 +21932,12 @@ pc.extend(pc, function() {
       this.touch.off("touchend");
       this.touch.off("touchmove");
       this.touch.off("touchcancel");
+      this.touch.detach();
       this.touch = null;
+    }
+    if (this.elementInput) {
+      this.elementInput.detach();
+      this.elementInput = null;
     }
     if (this.controller) {
       this.controller = null;
@@ -20968,6 +21957,7 @@ pc.extend(pc, function() {
     this.graphicsDevice.destroyed = true;
     this.graphicsDevice = null;
     this.renderer = null;
+    this.tick = null;
     if (this._audioManager) {
       this._audioManager.destroy();
       this._audioManager = null;
@@ -20976,6 +21966,7 @@ pc.extend(pc, function() {
     pc.ParticleEmitter.DEFAULT_PARAM_TEXTURE = null;
     pc.destroyPostEffectQuad();
   }};
+  var _frameEndData = {};
   var makeTick = function(_app) {
     var app = _app;
     return function(timestamp) {
@@ -20987,12 +21978,16 @@ pc.extend(pc, function() {
       var now = timestamp || pc.now();
       var ms = now - (app._time || now);
       var dt = ms / 1E3;
+      dt = pc.math.clamp(dt, 0, app.maxDeltaTime);
       dt *= app.timeScale;
       app._time = now;
       if (app.vr && app.vr.display) {
         app.vr.display.requestAnimationFrame(app.tick);
       } else {
         window.requestAnimationFrame(app.tick);
+      }
+      if (app.graphicsDevice.contextLost) {
+        return;
       }
       app.update(dt);
       if (app.autoRender || app.renderNextFrame) {
@@ -21008,7 +22003,6 @@ pc.extend(pc, function() {
       }
     };
   };
-  var _frameEndData = {};
   return {FILLMODE_NONE:"NONE", FILLMODE_FILL_WINDOW:"FILL_WINDOW", FILLMODE_KEEP_ASPECT:"KEEP_ASPECT", RESOLUTION_AUTO:"AUTO", RESOLUTION_FIXED:"FIXED", Application:Application};
 }());
 pc.ApplicationStats = function(device) {
@@ -21176,11 +22170,7 @@ pc.extend(pc, function() {
   };
   Component.prototype = {get data() {
     var record = this.system.store[this.entity._guid];
-    if (record) {
-      return record.data;
-    } else {
-      return null;
-    }
+    return record ? record.data : null;
   }, buildAccessors:function(schema) {
     Component._buildAccessors(this, schema);
   }, onSetEnabled:function(name, oldValue, newValue) {
@@ -21352,11 +22342,7 @@ pc.extend(pc, function() {
       }
     }
     var ids = newValue.map(function(value) {
-      if (value instanceof pc.Asset) {
-        return value.id;
-      } else {
-        return value;
-      }
+      return value instanceof pc.Asset ? value.id : value;
     });
     this.loadAnimationAssets(ids);
   }, onSetLoop:function(name, oldValue, newValue) {
@@ -21433,7 +22419,7 @@ pc.extend(pc, function() {
     AnimationComponentSystem._super.initializeComponentData.call(this, component, data, properties);
   }, cloneComponent:function(entity, clone) {
     var key;
-    var component = this.addComponent(clone, {});
+    this.addComponent(clone, {});
     clone.animation.data.assets = pc.extend([], entity.animation.assets);
     clone.animation.data.speed = entity.animation.speed;
     clone.animation.data.loop = entity.animation.loop;
@@ -21527,6 +22513,7 @@ pc.extend(pc, function() {
     this.on("set_model", this.onSetModel, this);
     this.on("set_material", this.onSetMaterial, this);
     this.on("set_mapping", this.onSetMapping, this);
+    this.on("set_layers", this.onSetLayers, this);
     this.on("set_batchGroupId", this.onSetBatchGroupId, this);
     Object.defineProperty(this, "materialAsset", {set:this.setMaterialAsset.bind(this), get:this.getMaterialAsset.bind(this)});
     this._assetOld = 0;
@@ -21544,12 +22531,29 @@ pc.extend(pc, function() {
       this._onModelLoaded(asset.resource.clone());
       this._clonedModel = true;
     }
+  }, addModelToLayers:function() {
+    var layer;
+    for (var i = 0;i < this.layers.length;i++) {
+      layer = this.system.app.scene.layers.getLayerById(this.layers[i]);
+      if (!layer) {
+        continue;
+      }
+      layer.addMeshInstances(this.meshInstances);
+    }
+  }, removeModelFromLayers:function(model) {
+    var layer;
+    for (var i = 0;i < this.layers.length;i++) {
+      layer = this.system.app.scene.layers.getLayerById(this.layers[i]);
+      if (!layer) {
+        continue;
+      }
+      layer.removeMeshInstances(model.meshInstances);
+    }
   }, _onAssetUnload:function(asset) {
     if (!this.model) {
       return;
     }
-    this.system.app.scene.removeModel(this.model);
-    var device = this.system.app.graphicsDevice;
+    this.removeModelFromLayers(this.model);
     this.model = null;
   }, _onAssetChange:function(asset, attribute, newValue, oldValue) {
     if (attribute === "data") {
@@ -21676,30 +22680,45 @@ pc.extend(pc, function() {
     }
     this._setModelAsset(id);
   }, onSetCastShadows:function(name, oldValue, newValue) {
+    var layer;
+    var i;
     var model = this.data.model;
     if (model) {
+      var layers = this.layers;
       var scene = this.system.app.scene;
-      var inScene = scene.containsModel(model);
-      if (inScene && oldValue && !newValue) {
-        scene.removeShadowCaster(model);
+      if (oldValue && !newValue) {
+        for (i = 0;i < layers.length;i++) {
+          layer = this.system.app.scene.layers.getLayerById(this.layers[i]);
+          if (!layer) {
+            continue;
+          }
+          layer.removeShadowCasters(model.meshInstances);
+        }
       }
       var meshInstances = model.meshInstances;
-      for (var i = 0;i < meshInstances.length;i++) {
+      for (i = 0;i < meshInstances.length;i++) {
         meshInstances[i].castShadow = newValue;
       }
-      if (inScene && !oldValue && newValue) {
-        scene.addShadowCaster(model);
+      if (!oldValue && newValue) {
+        for (i = 0;i < layers.length;i++) {
+          layer = scene.layers.getLayerById(layers[i]);
+          if (!layer) {
+            continue;
+          }
+          layer.addShadowCasters(model.meshInstances);
+        }
       }
     }
   }, onSetCastShadowsLightmap:function(name, oldValue, newValue) {
   }, onSetLightmapped:function(name, oldValue, newValue) {
-    var i, m;
+    var i, m, mask;
     if (this.data.model) {
       var rcv = this.data.model.meshInstances;
       if (newValue) {
         for (i = 0;i < rcv.length;i++) {
           m = rcv[i];
-          m.mask = pc.MASK_BAKED;
+          mask = m.mask;
+          m.mask = (mask | pc.MASK_BAKED) & ~(pc.MASK_DYNAMIC | pc.MASK_LIGHTMAP);
         }
       } else {
         for (i = 0;i < rcv.length;i++) {
@@ -21707,7 +22726,8 @@ pc.extend(pc, function() {
           m.deleteParameter("texture_lightMap");
           m.deleteParameter("texture_dirLightMap");
           m._shaderDefs &= ~pc.SHADERDEF_LM;
-          m.mask = pc.MASK_DYNAMIC;
+          mask = m.mask;
+          m.mask = (mask | pc.MASK_DYNAMIC) & ~(pc.MASK_BAKED | pc.MASK_LIGHTMAP);
         }
       }
     }
@@ -21722,6 +22742,46 @@ pc.extend(pc, function() {
         m.isStatic = newValue;
       }
     }
+  }, onSetLayers:function(name, oldValue, newValue) {
+    if (!this.meshInstances) {
+      return;
+    }
+    var i, layer;
+    for (i = 0;i < oldValue.length;i++) {
+      layer = this.system.app.scene.layers.getLayerById(oldValue[i]);
+      if (!layer) {
+        continue;
+      }
+      layer.removeMeshInstances(this.meshInstances);
+    }
+    if (!this.enabled || !this.entity.enabled) {
+      return;
+    }
+    for (i = 0;i < newValue.length;i++) {
+      layer = this.system.app.scene.layers.getLayerById(newValue[i]);
+      if (!layer) {
+        continue;
+      }
+      layer.addMeshInstances(this.meshInstances);
+    }
+  }, onLayersChanged:function(oldComp, newComp) {
+    this.addModelToLayers();
+    oldComp.off("add", this.onLayerAdded, this);
+    oldComp.off("remove", this.onLayerRemoved, this);
+    newComp.on("add", this.onLayerAdded, this);
+    newComp.on("remove", this.onLayerRemoved, this);
+  }, onLayerAdded:function(layer) {
+    var index = this.layers.indexOf(layer.id);
+    if (index < 0) {
+      return;
+    }
+    layer.addMeshInstances(this.meshInstances);
+  }, onLayerRemoved:function(layer) {
+    var index = this.layers.indexOf(layer.id);
+    if (index < 0) {
+      return;
+    }
+    layer.removeMeshInstances(this.meshInstances);
   }, onSetBatchGroupId:function(name, oldValue, newValue) {
     if (oldValue >= 0) {
       this.system.app.batcher._markGroupDirty(oldValue);
@@ -21730,11 +22790,11 @@ pc.extend(pc, function() {
       this.system.app.batcher._markGroupDirty(newValue);
     }
     if (newValue < 0 && oldValue >= 0 && this.enabled && this.entity.enabled) {
-      this.system.app.scene.addModel(this.model);
+      this.addModelToLayers();
     }
   }, onSetModel:function(name, oldValue, newValue) {
     if (oldValue) {
-      this.system.app.scene.removeModel(oldValue);
+      this.removeModelFromLayers(oldValue);
       this.entity.removeChild(oldValue.getGraph());
       delete oldValue._entity;
       if (this._clonedModel) {
@@ -21753,7 +22813,7 @@ pc.extend(pc, function() {
       this.isStatic = componentData.isStatic;
       this.entity.addChild(newValue.graph);
       if (this.enabled && this.entity.enabled) {
-        this.system.app.scene.addModel(newValue);
+        this.addModelToLayers();
       }
       newValue._entity = this.entity;
       if (this.entity.animation) {
@@ -21800,8 +22860,6 @@ pc.extend(pc, function() {
       }
     }
   }, _onMaterialAssetUnload:function(asset) {
-    var assets = this.system.app.assets;
-    var id = isNaN(asset) ? asset.id : asset;
     if (asset && isNaN(asset) && asset.resource === this.material) {
       this.material = pc.ModelHandler.DEFAULT_MATERIAL;
     }
@@ -21971,14 +23029,16 @@ pc.extend(pc, function() {
     }
   }, onEnable:function() {
     ModelComponent._super.onEnable.call(this);
+    this.system.app.scene.on("set:layers", this.onLayersChanged, this);
+    if (this.system.app.scene.layers) {
+      this.system.app.scene.layers.on("add", this.onLayerAdded, this);
+      this.system.app.scene.layers.on("remove", this.onLayerRemoved, this);
+    }
     var asset;
     var model = this.data.model;
     var isAsset = this.data.type === "asset";
     if (model) {
-      var inScene = this.system.app.scene.containsModel(model);
-      if (!inScene) {
-        this.system.app.scene.addModel(model);
-      }
+      this.addModelToLayers();
     } else {
       if (isAsset && this._dirtyModelAsset) {
         asset = this.data.asset;
@@ -22015,12 +23075,14 @@ pc.extend(pc, function() {
     }
   }, onDisable:function() {
     ModelComponent._super.onDisable.call(this);
+    this.system.app.scene.off("set:layers", this.onLayersChanged, this);
+    if (this.system.app.scene.layers) {
+      this.system.app.scene.layers.off("add", this.onLayerAdded, this);
+      this.system.app.scene.layers.off("remove", this.onLayerRemoved, this);
+    }
     var model = this.data.model;
     if (model) {
-      var inScene = this.system.app.scene.containsModel(model);
-      if (inScene) {
-        this.system.app.scene.removeModel(model);
-      }
+      this.removeModelFromLayers(this.model);
     }
   }, hide:function() {
     var model = this.data.model;
@@ -22055,7 +23117,7 @@ pc.extend(pc, function() {
   return {ModelComponent:ModelComponent};
 }());
 pc.extend(pc, function() {
-  var _schema = ["enabled", "type", "asset", "materialAsset", "castShadows", "receiveShadows", "castShadowsLightmap", "lightmapped", "lightmapSizeMultiplier", "isStatic", "material", "model", "mapping", "batchGroupId"];
+  var _schema = ["enabled", "type", "asset", "materialAsset", "castShadows", "receiveShadows", "castShadowsLightmap", "lightmapped", "lightmapSizeMultiplier", "isStatic", "material", "model", "layers", "batchGroupId", "mapping"];
   var ModelComponentSystem = function ModelComponentSystem(app) {
     this.id = "model";
     this.description = "Renders a 3D model at the location of the Entity.";
@@ -22075,24 +23137,33 @@ pc.extend(pc, function() {
   };
   ModelComponentSystem = pc.inherits(ModelComponentSystem, pc.ComponentSystem);
   pc.Component._buildAccessors(pc.ModelComponent.prototype, _schema);
-  pc.extend(ModelComponentSystem.prototype, {initializeComponentData:function(component, data, properties) {
+  pc.extend(ModelComponentSystem.prototype, {initializeComponentData:function(component, _data, properties) {
+    properties = ["enabled", "material", "materialAsset", "asset", "castShadows", "receiveShadows", "castShadowsLightmap", "lightmapped", "lightmapSizeMultiplier", "type", "mapping", "layers", "isStatic", "batchGroupId"];
+    var data = {};
+    var name;
+    for (var i = 0;i < properties.length;i++) {
+      name = properties[i];
+      data[name] = _data[name];
+    }
     data.material = this.defaultMaterial;
     if (data.batchGroupId === null || data.batchGroupId === undefined) {
       data.batchGroupId = -1;
     }
-    properties = ["enabled", "material", "materialAsset", "asset", "castShadows", "receiveShadows", "castShadowsLightmap", "lightmapped", "lightmapSizeMultiplier", "type", "mapping", "isStatic", "batchGroupId"];
+    if (data.layers && pc.type(data.layers) === "array") {
+      data.layers = data.layers.slice(0);
+    }
     ModelComponentSystem._super.initializeComponentData.call(this, component, data, properties);
   }, removeComponent:function(entity) {
     var data = entity.model.data;
     entity.model.asset = null;
     if (data.type !== "asset" && data.model) {
-      this.app.scene.removeModel(data.model);
+      entity.model.removeModelFromLayers(entity.model.model);
       entity.removeChild(data.model.getGraph());
       data.model = null;
     }
     ModelComponentSystem._super.removeComponent.call(this, entity);
   }, cloneComponent:function(entity, clone) {
-    var data = {type:entity.model.type, asset:entity.model.asset, castShadows:entity.model.castShadows, receiveShadows:entity.model.receiveShadows, castShadowsLightmap:entity.model.castShadowsLightmap, lightmapped:entity.model.lightmapped, lightmapSizeMultiplier:entity.model.lightmapSizeMultiplier, isStatic:entity.model.isStatic, enabled:entity.model.enabled, batchGroupId:entity.model.batchGroupId, mapping:pc.extend({}, entity.model.mapping)};
+    var data = {type:entity.model.type, asset:entity.model.asset, castShadows:entity.model.castShadows, receiveShadows:entity.model.receiveShadows, castShadowsLightmap:entity.model.castShadowsLightmap, lightmapped:entity.model.lightmapped, lightmapSizeMultiplier:entity.model.lightmapSizeMultiplier, isStatic:entity.model.isStatic, enabled:entity.model.enabled, layers:entity.model.layers, batchGroupId:entity.model.batchGroupId, mapping:pc.extend({}, entity.model.mapping)};
     var materialAsset = entity.model.materialAsset;
     if (!(materialAsset instanceof pc.Asset) && materialAsset != null) {
       materialAsset = this.app.assets.get(materialAsset);
@@ -22102,6 +23173,10 @@ pc.extend(pc, function() {
       data.materialAsset = materialAsset;
     }
     var component = this.addComponent(clone, data);
+    if (entity.model.model && entity.model.type === "asset" && !entity.model.asset) {
+      component.model = entity.model.model.clone();
+      component._clonedModel = true;
+    }
     if (!data.materialAsset) {
       component.material = material;
     }
@@ -22116,6 +23191,7 @@ pc.extend(pc, function() {
       }
     }
   }, onRemove:function(entity, component) {
+    entity.model.materialAsset = null;
     component.remove();
   }});
   return {ModelComponentSystem:ModelComponentSystem};
@@ -22133,6 +23209,7 @@ pc.extend(pc, function() {
     this.lightmapped = false;
     this.lightmapSizeMultiplier = 1;
     this.isStatic = false;
+    this.layers = [pc.LAYERID_WORLD];
     this.batchGroupId = -1;
     this.material = null;
     this.model = null;
@@ -22142,6 +23219,7 @@ pc.extend(pc, function() {
 }());
 pc.extend(pc, function() {
   var CameraComponent = function CameraComponent(system, entity) {
+    this.on("set_aspectRatioMode", this.onSetAspectRatioMode, this);
     this.on("set_aspectRatio", this.onSetAspectRatio, this);
     this.on("set_camera", this.onSetCamera, this);
     this.on("set_clearColor", this.onSetClearColor, this);
@@ -22163,6 +23241,7 @@ pc.extend(pc, function() {
     this.on("set_calculateProjection", this.onSetCalculateProjection, this);
     this.on("set_cullFaces", this.onSetCullFaces, this);
     this.on("set_flipFaces", this.onSetFlipFaces, this);
+    this.on("set_layers", this.onSetLayers, this);
   };
   CameraComponent = pc.inherits(CameraComponent, pc.Component);
   Object.defineProperty(CameraComponent.prototype, "projectionMatrix", {get:function() {
@@ -22192,6 +23271,8 @@ pc.extend(pc, function() {
   }, worldToScreen:function(worldCoord, screenCoord) {
     var device = this.system.app.graphicsDevice;
     return this.data.camera.worldToScreen(worldCoord, device.clientRect.width, device.clientRect.height, screenCoord);
+  }, onSetAspectRatioMode:function(name, oldValue, newValue) {
+    this.data.camera.aspectRatioMode = newValue;
   }, onSetAspectRatio:function(name, oldValue, newValue) {
     this.data.camera.aspectRatio = newValue;
   }, onSetCamera:function(name, oldValue, newValue) {
@@ -22230,7 +23311,69 @@ pc.extend(pc, function() {
   }, onSetProjection:function(name, oldValue, newValue) {
     this.data.camera.projection = newValue;
   }, onSetPriority:function(name, oldValue, newValue) {
-    this.system.sortCamerasByPriority();
+    var layer;
+    for (var i = 0;i < this.layers.length;i++) {
+      layer = this.system.app.scene.layers.getLayerById(this.layers[i]);
+      if (!layer) {
+        continue;
+      }
+      layer._sortCameras();
+    }
+  }, onSetLayers:function(name, oldValue, newValue) {
+    var i, layer;
+    for (i = 0;i < oldValue.length;i++) {
+      layer = this.system.app.scene.layers.getLayerById(oldValue[i]);
+      if (!layer) {
+        continue;
+      }
+      layer.removeCamera(this);
+    }
+    if (!this.enabled || !this.entity.enabled) {
+      return;
+    }
+    for (i = 0;i < newValue.length;i++) {
+      layer = this.system.app.scene.layers.getLayerById(newValue[i]);
+      if (!layer) {
+        continue;
+      }
+      layer.addCamera(this);
+    }
+  }, addCameraToLayers:function() {
+    var layer;
+    for (var i = 0;i < this.layers.length;i++) {
+      layer = this.system.app.scene.layers.getLayerById(this.layers[i]);
+      if (!layer) {
+        continue;
+      }
+      layer.addCamera(this);
+    }
+  }, removeCameraFromLayers:function() {
+    var layer;
+    for (var i = 0;i < this.layers.length;i++) {
+      layer = this.system.app.scene.layers.getLayerById(this.layers[i]);
+      if (!layer) {
+        continue;
+      }
+      layer.removeCamera(this);
+    }
+  }, onLayersChanged:function(oldComp, newComp) {
+    this.addCameraToLayers();
+    oldComp.off("add", this.onLayerAdded, this);
+    oldComp.off("remove", this.onLayerRemoved, this);
+    newComp.on("add", this.onLayerAdded, this);
+    newComp.on("remove", this.onLayerRemoved, this);
+  }, onLayerAdded:function(layer) {
+    var index = this.layers.indexOf(layer.id);
+    if (index < 0) {
+      return;
+    }
+    layer.addCamera(this);
+  }, onLayerRemoved:function(layer) {
+    var index = this.layers.indexOf(layer.id);
+    if (index < 0) {
+      return;
+    }
+    layer.removeCamera(this);
   }, updateClearFlags:function() {
     var flags = 0;
     if (this.clearColorBuffer) {
@@ -22247,29 +23390,38 @@ pc.extend(pc, function() {
     this.data.camera.renderTarget = newValue;
   }, onSetRect:function(name, oldValue, newValue) {
     this.data.camera.setRect(newValue.data[0], newValue.data[1], newValue.data[2], newValue.data[3]);
-    this._resetAspectRatio();
   }, onSetScissorRect:function(name, oldValue, newValue) {
     this.data.camera.setScissorRect(newValue.data[0], newValue.data[1], newValue.data[2], newValue.data[3]);
   }, onEnable:function() {
     CameraComponent._super.onEnable.call(this);
     this.system.addCamera(this);
+    this.system.app.scene.on("set:layers", this.onLayersChanged, this);
+    if (this.system.app.scene.layers) {
+      this.system.app.scene.layers.on("add", this.onLayerAdded, this);
+      this.system.app.scene.layers.on("remove", this.onLayerRemoved, this);
+    }
+    if (this.enabled && this.entity.enabled) {
+      this.addCameraToLayers();
+    }
     this.postEffects.enable();
   }, onDisable:function() {
     CameraComponent._super.onDisable.call(this);
     this.postEffects.disable();
-    this.system.removeCamera(this);
-  }, _resetAspectRatio:function() {
-    var camera = this.camera;
-    if (camera) {
-      if (camera.renderTarget) {
-        return;
-      }
-      var device = this.system.app.graphicsDevice;
-      var rect = this.rect;
-      this.aspectRatio = device.width * rect.z / (device.height * rect.w);
+    this.removeCameraFromLayers();
+    this.system.app.scene.off("set:layers", this.onLayersChanged, this);
+    if (this.system.app.scene.layers) {
+      this.system.app.scene.layers.off("add", this.onLayerAdded, this);
+      this.system.app.scene.layers.off("remove", this.onLayerRemoved, this);
     }
-  }, frameBegin:function() {
-    this._resetAspectRatio();
+    this.system.removeCamera(this);
+  }, calculateAspectRatio:function(rt) {
+    var src = rt ? rt : this.system.app.graphicsDevice;
+    var rect = this.rect;
+    return src.width * rect.z / (src.height * rect.w);
+  }, frameBegin:function(rt) {
+    if (this.aspectRatioMode === pc.ASPECT_AUTO) {
+      this.aspectRatio = this.calculateAspectRatio(rt);
+    }
     this.data.isRendering = true;
   }, frameEnd:function() {
     this.data.isRendering = false;
@@ -22323,7 +23475,7 @@ pc.extend(pc, function() {
   return {CameraComponent:CameraComponent};
 }());
 pc.extend(pc, function() {
-  var _schema = ["enabled", "clearColorBuffer", "clearColor", "clearDepthBuffer", "clearStencilBuffer", "frustumCulling", "projection", "fov", "orthoHeight", "nearClip", "farClip", "priority", "rect", "scissorRect", "camera", "aspectRatio", "horizontalFov", "model", "renderTarget", "calculateTransform", "calculateProjection", "cullFaces", "flipFaces"];
+  var _schema = ["enabled", "clearColorBuffer", "clearColor", "clearDepthBuffer", "clearStencilBuffer", "frustumCulling", "projection", "fov", "orthoHeight", "nearClip", "farClip", "priority", "rect", "scissorRect", "camera", "aspectRatio", "aspectRatioMode", "horizontalFov", "model", "renderTarget", "calculateTransform", "calculateProjection", "cullFaces", "flipFaces", "layers"];
   var CameraComponentSystem = function(app) {
     this.id = "camera";
     this.description = "Renders the scene from the location of the Entity.";
@@ -22339,11 +23491,14 @@ pc.extend(pc, function() {
   CameraComponentSystem = pc.inherits(CameraComponentSystem, pc.ComponentSystem);
   pc.Component._buildAccessors(pc.CameraComponent.prototype, _schema);
   pc.extend(CameraComponentSystem.prototype, {initializeComponentData:function(component, _data, properties) {
-    properties = ["postEffects", "enabled", "model", "camera", "aspectRatio", "horizontalFov", "renderTarget", "clearColor", "fov", "orthoHeight", "nearClip", "farClip", "projection", "priority", "clearColorBuffer", "clearDepthBuffer", "clearStencilBuffer", "frustumCulling", "rect", "scissorRect", "calculateTransform", "calculateProjection", "cullFaces", "flipFaces"];
+    properties = ["postEffects", "enabled", "model", "camera", "aspectRatio", "aspectRatioMode", "horizontalFov", "renderTarget", "clearColor", "fov", "orthoHeight", "nearClip", "farClip", "projection", "priority", "clearColorBuffer", "clearDepthBuffer", "clearStencilBuffer", "frustumCulling", "rect", "scissorRect", "calculateTransform", "calculateProjection", "cullFaces", "flipFaces", "layers"];
     var data = {};
     properties.forEach(function(prop) {
       data[prop] = _data[prop];
     });
+    if (data.layers && pc.type(data.layers) === "array") {
+      data.layers = data.layers.slice(0);
+    }
     if (data.clearColor && pc.type(data.clearColor) === "array") {
       var c = data.clearColor;
       data.clearColor = new pc.Color(c[0], c[1], c[2], c[3]);
@@ -22362,6 +23517,7 @@ pc.extend(pc, function() {
     }
     data.camera = new pc.Camera;
     data._node = component.entity;
+    data.camera._component = component;
     var self = component;
     data.camera.calculateTransform = function(mat, mode) {
       if (!self._calculateTransform) {
@@ -22434,8 +23590,10 @@ pc.extend(pc, function() {
     this.frustumCulling = false;
     this.cullFaces = true;
     this.flipFaces = false;
+    this.layers = [pc.LAYERID_WORLD, pc.LAYERID_DEPTH, pc.LAYERID_SKYBOX, pc.LAYERID_UI, pc.LAYERID_IMMEDIATE];
     this.camera = null;
     this.aspectRatio = 16 / 9;
+    this.aspectRatioMode = pc.ASPECT_AUTO;
     this.renderTarget = null;
     this.postEffects = null;
     this.isRendering = false;
@@ -22473,6 +23631,20 @@ pc.extend(pc, function() {
     colorBuffer.addressU = pc.ADDRESS_CLAMP_TO_EDGE;
     colorBuffer.addressV = pc.ADDRESS_CLAMP_TO_EDGE;
     return new pc.RenderTarget(this.app.graphicsDevice, colorBuffer, {depth:useDepth});
+  }, _resizeOffscreenTarget:function(rt) {
+    var rect = this.camera.rect;
+    var width = Math.floor(rect.z * this.app.graphicsDevice.width * this.renderTargetScale);
+    var height = Math.floor(rect.w * this.app.graphicsDevice.height * this.renderTargetScale);
+    var device = this.app.graphicsDevice;
+    var format = rt.colorBuffer.format;
+    rt._colorBuffer.destroy();
+    var colorBuffer = new pc.Texture(device, {format:format, width:width, height:height});
+    colorBuffer.minFilter = pc.FILTER_NEAREST;
+    colorBuffer.magFilter = pc.FILTER_NEAREST;
+    colorBuffer.addressU = pc.ADDRESS_CLAMP_TO_EDGE;
+    colorBuffer.addressV = pc.ADDRESS_CLAMP_TO_EDGE;
+    rt._colorBuffer = colorBuffer;
+    rt.destroy();
   }, setRenderTargetScale:function(scale) {
     this.renderTargetScale = scale;
     this.resizeRenderTargets();
@@ -22480,8 +23652,37 @@ pc.extend(pc, function() {
     var isFirstEffect = this.effects.length === 0;
     var effects = this.effects;
     var newEntry = {effect:effect, inputTarget:this._createOffscreenTarget(isFirstEffect, effect.hdr), outputTarget:null};
-    if (isFirstEffect) {
-      this.camera.renderTarget = newEntry.inputTarget;
+    if (!this.layer) {
+      this.layer = new pc.Layer({opaqueSortMode:pc.SORTMODE_NONE, transparentSortMode:pc.SORTMODE_NONE, passThrough:true, name:"PostEffectQueue", renderTarget:this.camera.renderTarget, clear:false, onPostRender:function() {
+        for (var i = 0;i < this._commandList.length;i++) {
+          this._commandList[i]();
+        }
+      }});
+      var layerList = this.app.scene.layers.layerList;
+      var order = 0;
+      var i;
+      var start = layerList.length - 1;
+      for (i = start;i >= 0;i--) {
+        if (layerList[i].id === pc.LAYERID_UI) {
+          start = i - 1;
+          layerList[i].overrideClear = true;
+          layerList[i].clearColorBuffer = false;
+          layerList[i].clearDepthBuffer = this.camera.clearDepthBuffer;
+          layerList[i].clearStencilBuffer = this.camera.clearStencilBuffer;
+          break;
+        }
+      }
+      for (i = start;i >= 0;i--) {
+        if (layerList[i].cameras.indexOf(this.camera) >= 0) {
+          if (order === 0) {
+            order = i + 1;
+          }
+          layerList[i].renderTarget = newEntry.inputTarget;
+        }
+      }
+      this.app.scene.layers.insertOpaque(this.layer, order);
+      this.layer._commandList = [];
+      this.layer.isPostEffect = true;
     }
     effects.push(newEntry);
     var len = effects.length;
@@ -22546,19 +23747,14 @@ pc.extend(pc, function() {
       var self = this;
       this.requestDepthMap();
       this.app.graphicsDevice.on("resizecanvas", this._onCanvasResized, this);
-      self.camera.camera.setRect(0, 0, 1, 1);
-      this.command = new pc.Command(pc.LAYER_FX, pc.BLEND_NONE, function() {
-        if (self.enabled && self.camera.data.isRendering) {
+      this.command = function() {
+        if (self.enabled) {
           var rect = null;
           var len = self.effects.length;
           if (len) {
-            self.camera.renderTarget = self.effects[0].inputTarget;
-            self.depthTarget = self.camera.camera._depthTarget;
+            self.layer.renderTarget = self.effects[0].inputTarget;
             for (var i = 0;i < len;i++) {
               var fx = self.effects[i];
-              if (self.depthTarget) {
-                fx.effect.depthMap = self.depthTarget.colorBuffer;
-              }
               if (i === len - 1) {
                 rect = self.camera.rect;
               }
@@ -22566,8 +23762,8 @@ pc.extend(pc, function() {
             }
           }
         }
-      });
-      this.app.scene.drawCalls.push(this.command);
+      };
+      this.layer._commandList.push(this.command);
     }
   }, disable:function() {
     if (this.enabled) {
@@ -22575,11 +23771,9 @@ pc.extend(pc, function() {
       this.app.graphicsDevice.off("resizecanvas", this._onCanvasResized, this);
       this.camera.renderTarget = null;
       this.releaseDepthMap();
-      var rect = this.camera.rect;
-      this.camera.camera.setRect(rect.x, rect.y, rect.z, rect.w);
-      var i = this.app.scene.drawCalls.indexOf(this.command);
+      var i = this.layer._commandList.indexOf(this.command);
       if (i >= 0) {
-        this.app.scene.drawCalls.splice(i, 1);
+        this.layer._commandList.splice(i, 1);
       }
     }
   }, _onCanvasResized:function(width, height) {
@@ -22607,27 +23801,388 @@ pc.extend(pc, function() {
     for (var i = 0, len = effects.length;i < len;i++) {
       var fx = effects[i];
       if (fx.inputTarget.width !== desiredWidth || fx.inputTarget.height !== desiredHeight) {
-        fx.inputTarget.destroy();
-        fx.inputTarget = this._createOffscreenTarget(fx.effect.needsDepthBuffer || i === 0, fx.hdr);
-        if (i > 0) {
-          effects[i - 1].outputTarget = fx.inputTarget;
-        } else {
-          this.camera.renderTarget = fx.inputTarget;
-        }
+        this._resizeOffscreenTarget(fx.inputTarget);
       }
     }
   }, onCameraRectChanged:function(name, oldValue, newValue) {
     if (this.enabled) {
-      this.camera.camera.setRect(0, 0, 1, 1);
       this.resizeRenderTargets();
     }
   }};
   return {PostEffectQueue:PostEffectQueue};
 }());
 pc.extend(pc, function() {
+  var _backbufferRt = [null, null];
+  var _constInput = null;
+  var _constScreenSize;
+  var _constScreenSizeValue = new pc.Vec4;
+  var _postEffectChain = [];
+  var _backbufferRtUsed = false;
+  var _backbufferRt2Used = false;
+  var _backbufferRtWrittenByPost = false;
+  var _regexUniforms = /uniform[ \t\n\r]+\S+[ \t\n\r]+\S+[ \t\n\r]*\;/g;
+  var _regexUniformStart = /\S+[ \t\n\r]*\;/;
+  var _regexUniformEnd = /[ \t\n\r]*\;/;
+  var _regexVariables = /(float|int|bool|vec2|vec3|vec4|struct)([ \t\n\r]+[^\;]+[ \t\n\r]*\,*)+\;/g;
+  var _regexVariableSurroundings = /(float|int|bool|vec2|vec3|vec4|struct|\,|\;|\{|\})/g;
+  var _regexIrrelevantVariables = /(uniform|varying|in|out)[ \t\n\r]+(float|int|bool|vec2|vec3|vec4|struct)([ \t\n\r]+[^\;]+[ \t\n\r]*\,*)+\;/g;
+  var _regexIrrelevantVariableSurroundings = /(float|int|bool|vec2|vec3|vec4|struct|uniform|varying|in|out|\,|\;|\{|\})/g;
+  var _regexVersion = /#version/g;
+  var _regexFragColor = /out highp vec4 pc_fragColor;/g;
+  var _regexFragColor2 = /#define gl_FragColor/g;
+  var _regexFragColor3 = /gl_FragColor/g;
+  var _regexColorBuffer = /uniform[ \t\n\r]+sampler2D[ \t\n\r]+uColorBuffer;/g;
+  var _regexUv = /(varying|in)[ \t\n\r]+vec2[ \t\n\r]+vUv0;/g;
+  var _regexColorBufferSample = /(texture2D|texture)[ \t\n\r]*\([ \t\n\r]*uColorBuffer/g;
+  var _regexMain = /void[ \t\n\r]+main/g;
+  var _createBackbufferRt = function(id, device, format) {
+    var tex = new pc.Texture(device, {format:format, width:device.width, height:device.height});
+    tex.minFilter = pc.FILTER_NEAREST;
+    tex.magFilter = pc.FILTER_NEAREST;
+    tex.addressU = pc.ADDRESS_CLAMP_TO_EDGE;
+    tex.addressV = pc.ADDRESS_CLAMP_TO_EDGE;
+    _backbufferRt[id]._colorBuffer = tex;
+  };
+  var _destroyBackbufferRt = function(id) {
+    _backbufferRt[id].colorBuffer.destroy();
+    _backbufferRt[id].destroy();
+  };
+  var _collectUniforms = function(code) {
+    var strs = code.match(_regexUniforms) || [];
+    var start, end, uname;
+    var uniforms = [];
+    for (var i = 0;i < strs.length;i++) {
+      start = strs[i].search(_regexUniformStart);
+      end = strs[i].search(_regexUniformEnd);
+      uname = strs[i].substr(start, end - start);
+      if (uname !== "uColorBuffer") {
+        uniforms.push(uname);
+      }
+    }
+    return uniforms;
+  };
+  var _uniformsCollide = function(layers, chain, count, shader) {
+    var uniforms = _collectUniforms(shader.definition.fshader);
+    if (uniforms.length === 0) {
+      return false;
+    }
+    var i, j, k, uniforms2;
+    var uname;
+    for (i = 0;i < count;i++) {
+      for (j = 0;j < uniforms.length;j++) {
+        uname = uniforms[j];
+        uniforms2 = _collectUniforms(layers[chain[i]].shader.definition.fshader);
+        for (k = 0;k < uniforms2.length;k++) {
+          if (uniforms2[k] === uname) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  };
+  var _collectGlobalTempVars = function(code, list) {
+    var len = code.length;
+    var chr;
+    var scopeStart = 0;
+    var scopeEnd = 0;
+    var scopeDepth = 0;
+    var codeStart = 0;
+    var codeWithoutScopes = "";
+    var i, j;
+    for (i = 0;i < len;i++) {
+      chr = code.charAt(i);
+      if (chr === "{") {
+        if (scopeDepth === 0) {
+          scopeStart = i;
+        }
+        scopeDepth++;
+      } else {
+        if (chr === "}") {
+          if (scopeDepth === 1) {
+            scopeEnd = i;
+            codeWithoutScopes += code.substr(codeStart, scopeStart - codeStart + 1);
+            codeStart = scopeEnd;
+          }
+          scopeDepth--;
+        }
+      }
+    }
+    codeWithoutScopes += code.substr(codeStart, code.length - codeStart + 1);
+    var collisions = null;
+    var decls = codeWithoutScopes.match(_regexVariables) || [];
+    var vars, varName;
+    for (i = 0;i < decls.length;i++) {
+      vars = decls[i].split(",");
+      for (j = 0;j < vars.length;j++) {
+        varName = vars[j].replace(_regexVariableSurroundings, "").trim();
+        if (list.indexOf(varName) >= 0) {
+          if (!collisions) {
+            collisions = [];
+          }
+          collisions.push(varName);
+        } else {
+          list.push(varName);
+        }
+      }
+    }
+    var irrelevantDecls = codeWithoutScopes.match(_regexIrrelevantVariables) || [];
+    var index;
+    for (i = 0;i < irrelevantDecls.length;i++) {
+      vars = irrelevantDecls[i].split(",");
+      for (j = 0;j < vars.length;j++) {
+        varName = vars[j].replace(_regexIrrelevantVariableSurroundings, "").trim();
+        index = list.indexOf(varName);
+        if (index >= 0) {
+          list.splice(index, 1);
+        }
+      }
+    }
+    return collisions;
+  };
+  function PostEffectPass(app, options) {
+    this.app = app;
+    this.srcRenderTarget = options.srcRenderTarget;
+    this.hdr = options.hdr;
+    this.blending = options.blending;
+    this.shader = options.shader;
+    this.setup = options.setup;
+    var self = this;
+    var device = app.graphicsDevice;
+    this.layer = new pc.Layer({opaqueSortMode:pc.SORTMODE_NONE, transparentSortMode:pc.SORTMODE_NONE, passThrough:true, name:options.name, onPostRender:function() {
+      if (self.srcRenderTarget) {
+        _constScreenSizeValue.x = self.srcRenderTarget.width;
+        _constScreenSizeValue.y = self.srcRenderTarget.height;
+        _constScreenSizeValue.z = 1 / self.srcRenderTarget.width;
+        _constScreenSizeValue.w = 1 / self.srcRenderTarget.height;
+      } else {
+        _constScreenSizeValue.x = device.width;
+        _constScreenSizeValue.y = device.height;
+        _constScreenSizeValue.z = 1 / device.width;
+        _constScreenSizeValue.w = 1 / device.height;
+      }
+      _constScreenSize.setValue(_constScreenSizeValue.data);
+      if (this._postEffectCombined && this._postEffectCombined < 0) {
+        if (self.setup) {
+          self.setup(device, self, _constScreenSizeValue, null, this.renderTarget);
+        }
+        return;
+      }
+      var src;
+      if (this._postEffectCombinedSrc) {
+        src = this._postEffectCombinedSrc;
+      } else {
+        src = self.srcRenderTarget ? self.srcRenderTarget : _backbufferRt[this._backbufferRtId];
+      }
+      if (src._samples > 1) {
+        src.resolve(true, false);
+      }
+      var tex = src._colorBuffer;
+      tex.magFilter = (this._postEffectCombinedShader ? this._postEffectCombinedBilinear : this.postEffectBilinear) ? pc.FILTER_LINEAR : pc.FILTER_NEAREST;
+      _constInput.setValue(tex);
+      if (self.setup) {
+        self.setup(device, self, _constScreenSizeValue, src, this.renderTarget);
+      }
+      var shader = this._postEffectCombinedShader ? this._postEffectCombinedShader : this.shader;
+      if (shader) {
+        pc.drawQuadWithShader(device, this.renderTarget, shader, null, null, self.blending);
+      }
+      if (self.srcRenderTarget) {
+        return;
+      }
+      var layers = app.scene.layers.layerList;
+      for (var i = 0;i < layers.length;i++) {
+        if (layers[i] === self.layer) {
+          break;
+        }
+        if (layers[i].renderTarget === _backbufferRt[0] || layers[i].renderTarget === _backbufferRt[1]) {
+          layers[i].renderTarget = null;
+        }
+      }
+    }});
+    this.layer._generateCameraHash();
+    this.layer.isPostEffect = true;
+    this.layer.unmodifiedUvs = options.unmodifiedUvs;
+    this.layer.postEffectBilinear = options.bilinear;
+    this.layer.postEffect = this;
+    this.layer.shader = options.shader;
+    this.layer.renderTarget = options.destRenderTarget;
+    if (!_constInput) {
+      _constInput = device.scope.resolve("uColorBuffer");
+      _constScreenSize = device.scope.resolve("uScreenSize");
+      var _backbufferMsaa = device.supportsMsaa ? 4 : 1;
+      for (var i = 0;i < 2;i++) {
+        _backbufferRt[i] = new pc.RenderTarget({depth:true, stencil:device.supportsStencil, samples:_backbufferMsaa, autoResolve:false});
+        _backbufferRt[i].name = "backbuffer" + i;
+      }
+      app.on("prerender", function() {
+        var layers = app.scene.layers.layerList;
+        var i, j;
+        var offset = 0;
+        var rtId = 0;
+        _backbufferRtUsed = false;
+        _backbufferRt2Used = false;
+        _backbufferRtWrittenByPost = false;
+        var backbufferRtFormat = pc.PIXELFORMAT_R8_G8_B8_A8;
+        if (app.scene.layers._dirty) {
+          var iterator = 0;
+          var breakChain = false;
+          var collisions, k;
+          for (i = 0;i < layers.length;i++) {
+            breakChain = false;
+            if (layers[i].isPostEffect && (iterator === 0 || layers[i].unmodifiedUvs && layers[i].shader && !_uniformsCollide(layers, _postEffectChain, iterator, layers[i].shader))) {
+              _postEffectChain[iterator] = i;
+              iterator++;
+              if (i === layers.length - 1) {
+                breakChain = true;
+              }
+            } else {
+              if (iterator > 0) {
+                breakChain = true;
+              }
+            }
+            if (breakChain) {
+              if (iterator > 1) {
+                var cachedName = "post_";
+                var layer;
+                for (j = 0;j < iterator;j++) {
+                  layer = layers[_postEffectChain[j]];
+                  cachedName += layer.name ? layer.name : layer.id;
+                  if (j < iterator - 1) {
+                    cachedName += "_";
+                  }
+                }
+                var shader = device.programLib._cache[cachedName];
+                if (!shader) {
+                  var subCode;
+                  var code = "vec4 shaderOutput;\n";
+                  var mainCode = "void main() {\n";
+                  var globalTempVars = [];
+                  for (j = 0;j < iterator;j++) {
+                    subCode = layers[_postEffectChain[j]].shader.definition.fshader + "\n";
+                    subCode = subCode.replace(_regexVersion, "//").replace(_regexFragColor, "//").replace(_regexFragColor2, "//").replace(_regexFragColor3, "shaderOutput");
+                    if (j > 0) {
+                      subCode = subCode.replace(_regexColorBuffer, "//").replace(_regexUv, "//").replace(_regexColorBufferSample, "shaderOutput;//");
+                    }
+                    subCode = subCode.replace(_regexMain, "void main" + j);
+                    collisions = _collectGlobalTempVars(subCode, globalTempVars);
+                    if (collisions) {
+                      for (k = 0;k < collisions.length;k++) {
+                        subCode = subCode.replace(new RegExp("\\b" + collisions[k] + "\\b", "g"), collisions[k] + "NNNN" + j);
+                      }
+                    }
+                    code += subCode;
+                    mainCode += "main" + j + "();\n";
+                  }
+                  mainCode += "gl_FragColor = shaderOutput;\n}\n";
+                  shader = pc.shaderChunks.createShaderFromCode(device, pc.shaderChunks.fullscreenQuadVS, code + mainCode, cachedName);
+                }
+                for (j = 0;j < iterator;j++) {
+                  layers[_postEffectChain[j]]._postEffectCombined = j === iterator - 1 ? 1 : -1;
+                }
+                layers[_postEffectChain[iterator - 1]]._postEffectCombinedShader = shader;
+                layers[_postEffectChain[iterator - 1]]._postEffectCombinedBilinear = layers[_postEffectChain[0]].postEffectBilinear;
+                layers[_postEffectChain[iterator - 1]]._postEffectCombinedSrc = layers[_postEffectChain[0]].postEffect.srcRenderTarget;
+              }
+              _postEffectChain[0] = i;
+              iterator = 1;
+            }
+          }
+        }
+        for (i = 0;i < layers.length;i++) {
+          if (layers[i].isPostEffect && (!layers[i].postEffect.srcRenderTarget && !layers[i]._postEffectCombined || !layers[i].postEffect._postEffectCombinedSrc && layers[i]._postEffectCombined >= 0)) {
+            for (j = i - 1;j >= offset;j--) {
+              if (!layers[j].renderTarget) {
+                layers[j].renderTarget = _backbufferRt[rtId];
+              }
+            }
+            layers[i]._backbufferRtId = rtId;
+            offset = i;
+            _backbufferRtUsed = true;
+            if (rtId === 1) {
+              _backbufferRt2Used = true;
+            }
+            if (layers[i].postEffect.hdr) {
+              if (device.webgl2 && device.extTextureFloatRenderable) {
+                backbufferRtFormat = pc.PIXELFORMAT_111110F;
+              } else {
+                if (device.extTextureHalfFloatLinear && device.extTextureHalfFloatRenderable) {
+                  backbufferRtFormat = pc.PIXELFORMAT_RGBA16F;
+                } else {
+                  backbufferRtFormat = pc.PIXELFORMAT_R8_G8_B8_A8;
+                }
+              }
+            }
+            if (layers[i].postEffect.shader && !layers[i].renderTarget) {
+              rtId = 1 - rtId;
+            }
+          } else {
+            if (!layers[i].isPostEffect && !layers[i].renderTarget && _backbufferRtUsed) {
+              layers[i].renderTarget = _backbufferRt[rtId];
+            }
+          }
+          if (layers[i].isPostEffect && !layers[i].renderTarget) {
+            _backbufferRtWrittenByPost = true;
+          }
+        }
+        if (_backbufferRtUsed) {
+          if (!_backbufferRt[0].colorBuffer) {
+            _createBackbufferRt(0, device, backbufferRtFormat);
+          } else {
+            if (_backbufferRt[0].width !== device.width || _backbufferRt[0].height !== device.height || _backbufferRt[0]._colorBuffer._format !== backbufferRtFormat) {
+              _destroyBackbufferRt(0);
+              _createBackbufferRt(0, device, backbufferRtFormat);
+            }
+          }
+        }
+        if (_backbufferRt2Used) {
+          if (!_backbufferRt[1].colorBuffer) {
+            _createBackbufferRt(1, device, backbufferRtFormat);
+          } else {
+            if (_backbufferRt[1].width !== device.width || _backbufferRt[1].height !== device.height || _backbufferRt[1]._colorBuffer._format !== backbufferRtFormat) {
+              _destroyBackbufferRt(1);
+              _createBackbufferRt(1, device, backbufferRtFormat);
+            }
+          }
+        }
+      }, this);
+      app.on("postrender", function() {
+        var device = app.graphicsDevice;
+        if (_backbufferRtUsed && !_backbufferRtWrittenByPost) {
+          var layers = app.scene.layers.layerList;
+          var rt;
+          for (var i = layers.length - 1;i >= 0;i--) {
+            rt = layers[i].renderTarget;
+            if (rt === _backbufferRt[0] || rt === _backbufferRt[1]) {
+              break;
+            }
+          }
+          if (rt) {
+            if (rt._samples > 1) {
+              rt.resolve(true, false);
+            }
+            device.copyRenderTarget(rt, null, true, false);
+          }
+        }
+      }, this);
+    }
+  }
+  PostEffectPass.prototype.addToComposition = function(order) {
+    this.app.scene.layers.insertTransparent(this.layer, order);
+  };
+  return {PostEffectPass:PostEffectPass};
+}());
+pc.extend(pc, function() {
+  var LightComponent = function LightComponent(system, entity) {
+    this._cookieAsset = null;
+    this._cookieAssetId = null;
+    this._cookieAssetAdd = false;
+    this._cookieMatrix = null;
+  };
+  LightComponent = pc.inherits(LightComponent, pc.Component);
   var _props = [];
   var _propsDefault = [];
-  function _defineProperty(name, defaultValue, setFunc, skipEqualsCheck) {
+  var _defineProperty = function(name, defaultValue, setFunc, skipEqualsCheck) {
     var c = LightComponent.prototype;
     _props.push(name);
     _propsDefault.push(defaultValue);
@@ -22644,15 +24199,8 @@ pc.extend(pc, function() {
         setFunc.call(this, value, oldValue);
       }
     }, configurable:true});
-  }
-  var LightComponent = function LightComponent(system, entity) {
-    this._cookieAsset = null;
-    this._cookieAssetId = null;
-    this._cookieAssetAdd = false;
-    this._cookieMatrix = null;
   };
-  LightComponent = pc.inherits(LightComponent, pc.Component);
-  var _defineProps = function(c, d, s) {
+  var _defineProps = function() {
     _defineProperty("enabled", true, function(newValue, oldValue) {
       this.onSetEnabled(null, oldValue, newValue);
     });
@@ -22826,6 +24374,25 @@ pc.extend(pc, function() {
     _defineProperty("isStatic", false, function(newValue, oldValue) {
       this.light.isStatic = newValue;
     });
+    _defineProperty("layers", [pc.LAYERID_WORLD], function(newValue, oldValue) {
+      var i, layer;
+      for (i = 0;i < oldValue.length;i++) {
+        layer = this.system.app.scene.layers.getLayerById(oldValue[i]);
+        if (!layer) {
+          continue;
+        }
+        layer.removeLight(this);
+      }
+      for (i = 0;i < newValue.length;i++) {
+        layer = this.system.app.scene.layers.getLayerById(newValue[i]);
+        if (!layer) {
+          continue;
+        }
+        if (this.enabled && this.entity.enabled) {
+          layer.addLight(this);
+        }
+      }
+    });
   };
   _defineProps();
   Object.defineProperty(LightComponent.prototype, "enable", {get:function() {
@@ -22835,7 +24402,47 @@ pc.extend(pc, function() {
     console.warn("WARNING: enable: Property is deprecated. Set enabled property instead.");
     this.enabled = value;
   }});
-  pc.extend(LightComponent.prototype, {refreshProperties:function() {
+  pc.extend(LightComponent.prototype, {addLightToLayers:function() {
+    var layer;
+    for (var i = 0;i < this.layers.length;i++) {
+      layer = this.system.app.scene.layers.getLayerById(this.layers[i]);
+      if (!layer) {
+        continue;
+      }
+      layer.addLight(this);
+    }
+  }, removeLightFromLayers:function() {
+    var layer;
+    for (var i = 0;i < this.layers.length;i++) {
+      layer = this.system.app.scene.layers.getLayerById(this.layers[i]);
+      if (!layer) {
+        continue;
+      }
+      layer.removeLight(this);
+    }
+  }, onLayersChanged:function(oldComp, newComp) {
+    if (this.enabled && this.entity.enabled) {
+      this.addLightToLayers();
+    }
+    oldComp.off("add", this.onLayerAdded, this);
+    oldComp.off("remove", this.onLayerRemoved, this);
+    newComp.on("add", this.onLayerAdded, this);
+    newComp.on("remove", this.onLayerRemoved, this);
+  }, onLayerAdded:function(layer) {
+    var index = this.layers.indexOf(layer.id);
+    if (index < 0) {
+      return;
+    }
+    if (this.enabled && this.entity.enabled) {
+      layer.addLight(this);
+    }
+  }, onLayerRemoved:function(layer) {
+    var index = this.layers.indexOf(layer.id);
+    if (index < 0) {
+      return;
+    }
+    layer.removeLight(this);
+  }, refreshProperties:function() {
     var name;
     for (var i = 0;i < _props.length;i++) {
       name = _props[i];
@@ -22890,12 +24497,26 @@ pc.extend(pc, function() {
   }, onEnable:function() {
     LightComponent._super.onEnable.call(this);
     this.light.enabled = true;
+    this.system.app.scene.on("set:layers", this.onLayersChanged, this);
+    if (this.system.app.scene.layers) {
+      this.system.app.scene.layers.on("add", this.onLayerAdded, this);
+      this.system.app.scene.layers.on("remove", this.onLayerRemoved, this);
+    }
+    if (this.enabled && this.entity.enabled) {
+      this.addLightToLayers();
+    }
     if (this._cookieAsset && !this.cookie) {
       this.onCookieAssetSet();
     }
   }, onDisable:function() {
     LightComponent._super.onDisable.call(this);
     this.light.enabled = false;
+    this.system.app.scene.off("set:layers", this.onLayersChanged, this);
+    if (this.system.app.scene.layers) {
+      this.system.app.scene.layers.off("add", this.onLayerAdded, this);
+      this.system.app.scene.layers.off("remove", this.onLayerRemoved, this);
+    }
+    this.removeLightFromLayers();
   }});
   return {LightComponent:LightComponent, _lightProps:_props, _lightPropsDefault:_propsDefault};
 }());
@@ -22907,7 +24528,6 @@ pc.extend(pc, function() {
     app.systems.add(this.id, this);
     this.ComponentType = pc.LightComponent;
     this.DataType = pc.LightComponentData;
-    this.on("remove", this.onRemove, this);
   };
   LightComponentSystem = pc.inherits(LightComponentSystem, pc.ComponentSystem);
   pc.extend(LightComponentSystem.prototype, {initializeComponentData:function(component, _data) {
@@ -22922,6 +24542,9 @@ pc.extend(pc, function() {
       data.type = component.data.type;
     }
     component.data.type = data.type;
+    if (data.layers && pc.type(data.layers) === "array") {
+      data.layers = data.layers.slice(0);
+    }
     if (data.color && pc.type(data.color) === "array") {
       data.color = new pc.Color(data.color[0], data.color[1], data.color[2]);
     }
@@ -22938,11 +24561,13 @@ pc.extend(pc, function() {
     var light = new pc.Light;
     light.type = lightTypes[data.type];
     light._node = component.entity;
-    this.app.scene.addLight(light);
+    light._scene = this.app.scene;
     component.data.light = light;
     LightComponentSystem._super.initializeComponentData.call(this, component, data, _props);
-  }, onRemove:function(entity, data) {
-    this.app.scene.removeLight(data.light);
+  }, removeComponent:function(entity) {
+    var data = entity.light.data;
+    data.light.destroy();
+    LightComponentSystem._super.removeComponent.call(this, entity);
   }, cloneComponent:function(entity, clone) {
     var light = entity.light;
     var data = [];
@@ -22988,57 +24613,91 @@ pc.extend(pc, function() {
   var ScriptComponent = function ScriptComponent(system, entity) {
     this._scripts = [];
     this._scriptsIndex = {};
+    this._destroyedScripts = [];
+    this._destroyed = false;
     this._scriptsData = null;
     this._oldState = true;
+    this._beingEnabled = false;
+    this._isLoopingThroughScripts = false;
     this.on("set_enabled", this._onSetEnabled, this);
   };
   ScriptComponent = pc.inherits(ScriptComponent, pc.Component);
   ScriptComponent.scriptMethods = {initialize:"initialize", postInitialize:"postInitialize", update:"update", postUpdate:"postUpdate", swap:"swap"};
   pc.extend(ScriptComponent.prototype, {onEnable:function() {
     ScriptComponent._super.onEnable.call(this);
+    this._beingEnabled = true;
     this._checkState();
+    if (!this.entity._beingEnabled) {
+      this.onPostStateChange();
+    }
+    this._beingEnabled = false;
   }, onDisable:function() {
     ScriptComponent._super.onDisable.call(this);
     this._checkState();
   }, onPostStateChange:function() {
     var script;
-    for (var i = 0;i < this.scripts.length;i++) {
+    var wasLooping = this._beginLooping();
+    for (var i = 0, len = this.scripts.length;i < len;i++) {
       script = this.scripts[i];
-      if (script._initialized && !script._postInitialized) {
+      if (script._initialized && !script._postInitialized && script.enabled) {
         script._postInitialized = true;
         if (script.postInitialize) {
           this._scriptMethod(script, ScriptComponent.scriptMethods.postInitialize);
         }
       }
     }
+    this._endLooping(wasLooping);
+  }, _beginLooping:function() {
+    var looping = this._isLoopingThroughScripts;
+    this._isLoopingThroughScripts = true;
+    return looping;
+  }, _endLooping:function(wasLoopingBefore) {
+    this._isLoopingThroughScripts = wasLoopingBefore;
+    if (!this._isLoopingThroughScripts) {
+      this._removeDestroyedScripts();
+    }
   }, _onSetEnabled:function(prop, old, value) {
+    this._beingEnabled = true;
     this._checkState();
+    this._beingEnabled = false;
   }, _checkState:function() {
     var state = this.enabled && this.entity.enabled;
     if (state === this._oldState) {
       return;
     }
     this._oldState = state;
-    this.fire(this.enabled ? "enable" : "disable");
-    this.fire("state", this.enabled);
+    this.fire(state ? "enable" : "disable");
+    this.fire("state", state);
+    var wasLooping = this._beginLooping();
     var script;
     for (var i = 0, len = this.scripts.length;i < len;i++) {
       script = this.scripts[i];
       script.enabled = script._enabled;
-      if (!script._initialized && script.enabled) {
-        script._initialized = true;
-        script.__initializeAttributes(true);
-        if (script.initialize) {
-          this._scriptMethod(script, ScriptComponent.scriptMethods.initialize);
-        }
-      }
     }
+    this._endLooping(wasLooping);
   }, _onBeforeRemove:function() {
     this.fire("remove");
-    var destroyed = true;
-    while (this.scripts.length > 0 && destroyed) {
-      destroyed = this.destroy(this.scripts[0].__scriptType.__name);
+    var wasLooping = this._beginLooping();
+    for (var i = 0;i < this.scripts.length;i++) {
+      var script = this.scripts[i];
+      if (!script) {
+        continue;
+      }
+      this.destroy(script.__scriptType.__name);
     }
+    this._endLooping(wasLooping);
+  }, _removeDestroyedScripts:function() {
+    var len = this._destroyedScripts.length;
+    if (!len) {
+      return;
+    }
+    for (var i = 0;i < len;i++) {
+      var idx = this._scripts.indexOf(this._destroyedScripts[i]);
+      if (idx >= 0) {
+        this._scripts.splice(idx, 1);
+      }
+    }
+    this._destroyedScripts.length = 0;
   }, _onInitializeAttributes:function() {
     for (var i = 0, len = this.scripts.length;i < len;i++) {
       this.scripts[i].__initializeAttributes();
@@ -23057,6 +24716,7 @@ pc.extend(pc, function() {
     }
   }, _onInitialize:function() {
     var script, scripts = this._scripts;
+    var wasLooping = this._beginLooping();
     for (var i = 0, len = scripts.length;i < len;i++) {
       script = scripts[i];
       if (!script._initialized && script.enabled) {
@@ -23066,33 +24726,31 @@ pc.extend(pc, function() {
         }
       }
     }
+    this._endLooping(wasLooping);
   }, _onPostInitialize:function() {
-    var script, scripts = this._scripts;
-    for (var i = 0, len = scripts.length;i < len;i++) {
-      script = scripts[i];
-      if (!script._postInitialized && script.enabled) {
-        script._postInitialized = true;
-        if (script.postInitialize) {
-          this._scriptMethod(script, ScriptComponent.scriptMethods.postInitialize);
-        }
-      }
-    }
+    this.onPostStateChange();
   }, _onUpdate:function(dt) {
     var script, scripts = this._scripts;
+    var wasLooping = this._beginLooping();
     for (var i = 0, len = scripts.length;i < len;i++) {
       script = scripts[i];
       if (script.update && script.enabled) {
         this._scriptMethod(script, ScriptComponent.scriptMethods.update, dt);
       }
     }
+    this._endLooping(wasLooping);
   }, _onPostUpdate:function(dt) {
+    var i;
+    var len;
+    var wasLooping = this._beginLooping();
     var script, scripts = this._scripts;
-    for (var i = 0, len = scripts.length;i < len;i++) {
+    for (i = 0, len = scripts.length;i < len;i++) {
       script = scripts[i];
       if (script.postUpdate && script.enabled) {
         this._scriptMethod(script, ScriptComponent.scriptMethods.postUpdate, dt);
       }
     }
+    this._endLooping(wasLooping);
   }, has:function(name) {
     var scriptType = name;
     if (typeof scriptType === "string") {
@@ -23133,20 +24791,23 @@ pc.extend(pc, function() {
         this.fire("create", scriptType.__name, scriptInstance);
         this.fire("create:" + scriptType.__name, scriptInstance);
         this.system.app.scripts.on("swap:" + scriptType.__name, this._scriptsIndex[scriptType.__name].onSwap);
-        if (!args.preloading && this.enabled && scriptInstance.enabled && !scriptInstance._initialized) {
-          scriptInstance._initialized = true;
-          scriptInstance._postInitialized = true;
-          if (scriptInstance.initialize) {
-            this._scriptMethod(scriptInstance, ScriptComponent.scriptMethods.initialize);
+        if (!args.preloading) {
+          if (scriptInstance.enabled && !scriptInstance._initialized) {
+            scriptInstance._initialized = true;
+            if (scriptInstance.initialize) {
+              this._scriptMethod(scriptInstance, ScriptComponent.scriptMethods.initialize);
+            }
           }
-          if (scriptInstance.postInitialize) {
-            this._scriptMethod(scriptInstance, ScriptComponent.scriptMethods.postInitialize);
+          if (scriptInstance.enabled && !scriptInstance._postInitialized) {
+            scriptInstance._postInitialized = true;
+            if (scriptInstance.postInitialize) {
+              this._scriptMethod(scriptInstance, ScriptComponent.scriptMethods.postInitialize);
+            }
           }
         }
         return scriptInstance;
-      } else {
-        console.warn("script '" + scriptName + "' is already added to entity '" + this.entity.name + "'");
       }
+      console.warn("script '" + scriptName + "' is already added to entity '" + this.entity.name + "'");
     } else {
       this._scriptsIndex[scriptName] = {awaiting:true, ind:this._scripts.length};
       console.warn("script '" + scriptName + "' is not found, awaiting it to be added to registry");
@@ -23166,12 +24827,17 @@ pc.extend(pc, function() {
     if (!scriptData) {
       return false;
     }
-    if (scriptData.instance) {
-      var ind = this._scripts.indexOf(scriptData.instance);
-      this._scripts.splice(ind, 1);
+    if (scriptData.instance && !scriptData.instance._destroyed) {
+      scriptData.instance.enabled = false;
+      scriptData.instance._destroyed = true;
+      if (!this._isLoopingThroughScripts) {
+        var ind = this._scripts.indexOf(scriptData.instance);
+        this._scripts.splice(ind, 1);
+      } else {
+        this._destroyedScripts.push(scriptData.instance);
+      }
     }
     this.system.app.scripts.off("swap:" + scriptName, scriptData.onSwap);
-    delete this._scriptsIndex[scriptName];
     delete this[scriptName];
     this.fire("destroy", scriptName, scriptData.instance || null);
     this.fire("destroy:" + scriptName, scriptData.instance || null);
@@ -23267,6 +24933,9 @@ pc.extend(pc, function() {
     this.DataType = pc.ScriptComponentData;
     this.schema = _schema;
     this._components = [];
+    this._destroyedComponents = [];
+    this._isLoopingThroughComponents = false;
+    this.preloading = true;
     this.on("beforeremove", this._onBeforeRemove, this);
     pc.ComponentSystem.on("initialize", this._onInitialize, this);
     pc.ComponentSystem.on("postInitialize", this._onPostInitialize, this);
@@ -23281,7 +24950,7 @@ pc.extend(pc, function() {
     if (data.hasOwnProperty("order") && data.hasOwnProperty("scripts")) {
       component._scriptsData = data.scripts;
       for (var i = 0;i < data.order.length;i++) {
-        component.create(data.order[i], {enabled:data.scripts[data.order[i]].enabled, attributes:data.scripts[data.order[i]].attributes, preloading:true});
+        component.create(data.order[i], {enabled:data.scripts[data.order[i]].enabled, attributes:data.scripts[data.order[i]].attributes, preloading:this.preloading});
       }
     }
   }, cloneComponent:function(entity, clone) {
@@ -23299,7 +24968,6 @@ pc.extend(pc, function() {
       scripts[scriptName] = {enabled:scriptInstance._enabled, attributes:attributes};
     }
     for (key in entity.script._scriptsIndex) {
-      var scriptData = entity.script._scriptsIndex[key];
       if (key.awayting) {
         order.splice(key.ind, 0, key);
       }
@@ -23307,13 +24975,34 @@ pc.extend(pc, function() {
     var data = {enabled:entity.script.enabled, order:order, scripts:scripts};
     return this.addComponent(clone, data);
   }, _callComponentMethod:function(name, dt) {
+    var wasLooping = this._beginLooping();
     for (var i = 0;i < this._components.length;i++) {
-      if (!this._components[i].entity.enabled || !this._components[i].enabled) {
+      if (this._components[i]._destroyed || !this._components[i].entity.enabled || !this._components[i].enabled) {
         continue;
       }
       this._components[i][name](dt);
     }
+    this._endLooping(wasLooping);
+  }, _beginLooping:function() {
+    var looping = this._isLoopingThroughComponents;
+    this._isLoopingThroughComponents = true;
+    return looping;
+  }, _endLooping:function(wasLooping) {
+    this._isLoopingThroughComponents = wasLooping;
+    if (!this._isLoopingThroughComponents) {
+      var len = this._destroyedComponents.length;
+      if (len) {
+        for (var i = 0;i < len;i++) {
+          var idx = this._components.indexOf(this._destroyedComponents[i]);
+          if (idx >= 0) {
+            this._components.splice(idx, 1);
+          }
+        }
+        this._destroyedComponents.length = 0;
+      }
+    }
   }, _onInitialize:function() {
+    this.preloading = false;
     for (var i = 0;i < this._components.length;i++) {
       this._components[i]._onInitializeAttributes();
     }
@@ -23330,7 +25019,12 @@ pc.extend(pc, function() {
       return;
     }
     component._onBeforeRemove();
-    this._components.splice(ind, 1);
+    if (!this._isLoopingThroughComponents) {
+      this._components.splice(ind, 1);
+    } else {
+      component._destroyed = true;
+      this._destroyedComponents.push(component);
+    }
   }});
   return {ScriptComponentSystem:ScriptComponentSystem};
 }());
@@ -23425,9 +25119,8 @@ pc.extend(pc, function() {
       var type = this.system.app.loader.getFromCache(url, "script");
       if (!type) {
         return false;
-      } else {
-        cached.push(type);
       }
+      cached.push(type);
     }
     for (i = 0, len = cached.length;i < len;i++) {
       var ScriptType = cached[i];
@@ -24070,13 +25763,11 @@ pc.extend(pc, function() {
   Object.defineProperty(SoundSlot.prototype, "name", {get:function() {
     return this._name;
   }, set:function(value) {
-    var old = this._name;
     this._name = value;
   }});
   Object.defineProperty(SoundSlot.prototype, "volume", {get:function() {
     return this._volume;
   }, set:function(value) {
-    var old = this._volume;
     this._volume = pc.math.clamp(Number(value) || 0, 0, 1);
     if (!this._overlap) {
       var instances = this.instances;
@@ -24088,7 +25779,6 @@ pc.extend(pc, function() {
   Object.defineProperty(SoundSlot.prototype, "pitch", {get:function() {
     return this._pitch;
   }, set:function(value) {
-    var old = this._pitch;
     this._pitch = Math.max(Number(value) || 0, .01);
     if (!this._overlap) {
       var instances = this.instances;
@@ -24100,7 +25790,6 @@ pc.extend(pc, function() {
   Object.defineProperty(SoundSlot.prototype, "loop", {get:function() {
     return this._loop;
   }, set:function(value) {
-    var old = this._loop;
     this._loop = !!value;
     var instances = this.instances;
     for (var i = 0, len = instances.length;i < len;i++) {
@@ -24110,19 +25799,16 @@ pc.extend(pc, function() {
   Object.defineProperty(SoundSlot.prototype, "autoPlay", {get:function() {
     return this._autoPlay;
   }, set:function(value) {
-    var old = this._autoPlay;
     this._autoPlay = !!value;
   }});
   Object.defineProperty(SoundSlot.prototype, "overlap", {get:function() {
     return this._overlap;
   }, set:function(value) {
-    var old = this._overlap;
     this._overlap = !!value;
   }});
   Object.defineProperty(SoundSlot.prototype, "startTime", {get:function() {
     return this._startTime;
   }, set:function(value) {
-    var old = this._startTime;
     this._startTime = Math.max(0, Number(value) || 0);
     if (!this._overlap) {
       var instances = this.instances;
@@ -24139,11 +25825,9 @@ pc.extend(pc, function() {
     }
     if (this._duration != null) {
       return this._duration % (assetDuration || 1);
-    } else {
-      return assetDuration;
     }
+    return assetDuration;
   }, set:function(value) {
-    var old = this._duration;
     this._duration = Math.max(0, Number(value) || 0) || null;
     if (!this._overlap) {
       var instances = this.instances;
@@ -24582,7 +26266,6 @@ pc.extend(pc, function() {
       this.channel = null;
     }
   }, onSetAssets:function(name, oldValue, newValue) {
-    var componentData = this.data;
     var newAssets = [];
     var i, len = newValue.length;
     if (oldValue && oldValue.length) {
@@ -24906,7 +26589,7 @@ pc.extend(pc, function() {
   AudioListenerComponentData = pc.inherits(AudioListenerComponentData, pc.ComponentData);
   return {AudioListenerComponentData:AudioListenerComponentData};
 }());
-pc.extend(pc, {BODYTYPE_STATIC:"static", BODYTYPE_DYNAMIC:"dynamic", BODYTYPE_KINEMATIC:"kinematic", BODYFLAG_STATIC_OBJECT:1, BODYFLAG_KINEMATIC_OBJECT:2, BODYFLAG_NORESPONSE_OBJECT:4, BODYSTATE_ACTIVE_TAG:1, BODYSTATE_ISLAND_SLEEPING:2, BODYSTATE_WANTS_DEACTIVATION:3, BODYSTATE_DISABLE_DEACTIVATION:4, BODYSTATE_DISABLE_SIMULATION:5, BODYGROUP_NONE:0, BODYGROUP_DEFAULT:1, BODYGROUP_DYNAMIC:1, BODYGROUP_STATIC:2, BODYGROUP_KINEMATIC:4, BODYGROUP_ENGINE_1:8, BODYGROUP_TRIGGER:16, BODYGROUP_ENGINE_2:32,
+pc.extend(pc, {BODYTYPE_STATIC:"static", BODYTYPE_DYNAMIC:"dynamic", BODYTYPE_KINEMATIC:"kinematic", BODYFLAG_STATIC_OBJECT:1, BODYFLAG_KINEMATIC_OBJECT:2, BODYFLAG_NORESPONSE_OBJECT:4, BODYSTATE_ACTIVE_TAG:1, BODYSTATE_ISLAND_SLEEPING:2, BODYSTATE_WANTS_DEACTIVATION:3, BODYSTATE_DISABLE_DEACTIVATION:4, BODYSTATE_DISABLE_SIMULATION:5, BODYGROUP_NONE:0, BODYGROUP_DEFAULT:1, BODYGROUP_DYNAMIC:1, BODYGROUP_STATIC:2, BODYGROUP_KINEMATIC:4, BODYGROUP_ENGINE_1:8, BODYGROUP_TRIGGER:16, BODYGROUP_ENGINE_2:32, 
 BODYGROUP_ENGINE_3:64, BODYGROUP_USER_1:128, BODYGROUP_USER_2:256, BODYGROUP_USER_3:512, BODYGROUP_USER_4:1024, BODYGROUP_USER_5:2048, BODYGROUP_USER_6:4096, BODYGROUP_USER_7:8192, BODYGROUP_USER_8:16384, BODYMASK_NONE:0, BODYMASK_ALL:65535, BODYMASK_STATIC:2, BODYMASK_NOT_STATIC:65535 ^ 2, BODYMASK_NOT_STATIC_KINEMATIC:65535 ^ (2 | 4)});
 pc.extend(pc, function() {
   var ammoTransform;
@@ -24947,44 +26630,36 @@ pc.extend(pc, function() {
       if (this.body) {
         var vel = this.body.getLinearVelocity();
         this._linearVelocity.set(vel.x(), vel.y(), vel.z());
-        return this._linearVelocity;
       }
-    } else {
-      return this._linearVelocity;
     }
+    return this._linearVelocity;
   }, set:function(lv) {
     this.activate();
     if (!this.isKinematic()) {
-      var body = this.body;
-      if (body) {
+      if (this.body) {
         ammoVec1.setValue(lv.x, lv.y, lv.z);
-        body.setLinearVelocity(ammoVec1);
+        this.body.setLinearVelocity(ammoVec1);
       }
-    } else {
-      this._linearVelocity.copy(lv);
     }
+    this._linearVelocity.copy(lv);
   }});
   Object.defineProperty(RigidBodyComponent.prototype, "angularVelocity", {get:function() {
     if (!this.isKinematic()) {
       if (this.body) {
         var vel = this.body.getAngularVelocity();
         this._angularVelocity.set(vel.x(), vel.y(), vel.z());
-        return this._angularVelocity;
       }
-    } else {
-      return this._angularVelocity;
     }
+    return this._angularVelocity;
   }, set:function(av) {
     this.activate();
     if (!this.isKinematic()) {
-      var body = this.body;
-      if (body) {
+      if (this.body) {
         ammoVec1.setValue(av.x, av.y, av.z);
-        body.setAngularVelocity(ammoVec1);
+        this.body.setAngularVelocity(ammoVec1);
       }
-    } else {
-      this._angularVelocity.copy(av);
     }
+    this._angularVelocity.copy(av);
   }});
   pc.extend(RigidBodyComponent.prototype, {createBody:function() {
     var entity = this.entity;
@@ -25124,7 +26799,6 @@ pc.extend(pc, function() {
         z = arguments[2];
         break;
       default:
-        console.error("ERROR: applyTorque: function takes 1 or 3 arguments");
         return;
     }
     var body = this.body;
@@ -25159,10 +26833,12 @@ pc.extend(pc, function() {
         x = arguments[0];
         y = arguments[1];
         z = arguments[2];
-        px = arguments[0];
-        py = arguments[1];
-        pz = arguments[2];
+        px = arguments[3];
+        py = arguments[4];
+        pz = arguments[5];
         break;
+      default:
+        return;
     }
     var body = this.body;
     if (body) {
@@ -25189,7 +26865,6 @@ pc.extend(pc, function() {
         z = arguments[2];
         break;
       default:
-        console.error("ERROR: applyTorqueImpulse: function takes 1 or 3 arguments");
         return;
     }
     var body = this.body;
@@ -25355,11 +27030,6 @@ pc.extend(pc, function() {
   return {RigidBodyComponent:RigidBodyComponent};
 }());
 pc.extend(pc, function() {
-  var transform = new pc.Mat4;
-  var newWtm = new pc.Mat4;
-  var position = new pc.Vec3;
-  var rotation = new pc.Vec3;
-  var scale = new pc.Vec3;
   var ammoRayStart, ammoRayEnd;
   var collisions = {};
   var frameCollisions = {};
@@ -25458,7 +27128,7 @@ pc.extend(pc, function() {
     }
     RigidBodyComponentSystem._super.initializeComponentData.call(this, component, data, properties);
   }, cloneComponent:function(entity, clone) {
-    var data = {enabled:entity.rigidbody.enabled, mass:entity.rigidbody.mass, linearDamping:entity.rigidbody.linearDamping, angularDamping:entity.rigidbody.angularDamping, linearFactor:[entity.rigidbody.linearFactor.x, entity.rigidbody.linearFactor.y, entity.rigidbody.linearFactor.z], angularFactor:[entity.rigidbody.angularFactor.x, entity.rigidbody.angularFactor.y, entity.rigidbody.angularFactor.z], friction:entity.rigidbody.friction, restitution:entity.rigidbody.restitution, type:entity.rigidbody.type,
+    var data = {enabled:entity.rigidbody.enabled, mass:entity.rigidbody.mass, linearDamping:entity.rigidbody.linearDamping, angularDamping:entity.rigidbody.angularDamping, linearFactor:[entity.rigidbody.linearFactor.x, entity.rigidbody.linearFactor.y, entity.rigidbody.linearFactor.z], angularFactor:[entity.rigidbody.angularFactor.x, entity.rigidbody.angularFactor.y, entity.rigidbody.angularFactor.z], friction:entity.rigidbody.friction, restitution:entity.rigidbody.restitution, type:entity.rigidbody.type, 
     group:entity.rigidbody.group, mask:entity.rigidbody.mask};
     this.addComponent(clone, data);
   }, onRemove:function(entity, data) {
@@ -25494,7 +27164,7 @@ pc.extend(pc, function() {
     }
     this._ammoGravity.setValue(x, y, z);
     this.dynamicsWorld.setGravity(this._ammoGravity);
-  }, raycastFirst:function(start, end, callback) {
+  }, raycastFirst:function(start, end) {
     var result = null;
     ammoRayStart.setValue(start.x, start.y, start.z);
     ammoRayEnd.setValue(end.x, end.y, end.z);
@@ -25507,7 +27177,8 @@ pc.extend(pc, function() {
         var point = rayCallback.get_m_hitPointWorld();
         var normal = rayCallback.get_m_hitNormalWorld();
         result = new RaycastResult(body.entity, new pc.Vec3(point.x(), point.y(), point.z()), new pc.Vec3(normal.x(), normal.y(), normal.z()));
-        if (callback) {
+        if (arguments.length > 2) {
+          var callback = arguments[2];
           callback(result);
           if (!WARNED_RAYCAST_CALLBACK) {
             console.warn("[DEPRECATED]: pc.RigidBodyComponentSystem#rayCastFirst no longer requires a callback. The result of the raycast is returned by the function instead.");
@@ -25589,7 +27260,6 @@ pc.extend(pc, function() {
       }
     }
   }, onUpdate:function(dt) {
-    var frameContacts = 0;
     this.dynamicsWorld.stepSimulation(dt, this.maxSubSteps, this.fixedTimeStep);
     var components = this.store;
     for (var id in components) {
@@ -25828,7 +27498,6 @@ pc.extend(pc, function() {
       this.system.recreatePhysicalShapes(this);
     }
   }, onSetAsset:function(name, oldValue, newValue) {
-    var self = this;
     var asset;
     var assets = this.system.app.assets;
     if (oldValue) {
@@ -25894,106 +27563,6 @@ pc.extend(pc, function() {
 }());
 pc.extend(pc, function() {
   var _schema = ["enabled", "type", "halfExtents", "radius", "axis", "height", "asset", "shape", "model"];
-  var CollisionComponentSystem = function CollisionComponentSystem(app) {
-    this.id = "collision";
-    this.description = "Specifies a collision volume.";
-    app.systems.add(this.id, this);
-    this.ComponentType = pc.CollisionComponent;
-    this.DataType = pc.CollisionComponentData;
-    this.schema = _schema;
-    this.implementations = {};
-    this.on("remove", this.onRemove, this);
-    pc.ComponentSystem.on("update", this.onUpdate, this);
-  };
-  CollisionComponentSystem = pc.inherits(CollisionComponentSystem, pc.ComponentSystem);
-  pc.Component._buildAccessors(pc.CollisionComponent.prototype, _schema);
-  CollisionComponentSystem.prototype = pc.extend(CollisionComponentSystem.prototype, {onLibraryLoaded:function() {
-    if (typeof Ammo !== "undefined") {
-    } else {
-      pc.ComponentSystem.off("update", this.onUpdate, this);
-    }
-  }, initializeComponentData:function(component, _data, properties) {
-    var idx;
-    var data = {};
-    properties = ["type", "halfExtents", "radius", "axis", "height", "shape", "model", "asset", "enabled"];
-    properties.forEach(function(prop) {
-      data[prop] = _data[prop];
-    });
-    if (_data.hasOwnProperty("asset")) {
-      idx = properties.indexOf("model");
-      if (idx !== -1) {
-        properties.splice(idx, 1);
-      }
-    } else {
-      if (_data.hasOwnProperty("model")) {
-        idx = properties.indexOf("asset");
-        if (idx !== -1) {
-          properties.splice(idx, 1);
-        }
-      }
-    }
-    if (!data.type) {
-      data.type = component.data.type;
-    }
-    component.data.type = data.type;
-    if (data.halfExtents && pc.type(data.halfExtents) === "array") {
-      data.halfExtents = new pc.Vec3(data.halfExtents[0], data.halfExtents[1], data.halfExtents[2]);
-    }
-    var impl = this._createImplementation(data.type);
-    impl.beforeInitialize(component, data);
-    CollisionComponentSystem._super.initializeComponentData.call(this.system, component, data, properties);
-    impl.afterInitialize(component, data);
-  }, _createImplementation:function(type) {
-    if (this.implementations[type] === undefined) {
-      var impl;
-      switch(type) {
-        case "box":
-          impl = new CollisionBoxSystemImpl(this);
-          break;
-        case "sphere":
-          impl = new CollisionSphereSystemImpl(this);
-          break;
-        case "capsule":
-          impl = new CollisionCapsuleSystemImpl(this);
-          break;
-        case "cylinder":
-          impl = new CollisionCylinderSystemImpl(this);
-          break;
-        case "mesh":
-          impl = new CollisionMeshSystemImpl(this);
-          break;
-        default:
-          throw "Invalid collision system type: " + type;;
-      }
-      this.implementations[type] = impl;
-    }
-    return this.implementations[type];
-  }, _getImplementation:function(entity) {
-    return this.implementations[entity.collision.data.type];
-  }, cloneComponent:function(entity, clone) {
-    return this._getImplementation(entity).clone(entity, clone);
-  }, onRemove:function(entity, data) {
-    this.implementations[data.type].remove(entity, data);
-  }, onUpdate:function(dt) {
-    var id, entity, data;
-    var components = this.store;
-    for (id in components) {
-      entity = components[id].entity;
-      data = components[id].data;
-      if (data.enabled && entity.enabled) {
-        if (!entity.rigidbody && entity.trigger) {
-          entity.trigger.syncEntityToBody();
-        }
-      }
-    }
-  }, onTransformChanged:function(component, position, rotation, scale) {
-    this.implementations[component.data.type].updateTransform(component, position, rotation, scale);
-  }, changeType:function(component, previousType, newType) {
-    this.implementations[previousType].remove(component.entity, component.data);
-    this._createImplementation(newType).reset(component, component.data);
-  }, recreatePhysicalShapes:function(component) {
-    this.implementations[component.data.type].recreatePhysicalShapes(component);
-  }});
   var CollisionSystemImpl = function(system) {
     this.system = system;
   };
@@ -26056,9 +27625,8 @@ pc.extend(pc, function() {
       var he = data.halfExtents;
       var ammoHe = new Ammo.btVector3(he ? he.x : .5, he ? he.y : .5, he ? he.z : .5);
       return new Ammo.btBoxShape(ammoHe);
-    } else {
-      return undefined;
     }
+    return undefined;
   }});
   var CollisionSphereSystemImpl = function(system) {
   };
@@ -26066,9 +27634,8 @@ pc.extend(pc, function() {
   CollisionSphereSystemImpl.prototype = pc.extend(CollisionSphereSystemImpl.prototype, {createPhysicalShape:function(entity, data) {
     if (typeof Ammo !== "undefined") {
       return new Ammo.btSphereShape(data.radius);
-    } else {
-      return undefined;
     }
+    return undefined;
   }});
   var CollisionCapsuleSystemImpl = function(system) {
   };
@@ -26181,9 +27748,8 @@ pc.extend(pc, function() {
       vec.setValue(scale.x, scale.y, scale.z);
       shape.setLocalScaling(vec);
       return shape;
-    } else {
-      return undefined;
     }
+    return undefined;
   }, recreatePhysicalShapes:function(component) {
     var data = component.data;
     if (data.asset !== null && component.enabled && component.entity.enabled) {
@@ -26243,6 +27809,106 @@ pc.extend(pc, function() {
     }
     CollisionMeshSystemImpl._super.updateTransform.call(this, component, position, rotation, scale);
   }});
+  var CollisionComponentSystem = function CollisionComponentSystem(app) {
+    this.id = "collision";
+    this.description = "Specifies a collision volume.";
+    app.systems.add(this.id, this);
+    this.ComponentType = pc.CollisionComponent;
+    this.DataType = pc.CollisionComponentData;
+    this.schema = _schema;
+    this.implementations = {};
+    this.on("remove", this.onRemove, this);
+    pc.ComponentSystem.on("update", this.onUpdate, this);
+  };
+  CollisionComponentSystem = pc.inherits(CollisionComponentSystem, pc.ComponentSystem);
+  pc.Component._buildAccessors(pc.CollisionComponent.prototype, _schema);
+  CollisionComponentSystem.prototype = pc.extend(CollisionComponentSystem.prototype, {onLibraryLoaded:function() {
+    if (typeof Ammo !== "undefined") {
+    } else {
+      pc.ComponentSystem.off("update", this.onUpdate, this);
+    }
+  }, initializeComponentData:function(component, _data, properties) {
+    var idx;
+    var data = {};
+    properties = ["type", "halfExtents", "radius", "axis", "height", "shape", "model", "asset", "enabled"];
+    properties.forEach(function(prop) {
+      data[prop] = _data[prop];
+    });
+    if (_data.hasOwnProperty("asset")) {
+      idx = properties.indexOf("model");
+      if (idx !== -1) {
+        properties.splice(idx, 1);
+      }
+    } else {
+      if (_data.hasOwnProperty("model")) {
+        idx = properties.indexOf("asset");
+        if (idx !== -1) {
+          properties.splice(idx, 1);
+        }
+      }
+    }
+    if (!data.type) {
+      data.type = component.data.type;
+    }
+    component.data.type = data.type;
+    if (data.halfExtents && pc.type(data.halfExtents) === "array") {
+      data.halfExtents = new pc.Vec3(data.halfExtents[0], data.halfExtents[1], data.halfExtents[2]);
+    }
+    var impl = this._createImplementation(data.type);
+    impl.beforeInitialize(component, data);
+    CollisionComponentSystem._super.initializeComponentData.call(this.system, component, data, properties);
+    impl.afterInitialize(component, data);
+  }, _createImplementation:function(type) {
+    if (this.implementations[type] === undefined) {
+      var impl;
+      switch(type) {
+        case "box":
+          impl = new CollisionBoxSystemImpl(this);
+          break;
+        case "sphere":
+          impl = new CollisionSphereSystemImpl(this);
+          break;
+        case "capsule":
+          impl = new CollisionCapsuleSystemImpl(this);
+          break;
+        case "cylinder":
+          impl = new CollisionCylinderSystemImpl(this);
+          break;
+        case "mesh":
+          impl = new CollisionMeshSystemImpl(this);
+          break;
+        default:
+        ;
+      }
+      this.implementations[type] = impl;
+    }
+    return this.implementations[type];
+  }, _getImplementation:function(entity) {
+    return this.implementations[entity.collision.data.type];
+  }, cloneComponent:function(entity, clone) {
+    return this._getImplementation(entity).clone(entity, clone);
+  }, onRemove:function(entity, data) {
+    this.implementations[data.type].remove(entity, data);
+  }, onUpdate:function(dt) {
+    var id, entity, data;
+    var components = this.store;
+    for (id in components) {
+      entity = components[id].entity;
+      data = components[id].data;
+      if (data.enabled && entity.enabled) {
+        if (!entity.rigidbody && entity.trigger) {
+          entity.trigger.syncEntityToBody();
+        }
+      }
+    }
+  }, onTransformChanged:function(component, position, rotation, scale) {
+    this.implementations[component.data.type].updateTransform(component, position, rotation, scale);
+  }, changeType:function(component, previousType, newType) {
+    this.implementations[previousType].remove(component.entity, component.data);
+    this._createImplementation(newType).reset(component, component.data);
+  }, recreatePhysicalShapes:function(component) {
+    this.implementations[component.data.type].recreatePhysicalShapes(component);
+  }});
   return {CollisionComponentSystem:CollisionComponentSystem};
 }());
 pc.extend(pc, function() {
@@ -26266,6 +27932,7 @@ pc.extend(pc, function() {
   var COMPLEX_PROPERTIES = ["numParticles", "lifetime", "rate", "rate2", "startAngle", "startAngle2", "lighting", "halfLambert", "intensity", "wrap", "wrapBounds", "depthWrite", "noFog", "sort", "stretch", "alignToMotion", "preWarm", "emitterShape", "animTilesX", "animTilesY", "animFrames", "animLoop", "colorMap", "localSpace"];
   var GRAPH_PROPERTIES = ["scaleGraph", "scaleGraph2", "colorGraph", "colorGraph2", "alphaGraph", "alphaGraph2", "velocityGraph", "velocityGraph2", "localVelocityGraph", "localVelocityGraph2", "rotationSpeedGraph", "rotationSpeedGraph2"];
   var ASSET_PROPERTIES = ["colorMapAsset", "normalMapAsset", "mesh"];
+  var depthLayer;
   var ParticleSystemComponent = function ParticleSystemComponent(system, entity) {
     this.on("set_colorMapAsset", this.onSetColorMapAsset, this);
     this.on("set_normalMapAsset", this.onSetNormalMapAsset, this);
@@ -26273,6 +27940,7 @@ pc.extend(pc, function() {
     this.on("set_loop", this.onSetLoop, this);
     this.on("set_blendType", this.onSetBlendType, this);
     this.on("set_depthSoftening", this.onSetDepthSoftening, this);
+    this.on("set_layers", this.onSetLayers, this);
     SIMPLE_PROPERTIES.forEach(function(prop) {
       this.on("set_" + prop, this.onSetSimpleProperty, this);
     }.bind(this));
@@ -26282,9 +27950,81 @@ pc.extend(pc, function() {
     GRAPH_PROPERTIES.forEach(function(prop) {
       this.on("set_" + prop, this.onSetGraphProperty, this);
     }.bind(this));
+    this._requestedDepth = false;
   };
   ParticleSystemComponent = pc.inherits(ParticleSystemComponent, pc.Component);
-  pc.extend(ParticleSystemComponent.prototype, {onSetColorMapAsset:function(name, oldValue, newValue) {
+  pc.extend(ParticleSystemComponent.prototype, {addModelToLayers:function() {
+    if (!this.data.model) {
+      return;
+    }
+    var layer;
+    for (var i = 0;i < this.layers.length;i++) {
+      layer = this.system.app.scene.layers.getLayerById(this.layers[i]);
+      if (!layer) {
+        continue;
+      }
+      layer.addMeshInstances(this.data.model.meshInstances);
+      this.emitter._layer = layer;
+    }
+  }, removeModelFromLayers:function(model) {
+    if (!this.data.model) {
+      return;
+    }
+    var layer;
+    for (var i = 0;i < this.layers.length;i++) {
+      layer = this.system.app.scene.layers.getLayerById(this.layers[i]);
+      if (!layer) {
+        continue;
+      }
+      layer.removeMeshInstances(this.data.model.meshInstances);
+    }
+  }, onSetLayers:function(name, oldValue, newValue) {
+    if (!this.data.model) {
+      return;
+    }
+    var i, layer;
+    for (i = 0;i < oldValue.length;i++) {
+      layer = this.system.app.scene.layers.getLayerById(oldValue[i]);
+      if (!layer) {
+        continue;
+      }
+      layer.removeMeshInstances(this.data.model.meshInstances);
+    }
+    if (!this.enabled || !this.entity.enabled) {
+      return;
+    }
+    for (i = 0;i < newValue.length;i++) {
+      layer = this.system.app.scene.layers.getLayerById(newValue[i]);
+      if (!layer) {
+        continue;
+      }
+      layer.addMeshInstances(this.data.model.meshInstances);
+    }
+  }, onLayersChanged:function(oldComp, newComp) {
+    this.addModelToLayers();
+    oldComp.off("add", this.onLayerAdded, this);
+    oldComp.off("remove", this.onLayerRemoved, this);
+    newComp.on("add", this.onLayerAdded, this);
+    newComp.on("remove", this.onLayerRemoved, this);
+  }, onLayerAdded:function(layer) {
+    if (!this.data.model) {
+      return;
+    }
+    var index = this.layers.indexOf(layer.id);
+    if (index < 0) {
+      return;
+    }
+    layer.addMeshInstances(this.data.model.meshInstances);
+  }, onLayerRemoved:function(layer) {
+    if (!this.data.model) {
+      return;
+    }
+    var index = this.layers.indexOf(layer.id);
+    if (index < 0) {
+      return;
+    }
+    layer.removeMeshInstances(this.data.model.meshInstances);
+  }, onSetColorMapAsset:function(name, oldValue, newValue) {
     var self = this;
     var asset;
     var assets = this.system.app.assets;
@@ -26437,20 +28177,43 @@ pc.extend(pc, function() {
       this.emitter.resetMaterial();
       this.rebuild();
     }
+  }, _requestDepth:function() {
+    if (this._requestedDepth) {
+      return;
+    }
+    if (!depthLayer) {
+      depthLayer = this.system.app.scene.layers.getLayerById(pc.LAYERID_DEPTH);
+    }
+    if (depthLayer) {
+      depthLayer.incrementCounter();
+      this._requestedDepth = true;
+    }
+  }, _releaseDepth:function() {
+    if (!this._requestedDepth) {
+      return;
+    }
+    if (depthLayer) {
+      depthLayer.decrementCounter();
+      this._requestedDepth = false;
+    }
   }, onSetDepthSoftening:function(name, oldValue, newValue) {
-    if (this.emitter) {
-      if (oldValue !== newValue) {
-        if (newValue) {
-          this.emitter[name] = newValue;
-          if (this.enabled) {
-            this.emitter.onEnableDepth();
-          }
-        } else {
-          if (this.enabled) {
-            this.emitter.onDisableDepth();
-          }
+    if (oldValue !== newValue) {
+      if (newValue) {
+        if (this.enabled && this.entity.enabled) {
+          this._requestDepth();
+        }
+        if (this.emitter) {
           this.emitter[name] = newValue;
         }
+      } else {
+        if (this.enabled && this.entity.enabled) {
+          this._releaseDepth();
+        }
+        if (this.emitter) {
+          this.emitter[name] = newValue;
+        }
+      }
+      if (this.emitter) {
         this.reset();
         this.emitter.resetMaterial();
         this.rebuild();
@@ -26491,16 +28254,14 @@ pc.extend(pc, function() {
         }
       }
     }
-    var firstRun = false;
     if (!this.emitter) {
       var mesh = this.data.mesh;
       if (!(mesh instanceof pc.Mesh)) {
         mesh = null;
       }
-      firstRun = true;
-      this.emitter = new pc.ParticleEmitter(this.system.app.graphicsDevice, {numParticles:this.data.numParticles, emitterExtents:this.data.emitterExtents, emitterRadius:this.data.emitterRadius, emitterShape:this.data.emitterShape, initialVelocity:this.data.initialVelocity, wrap:this.data.wrap, localSpace:this.data.localSpace, wrapBounds:this.data.wrapBounds, lifetime:this.data.lifetime, rate:this.data.rate, rate2:this.data.rate2, animTilesX:this.data.animTilesX, animTilesY:this.data.animTilesY, animNumFrames:this.data.animNumFrames,
-      animSpeed:this.data.animSpeed, animLoop:this.data.animLoop, startAngle:this.data.startAngle, startAngle2:this.data.startAngle2, scaleGraph:this.data.scaleGraph, scaleGraph2:this.data.scaleGraph2, colorGraph:this.data.colorGraph, colorGraph2:this.data.colorGraph2, alphaGraph:this.data.alphaGraph, alphaGraph2:this.data.alphaGraph2, localVelocityGraph:this.data.localVelocityGraph, localVelocityGraph2:this.data.localVelocityGraph2, velocityGraph:this.data.velocityGraph, velocityGraph2:this.data.velocityGraph2,
-      rotationSpeedGraph:this.data.rotationSpeedGraph, rotationSpeedGraph2:this.data.rotationSpeedGraph2, colorMap:this.data.colorMap, normalMap:this.data.normalMap, loop:this.data.loop, preWarm:this.data.preWarm, sort:this.data.sort, stretch:this.data.stretch, alignToMotion:this.data.alignToMotion, lighting:this.data.lighting, halfLambert:this.data.halfLambert, intensity:this.data.intensity, depthSoftening:this.data.depthSoftening, scene:this.system.app.scene, mesh:mesh, depthWrite:this.data.depthWrite,
+      this.emitter = new pc.ParticleEmitter(this.system.app.graphicsDevice, {numParticles:this.data.numParticles, emitterExtents:this.data.emitterExtents, emitterRadius:this.data.emitterRadius, emitterShape:this.data.emitterShape, initialVelocity:this.data.initialVelocity, wrap:this.data.wrap, localSpace:this.data.localSpace, wrapBounds:this.data.wrapBounds, lifetime:this.data.lifetime, rate:this.data.rate, rate2:this.data.rate2, animTilesX:this.data.animTilesX, animTilesY:this.data.animTilesY, animNumFrames:this.data.animNumFrames, 
+      animSpeed:this.data.animSpeed, animLoop:this.data.animLoop, startAngle:this.data.startAngle, startAngle2:this.data.startAngle2, scaleGraph:this.data.scaleGraph, scaleGraph2:this.data.scaleGraph2, colorGraph:this.data.colorGraph, colorGraph2:this.data.colorGraph2, alphaGraph:this.data.alphaGraph, alphaGraph2:this.data.alphaGraph2, localVelocityGraph:this.data.localVelocityGraph, localVelocityGraph2:this.data.localVelocityGraph2, velocityGraph:this.data.velocityGraph, velocityGraph2:this.data.velocityGraph2, 
+      rotationSpeedGraph:this.data.rotationSpeedGraph, rotationSpeedGraph2:this.data.rotationSpeedGraph2, colorMap:this.data.colorMap, normalMap:this.data.normalMap, loop:this.data.loop, preWarm:this.data.preWarm, sort:this.data.sort, stretch:this.data.stretch, alignToMotion:this.data.alignToMotion, lighting:this.data.lighting, halfLambert:this.data.halfLambert, intensity:this.data.intensity, depthSoftening:this.data.depthSoftening, scene:this.system.app.scene, mesh:mesh, depthWrite:this.data.depthWrite, 
       noFog:this.data.noFog, node:this.entity, blendType:this.data.blendType});
       this.emitter.meshInstance.node = this.entity;
       this.psys = new pc.Model;
@@ -26514,23 +28275,29 @@ pc.extend(pc, function() {
         this.emitter.meshInstance.visible = false;
       }
     }
-    if (this.data.model) {
-      if (!this.system.app.scene.containsModel(this.data.model)) {
-        if (this.emitter.colorMap) {
-          this.system.app.scene.addModel(this.data.model);
-          if (!firstRun) {
-            this.emitter.onEnableDepth();
-          }
-        }
-      }
+    if (this.data.model && this.emitter.colorMap) {
+      this.addModelToLayers();
+    }
+    this.system.app.scene.on("set:layers", this.onLayersChanged, this);
+    if (this.system.app.scene.layers) {
+      this.system.app.scene.layers.on("add", this.onLayerAdded, this);
+      this.system.app.scene.layers.on("remove", this.onLayerRemoved, this);
+    }
+    if (this.enabled && this.entity.enabled) {
+      this._requestDepth();
     }
     ParticleSystemComponent._super.onEnable.call(this);
   }, onDisable:function() {
     ParticleSystemComponent._super.onDisable.call(this);
+    this.system.app.scene.off("set:layers", this.onLayersChanged, this);
+    if (this.system.app.scene.layers) {
+      this.system.app.scene.layers.off("add", this.onLayerAdded, this);
+      this.system.app.scene.layers.off("remove", this.onLayerRemoved, this);
+    }
     if (this.data.model) {
-      if (this.system.app.scene.containsModel(this.data.model)) {
-        this.system.app.scene.removeModel(this.data.model);
-        this.emitter.onDisableDepth();
+      this.removeModelFromLayers();
+      if (this.data.depthSoftening) {
+        this._releaseDepth();
       }
     }
   }, reset:function() {
@@ -26557,13 +28324,11 @@ pc.extend(pc, function() {
   }, isPlaying:function() {
     if (this.data.paused) {
       return false;
-    } else {
-      if (this.emitter && this.emitter.loop) {
-        return true;
-      } else {
-        return Date.now() <= this.emitter.endTime;
-      }
     }
+    if (this.emitter && this.emitter.loop) {
+      return true;
+    }
+    return Date.now() <= this.emitter.endTime;
   }, rebuild:function() {
     var enabled = this.enabled;
     this.enabled = false;
@@ -26577,8 +28342,8 @@ pc.extend(pc, function() {
   return {ParticleSystemComponent:ParticleSystemComponent};
 }());
 pc.extend(pc, function() {
-  var _schema = ["enabled", "autoPlay", "numParticles", "lifetime", "rate", "rate2", "startAngle", "startAngle2", "loop", "preWarm", "lighting", "halfLambert", "intensity", "depthWrite", "noFog", "depthSoftening", "sort", "blendType", "stretch", "alignToMotion", "emitterShape", "emitterExtents", "emitterRadius", "initialVelocity", "wrap", "wrapBounds", "localSpace", "colorMapAsset", "normalMapAsset", "mesh", "localVelocityGraph", "localVelocityGraph2", "velocityGraph", "velocityGraph2", "rotationSpeedGraph",
-  "rotationSpeedGraph2", "scaleGraph", "scaleGraph2", "colorGraph", "colorGraph2", "alphaGraph", "alphaGraph2", "colorMap", "normalMap", "animTilesX", "animTilesY", "animNumFrames", "animSpeed", "animLoop"];
+  var _schema = ["enabled", "autoPlay", "numParticles", "lifetime", "rate", "rate2", "startAngle", "startAngle2", "loop", "preWarm", "lighting", "halfLambert", "intensity", "depthWrite", "noFog", "depthSoftening", "sort", "blendType", "stretch", "alignToMotion", "emitterShape", "emitterExtents", "emitterRadius", "initialVelocity", "wrap", "wrapBounds", "localSpace", "colorMapAsset", "normalMapAsset", "mesh", "localVelocityGraph", "localVelocityGraph2", "velocityGraph", "velocityGraph2", "rotationSpeedGraph", 
+  "rotationSpeedGraph2", "scaleGraph", "scaleGraph2", "colorGraph", "colorGraph2", "alphaGraph", "alphaGraph2", "colorMap", "normalMap", "animTilesX", "animTilesY", "animNumFrames", "animSpeed", "animLoop", "layers"];
   var ParticleSystemComponentSystem = function ParticleSystemComponentSystem(app) {
     this.id = "particlesystem";
     this.description = "Updates and renders particle system in the scene.";
@@ -26623,6 +28388,9 @@ pc.extend(pc, function() {
           }
         }
       }
+      if (data.layers && pc.type(data.layers) === "array") {
+        data.layers = data.layers.slice(0);
+      }
     }
     ParticleSystemComponentSystem._super.initializeComponentData.call(this, component, data, properties);
   }, cloneComponent:function(entity, clone) {
@@ -26636,26 +28404,58 @@ pc.extend(pc, function() {
         sourceProp = sourceProp.clone();
         data[prop] = sourceProp;
       } else {
-        if (sourceProp !== null && sourceProp !== undefined) {
-          data[prop] = sourceProp;
+        if (prop === "layers") {
+          data.layers = source.layers.slice(0);
+        } else {
+          if (sourceProp !== null && sourceProp !== undefined) {
+            data[prop] = sourceProp;
+          }
         }
       }
     }
     return this.addComponent(clone, data);
   }, onUpdate:function(dt) {
     var components = this.store;
-    var currentCamera;
-    var numSteps, i;
+    var numSteps, i, j, c;
     var stats = this.app.stats.particles;
     for (var id in components) {
       if (components.hasOwnProperty(id)) {
-        var c = components[id];
+        c = components[id];
         var entity = c.entity;
         var data = c.data;
         if (data.enabled && entity.enabled) {
           var emitter = data.model.emitter;
           if (!emitter.meshInstance.visible) {
             continue;
+          }
+          if (emitter.lighting) {
+            var layer, lightCube;
+            var layers = data.layers;
+            for (i = 0;i < layers.length;i++) {
+              layer = this.app.scene.layers.getLayerById(layers[i]);
+              if (!layer) {
+                continue;
+              }
+              if (!layer._lightCube) {
+                layer._lightCube = new Float32Array(6 * 3);
+              }
+              lightCube = layer._lightCube;
+              for (i = 0;i < 6;i++) {
+                lightCube[i * 3] = this.app.scene.ambientLight.data[0];
+                lightCube[i * 3 + 1] = this.app.scene.ambientLight.data[1];
+                lightCube[i * 3 + 2] = this.app.scene.ambientLight.data[2];
+              }
+              var dirs = layer._sortedLights[pc.LIGHTTYPE_DIRECTIONAL];
+              for (j = 0;j < dirs.length;j++) {
+                for (c = 0;c < 6;c++) {
+                  var weight = Math.max(emitter.lightCubeDir[c].dot(dirs[j]._direction), 0) * dirs[j]._intensity;
+                  lightCube[c * 3] += dirs[j]._color.data[0] * weight;
+                  lightCube[c * 3 + 1] += dirs[j]._color.data[1] * weight;
+                  lightCube[c * 3 + 2] += dirs[j]._color.data[2] * weight;
+                }
+              }
+            }
+            emitter.constantLightCube.setValue(lightCube);
           }
           if (!data.paused) {
             emitter.simTime += dt;
@@ -26681,7 +28481,6 @@ pc.extend(pc, function() {
   }, onRemove:function(entity, component) {
     var data = component.data;
     if (data.model) {
-      this.app.scene.removeModel(data.model);
       entity.removeChild(data.model.getGraph());
       data.model = null;
     }
@@ -26746,6 +28545,7 @@ pc.extend(pc, function() {
     this.enabled = true;
     this.paused = false;
     this.autoPlay = true;
+    this.layers = [pc.LAYERID_WORLD];
   };
   ParticleSystemComponentData = pc.inherits(ParticleSystemComponentData, pc.ComponentData);
   return {ParticleSystemComponentData:ParticleSystemComponentData};
@@ -26772,7 +28572,6 @@ pc.extend(pc, function() {
     }
   }, _bindSpriteAsset:function(asset) {
     asset.on("load", this._onSpriteAssetLoad, this);
-    asset.on("change", this._onSpriteAssetChange, this);
     asset.on("remove", this._onSpriteAssetRemove, this);
     if (asset.resource) {
       this._onSpriteAssetLoad(asset);
@@ -26799,12 +28598,17 @@ pc.extend(pc, function() {
     } else {
       this._onSpriteAssetLoad(this._component.system.app.assets.get(spriteAsset));
     }
-  }, _onSpriteAssetChange:function(asset) {
-    this._onSpriteAssetLoad(asset);
   }, _onSpriteAssetRemove:function(asset) {
+    this.sprite = null;
   }, _onSpriteMeshesChange:function() {
     if (this._component.currentClip === this) {
       this._component._showFrame(this.frame);
+    }
+  }, _onSpritePpuChanged:function() {
+    if (this._component.currentClip === this) {
+      if (this.sprite.renderMode !== pc.SPRITE_RENDERMODE_SIMPLE) {
+        this._component._showFrame(this.frame);
+      }
     }
   }, _update:function(dt) {
     if (this.fps === 0) {
@@ -26858,12 +28662,12 @@ pc.extend(pc, function() {
     }
   }, _setFrame:function(value) {
     if (this._sprite) {
-      this._frame = pc.math.clamp(value, 0, this._sprite.frameKeys.length);
+      this._frame = pc.math.clamp(value, 0, this._sprite.frameKeys.length - 1);
     } else {
       this._frame = value;
     }
     if (this._component.currentClip === this) {
-      this._component._showFrame(value);
+      this._component._showFrame(this._frame);
     }
   }, _destroy:function() {
     if (this._sprite) {
@@ -26919,7 +28723,6 @@ pc.extend(pc, function() {
         var prev = assets.get(this._spriteAsset);
         if (prev) {
           prev.off("load", this._onSpriteAssetLoad, this);
-          prev.off("change", this._onSpriteAssetChange, this);
           prev.off("remove", this._onSpriteAssetRemove, this);
           var atlasAssetId = prev.data && prev.data.textureAtlasAsset;
           if (atlasAssetId) {
@@ -26946,14 +28749,25 @@ pc.extend(pc, function() {
   }, set:function(value) {
     if (this._sprite) {
       this._sprite.off("set:meshes", this._onSpriteMeshesChange, this);
+      this._sprite.off("set:pixelsPerUnit", this._onSpritePpuChanged, this);
+      this._sprite.off("set:atlas", this._onSpriteMeshesChange, this);
+      if (this._sprite.atlas) {
+        this._sprite.atlas.off("set:texture", this._onSpriteMeshesChange, this);
+      }
     }
     this._sprite = value;
     if (this._sprite) {
       this._sprite.on("set:meshes", this._onSpriteMeshesChange, this);
+      this._sprite.on("set:pixelsPerUnit", this._onSpritePpuChanged, this);
+      this._sprite.on("set:atlas", this._onSpriteMeshesChange, this);
+      if (this._sprite.atlas) {
+        this._sprite.atlas.on("set:texture", this._onSpriteMeshesChange, this);
+      }
     }
     if (this._component.currentClip === this) {
+      var mi;
       if (!value || !value.atlas) {
-        var mi = this._component._meshInstance;
+        mi = this._component._meshInstance;
         if (mi) {
           mi.deleteParameter("texture_emissiveMap");
           mi.deleteParameter("texture_opacityMap");
@@ -26961,12 +28775,14 @@ pc.extend(pc, function() {
         this._component._hideModel();
       } else {
         if (value.atlas.texture) {
-          var mi = this._component._meshInstance;
+          mi = this._component._meshInstance;
           if (mi) {
             mi.setParameter("texture_emissiveMap", value.atlas.texture);
             mi.setParameter("texture_opacityMap", value.atlas.texture);
           }
-          this._component._showModel();
+          if (this._component.enabled && this._component.entity.enabled) {
+            this._component._showModel();
+          }
         }
         if (this.time && this.fps) {
           this.time = this.time;
@@ -26993,16 +28809,15 @@ pc.extend(pc, function() {
     if (this._sprite) {
       var fps = this.fps || Number.MIN_VALUE;
       return this._sprite.frameKeys.length / Math.abs(fps);
-    } else {
-      return 0;
     }
+    return 0;
   }});
   Object.defineProperty(SpriteAnimationClip.prototype, "time", {get:function() {
     return this._time;
   }, set:function(value) {
     this._setTime(value);
     if (this._sprite) {
-      this.frame = Math.floor(this._time * Math.abs(this.fps));
+      this.frame = Math.min(this._sprite.frameKeys.length - 1, Math.floor(this._time * Math.abs(this.fps)));
     } else {
       this.frame = 0;
     }
@@ -27012,6 +28827,13 @@ pc.extend(pc, function() {
 pc.extend(pc, function() {
   pc.SPRITETYPE_SIMPLE = "simple";
   pc.SPRITETYPE_ANIMATED = "animated";
+  var PARAM_EMISSIVE_MAP = "texture_emissiveMap";
+  var PARAM_OPACITY_MAP = "texture_opacityMap";
+  var PARAM_EMISSIVE = "material_emissive";
+  var PARAM_OPACITY = "material_opacity";
+  var PARAM_INNER_OFFSET = "innerOffset";
+  var PARAM_OUTER_SCALE = "outerScale";
+  var PARAM_ATLAS_RECT = "atlasRect";
   var SpriteComponent = function SpriteComponent(system, entity) {
     this._type = pc.SPRITETYPE_SIMPLE;
     this._material = system.defaultMaterial;
@@ -27019,15 +28841,24 @@ pc.extend(pc, function() {
     this._speed = 1;
     this._flipX = false;
     this._flipY = false;
+    this._width = 1;
+    this._height = 1;
+    this._drawOrder = 0;
+    this._layers = [pc.LAYERID_WORLD];
+    this._outerScale = new pc.Vec2(1, 1);
+    this._innerOffset = new pc.Vec4;
+    this._atlasRect = new pc.Vec4;
     this._batchGroupId = -1;
     this._batchGroup = null;
-    this._autoPlayClip = null;
     this._node = new pc.GraphNode;
     this._model = new pc.Model;
     this._model.graph = this._node;
     this._meshInstance = null;
     entity.addChild(this._model.graph);
     this._model._entity = entity;
+    this._updateAabbFunc = this._updateAabb.bind(this);
+    this._addedModel = false;
+    this._autoPlayClip = null;
     this._clips = {};
     this._defaultClip = new pc.SpriteAnimationClip(this, {name:this.entity.name, fps:0, loop:false, spriteAsset:null});
     this._currentClip = this._defaultClip;
@@ -27035,12 +28866,22 @@ pc.extend(pc, function() {
   SpriteComponent = pc.inherits(SpriteComponent, pc.Component);
   pc.extend(SpriteComponent.prototype, {onEnable:function() {
     SpriteComponent._super.onEnable.call(this);
+    this.system.app.scene.on("set:layers", this._onLayersChanged, this);
+    if (this.system.app.scene.layers) {
+      this.system.app.scene.layers.on("add", this._onLayerAdded, this);
+      this.system.app.scene.layers.on("remove", this._onLayerRemoved, this);
+    }
     this._showModel();
     if (this._autoPlayClip) {
       this._tryAutoPlay();
     }
   }, onDisable:function() {
     SpriteComponent._super.onDisable.call(this);
+    this.system.app.scene.off("set:layers", this._onLayersChanged, this);
+    if (this.system.app.scene.layers) {
+      this.system.app.scene.layers.off("add", this._onLayerAdded, this);
+      this.system.app.scene.layers.off("remove", this._onLayerRemoved, this);
+    }
     this.stop();
     this._hideModel();
   }, onDestroy:function() {
@@ -27062,45 +28903,143 @@ pc.extend(pc, function() {
       this._node = null;
     }
     if (this._meshInstance) {
+      this._meshInstance.material = null;
+      this._meshInstance.mesh = null;
       this._meshInstance = null;
     }
   }, _showModel:function() {
-    if (this._model && this._meshInstance && !this.system.app.scene.containsModel(this._model)) {
-      this.system.app.scene.addModel(this._model);
+    if (this._addedModel) {
+      return;
     }
+    if (!this._meshInstance) {
+      return;
+    }
+    var i;
+    var len;
+    var meshInstances = [this._meshInstance];
+    for (i = 0, len = this._layers.length;i < len;i++) {
+      var layer = this.system.app.scene.layers.getLayerById(this._layers[i]);
+      if (layer) {
+        layer.addMeshInstances(meshInstances);
+      }
+    }
+    this._addedModel = true;
   }, _hideModel:function() {
-    if (this._model) {
-      this.system.app.scene.removeModel(this._model);
+    if (!this._addedModel || !this._meshInstance) {
+      return;
     }
+    var i;
+    var len;
+    var meshInstances = [this._meshInstance];
+    for (i = 0, len = this._layers.length;i < len;i++) {
+      var layer = this.system.app.scene.layers.getLayerById(this._layers[i]);
+      if (layer) {
+        layer.removeMeshInstances(meshInstances);
+      }
+    }
+    this._addedModel = false;
   }, _showFrame:function(frame) {
     if (!this.sprite) {
       return;
     }
     var mesh = this.sprite.meshes[frame];
     if (!mesh) {
+      if (this._meshInstance) {
+        this._meshInstance.mesh = null;
+        this._meshInstance.visible = false;
+      }
       return;
+    }
+    var material = this.system.defaultMaterial;
+    if (this.sprite.renderMode === pc.SPRITE_RENDERMODE_SLICED) {
+      material = this.system.default9SlicedMaterialSlicedMode;
+    } else {
+      if (this.sprite.renderMode === pc.SPRITE_RENDERMODE_TILED) {
+        material = this.system.default9SlicedMaterialTiledMode;
+      }
     }
     if (!this._meshInstance) {
       this._meshInstance = new pc.MeshInstance(this._node, mesh, this._material);
       this._meshInstance.castShadow = false;
       this._meshInstance.receiveShadow = false;
+      this._meshInstance.drawOrder = this._drawOrder;
       this._model.meshInstances.push(this._meshInstance);
-      this._meshInstance.setParameter("material_emissive", this._color.data3);
-      this._meshInstance.setParameter("material_opacity", this._color.data[3]);
-      if (this.sprite.atlas.texture) {
-        this._meshInstance.setParameter("texture_emissiveMap", this.sprite.atlas.texture);
-        this._meshInstance.setParameter("texture_opacityMap", this.sprite.atlas.texture);
-      }
+      this._meshInstance.setParameter(PARAM_EMISSIVE, this._color.data3);
+      this._meshInstance.setParameter(PARAM_OPACITY, this._color.data[3]);
       if (this.enabled && this.entity.enabled) {
         this._showModel();
       }
     }
+    if (this._meshInstance.material !== material) {
+      this._meshInstance.material = material;
+    }
     if (this._meshInstance.mesh !== mesh) {
       this._meshInstance.mesh = mesh;
+      this._meshInstance.visible = true;
       this._meshInstance._aabbVer = -1;
     }
-  }, _flipMeshes:function() {
-    this._node.setLocalScale(this.flipX ? -1 : 1, this.flipY ? -1 : 1, 1);
+    if (this.sprite.atlas && this.sprite.atlas.texture) {
+      this._meshInstance.setParameter(PARAM_EMISSIVE_MAP, this.sprite.atlas.texture);
+      this._meshInstance.setParameter(PARAM_OPACITY_MAP, this.sprite.atlas.texture);
+    } else {
+      this._meshInstance.deleteParameter(PARAM_EMISSIVE_MAP);
+      this._meshInstance.deleteParameter(PARAM_OPACITY_MAP);
+    }
+    if (this.sprite.atlas && (this.sprite.renderMode === pc.SPRITE_RENDERMODE_SLICED || this.sprite.renderMode === pc.SPRITE_RENDERMODE_TILED)) {
+      this._meshInstance._updateAabbFunc = this._updateAabbFunc;
+      var frameData = this.sprite.atlas.frames[this.sprite.frameKeys[frame]];
+      if (frameData) {
+        var borderWidthScale = 2 / frameData.rect.z;
+        var borderHeightScale = 2 / frameData.rect.w;
+        this._innerOffset.set(frameData.border.x * borderWidthScale, frameData.border.y * borderHeightScale, frameData.border.z * borderWidthScale, frameData.border.w * borderHeightScale);
+        var tex = this.sprite.atlas.texture;
+        this._atlasRect.set(frameData.rect.x / tex.width, frameData.rect.y / tex.height, frameData.rect.z / tex.width, frameData.rect.w / tex.height);
+      } else {
+        this._innerOffset.set(0, 0, 0, 0);
+      }
+      this._meshInstance.setParameter(PARAM_INNER_OFFSET, this._innerOffset.data);
+      this._meshInstance.setParameter(PARAM_ATLAS_RECT, this._atlasRect.data);
+    } else {
+      this._meshInstance._updateAabbFunc = null;
+    }
+    this._updateTransform();
+  }, _updateTransform:function() {
+    var scaleX = this.flipX ? -1 : 1;
+    var scaleY = this.flipY ? -1 : 1;
+    var posX = 0;
+    var posY = 0;
+    if (this.sprite && (this.sprite.renderMode === pc.SPRITE_RENDERMODE_SLICED || this.sprite.renderMode === pc.SPRITE_RENDERMODE_TILED)) {
+      var w = 1;
+      var h = 1;
+      if (this.sprite.atlas) {
+        var frameData = this.sprite.atlas.frames[this.sprite.frameKeys[this.frame]];
+        if (frameData) {
+          w = frameData.rect.z;
+          h = frameData.rect.w;
+          posX = (.5 - frameData.pivot.x) * this._width;
+          posY = (.5 - frameData.pivot.y) * this._height;
+        }
+      }
+      var scaleMulX = w / this.sprite.pixelsPerUnit;
+      var scaleMulY = h / this.sprite.pixelsPerUnit;
+      this._outerScale.set(Math.max(this._width, this._innerOffset.x * scaleMulX), Math.max(this._height, this._innerOffset.y * scaleMulY));
+      scaleX *= scaleMulX;
+      scaleY *= scaleMulY;
+      this._outerScale.x /= scaleMulX;
+      this._outerScale.y /= scaleMulY;
+      scaleX *= pc.math.clamp(this._width / (this._innerOffset.x * scaleMulX), 1E-4, 1);
+      scaleY *= pc.math.clamp(this._height / (this._innerOffset.y * scaleMulY), 1E-4, 1);
+      if (this._meshInstance) {
+        this._meshInstance.setParameter(PARAM_OUTER_SCALE, this._outerScale.data, 4294967295);
+      }
+    }
+    this._node.setLocalScale(scaleX, scaleY, 1);
+    this._node.setLocalPosition(posX, posY, 0);
+  }, _updateAabb:function(aabb) {
+    aabb.center.set(0, 0, 0);
+    aabb.halfExtents.set(this._outerScale.x * .5, this._outerScale.y * .5, .001);
+    aabb.setFromTransformedAabb(aabb, this._node.getWorldTransform());
+    return aabb;
   }, _tryAutoPlay:function() {
     if (!this._autoPlayClip) {
       return;
@@ -27114,6 +29053,31 @@ pc.extend(pc, function() {
         this.play(clip.name);
       }
     }
+  }, _onLayersChanged:function(oldComp, newComp) {
+    oldComp.off("add", this.onLayerAdded, this);
+    oldComp.off("remove", this.onLayerRemoved, this);
+    newComp.on("add", this.onLayerAdded, this);
+    newComp.on("remove", this.onLayerRemoved, this);
+    if (this.enabled && this.entity.enabled) {
+      this._showModel();
+    }
+  }, _onLayerAdded:function(layer) {
+    var index = this.layers.indexOf(layer.id);
+    if (index < 0) {
+      return;
+    }
+    if (this._addedModel && this.enabled && this.entity.enabled && this._meshInstance) {
+      layer.addMeshInstances([this._meshInstance]);
+    }
+  }, _onLayerRemoved:function(layer) {
+    if (!this._meshInstance) {
+      return;
+    }
+    var index = this.layers.indexOf(layer.id);
+    if (index < 0) {
+      return;
+    }
+    layer.removeMeshInstances([this._meshInstance]);
   }, addClip:function(data) {
     var clip = new pc.SpriteAnimationClip(this, {name:data.name, fps:data.fps, loop:data.loop, spriteAsset:data.spriteAsset});
     this._clips[data.name] = clip;
@@ -27183,7 +29147,7 @@ pc.extend(pc, function() {
         if (this._autoPlayClip) {
           this._tryAutoPlay();
         }
-        if (this._currentClip && this._currentClip.isPlaying) {
+        if (this._currentClip && this._currentClip.isPlaying && this.enabled && this.entity.enabled) {
           this._showModel();
         } else {
           this._hideModel();
@@ -27221,7 +29185,7 @@ pc.extend(pc, function() {
     this._color.data[1] = value.data[1];
     this._color.data[2] = value.data[2];
     if (this._meshInstance) {
-      this._meshInstance.setParameter("material_emissive", this._color.data3);
+      this._meshInstance.setParameter(PARAM_EMISSIVE, this._color.data3);
     }
   }});
   Object.defineProperty(SpriteComponent.prototype, "opacity", {get:function() {
@@ -27229,7 +29193,7 @@ pc.extend(pc, function() {
   }, set:function(value) {
     this._color.data[3] = value;
     if (this._meshInstance) {
-      this._meshInstance.setParameter("material_opacity", value);
+      this._meshInstance.setParameter(PARAM_OPACITY, value);
     }
   }});
   Object.defineProperty(SpriteComponent.prototype, "clips", {get:function() {
@@ -27287,17 +29251,43 @@ pc.extend(pc, function() {
   Object.defineProperty(SpriteComponent.prototype, "flipX", {get:function() {
     return this._flipX;
   }, set:function(value) {
-    if (this._flipX !== value) {
-      this._flipX = value;
-      this._flipMeshes();
+    if (this._flipX === value) {
+      return;
     }
+    this._flipX = value;
+    this._updateTransform();
   }});
   Object.defineProperty(SpriteComponent.prototype, "flipY", {get:function() {
     return this._flipY;
   }, set:function(value) {
-    if (this._flipY !== value) {
-      this._flipY = value;
-      this._flipMeshes();
+    if (this._flipY === value) {
+      return;
+    }
+    this._flipY = value;
+    this._updateTransform();
+  }});
+  Object.defineProperty(SpriteComponent.prototype, "width", {get:function() {
+    return this._width;
+  }, set:function(value) {
+    if (value === this._width) {
+      return;
+    }
+    this._width = value;
+    this._outerScale.x = this._width;
+    if (this.sprite && (this.sprite.renderMode === pc.SPRITE_RENDERMODE_TILED || this.sprite.renderMode === pc.SPRITE_RENDERMODE_SLICED)) {
+      this._updateTransform();
+    }
+  }});
+  Object.defineProperty(SpriteComponent.prototype, "height", {get:function() {
+    return this._height;
+  }, set:function(value) {
+    if (value === this._height) {
+      return;
+    }
+    this._height = value;
+    this._outerScale.y = this.height;
+    if (this.sprite && (this.sprite.renderMode === pc.SPRITE_RENDERMODE_TILED || this.sprite.renderMode === pc.SPRITE_RENDERMODE_SLICED)) {
+      this._updateTransform();
     }
   }});
   Object.defineProperty(SpriteComponent.prototype, "batchGroupId", {get:function() {
@@ -27315,7 +29305,7 @@ pc.extend(pc, function() {
       this.system.app.batcher._markGroupDirty(this._batchGroupId);
     } else {
       if (prev >= 0) {
-        if (this._currentClip && this._currentClip.sprite) {
+        if (this._currentClip && this._currentClip.sprite && this.enabled && this.entity.enabled) {
           this._showModel();
         }
       }
@@ -27327,11 +29317,35 @@ pc.extend(pc, function() {
     this._autoPlayClip = value instanceof pc.SpriteAnimationClip ? value.name : value;
     this._tryAutoPlay();
   }});
+  Object.defineProperty(SpriteComponent.prototype, "drawOrder", {get:function() {
+    return this._drawOrder;
+  }, set:function(value) {
+    this._drawOrder = value;
+    if (this._meshInstance) {
+      this._meshInstance.drawOrder = value;
+    }
+  }});
+  Object.defineProperty(SpriteComponent.prototype, "layers", {get:function() {
+    return this._layers;
+  }, set:function(value) {
+    if (this._addedModel) {
+      this._hideModel();
+    }
+    this._layers = value;
+    if (!this._meshInstance) {
+      return;
+    }
+    if (this.enabled && this.entity.enabled) {
+      this._showModel();
+    }
+  }});
   return {SpriteComponent:SpriteComponent};
 }());
 pc.extend(pc, function() {
   var _schema = ["enabled"];
   var warningShown = false;
+  var nineSliceBasePS = ["varying vec2 vMask;", "varying vec2 vTiledUv;", "uniform vec4 innerOffset;", "uniform vec2 outerScale;", "uniform vec4 atlasRect;", "vec2 nineSlicedUv;"].join("\n");
+  var nineSliceUvPs = ["vec2 tileMask = step(vMask, vec2(0.99999));", "vec2 clampedUv = mix(innerOffset.xy*0.5, vec2(1.0) - innerOffset.zw*0.5, fract(vTiledUv));", "clampedUv = clampedUv * atlasRect.zw + atlasRect.xy;", "nineSlicedUv = vUv0 * tileMask + clampedUv * (vec2(1.0) - tileMask);"].join("\n");
   var SpriteComponentSystem = function SpriteComponentSystem(app) {
     this.id = "sprite";
     this.app = app;
@@ -27366,6 +29380,22 @@ pc.extend(pc, function() {
     this.defaultMaterial.pixelSnap = false;
     this.defaultMaterial.cull = pc.CULLFACE_NONE;
     this.defaultMaterial.update();
+    this.default9SlicedMaterialSlicedMode = this.defaultMaterial.clone();
+    this.default9SlicedMaterialSlicedMode.chunks.basePS = pc.shaderChunks.basePS + nineSliceBasePS;
+    this.default9SlicedMaterialSlicedMode.chunks.startPS = pc.shaderChunks.startPS + "nineSlicedUv = vUv0;\n";
+    this.default9SlicedMaterialSlicedMode.chunks.emissivePS = pc.shaderChunks.emissivePS.replace("$UV", "nineSlicedUv");
+    this.default9SlicedMaterialSlicedMode.chunks.opacityPS = pc.shaderChunks.opacityPS.replace("$UV", "nineSlicedUv");
+    this.default9SlicedMaterialSlicedMode.chunks.transformVS = "#define NINESLICED\n" + pc.shaderChunks.transformVS;
+    this.default9SlicedMaterialSlicedMode.chunks.uv0VS = pc.shaderChunks.uv9SliceVS;
+    this.default9SlicedMaterialSlicedMode.update();
+    this.default9SlicedMaterialTiledMode = this.defaultMaterial.clone();
+    this.default9SlicedMaterialTiledMode.chunks.basePS = pc.shaderChunks.basePS + "#define NINESLICETILED\n" + nineSliceBasePS;
+    this.default9SlicedMaterialTiledMode.chunks.startPS = pc.shaderChunks.startPS + nineSliceUvPs;
+    this.default9SlicedMaterialTiledMode.chunks.emissivePS = pc.shaderChunks.emissivePS.replace("$UV", "nineSlicedUv, -1000.0");
+    this.default9SlicedMaterialTiledMode.chunks.opacityPS = pc.shaderChunks.opacityPS.replace("$UV", "nineSlicedUv, -1000.0");
+    this.default9SlicedMaterialTiledMode.chunks.transformVS = "#define NINESLICED\n" + pc.shaderChunks.transformVS;
+    this.default9SlicedMaterialTiledMode.chunks.uv0VS = pc.shaderChunks.uv9SliceVS;
+    this.default9SlicedMaterialTiledMode.update();
     pc.ComponentSystem.on("update", this.onUpdate, this);
     this.on("beforeremove", this.onBeforeRemove, this);
   };
@@ -27376,6 +29406,12 @@ pc.extend(pc, function() {
       component.enabled = data.enabled;
     }
     component.type = data.type;
+    if (data.layers && pc.type(data.layers) === "array") {
+      component.layers = data.layers.slice(0);
+    }
+    if (data.drawOrder !== undefined) {
+      component.drawOrder = data.drawOrder;
+    }
     if (data.color !== undefined) {
       if (data.color instanceof pc.Color) {
         component.color.set(data.color.data[0], data.color.data[1], data.color.data[2], data.opacity !== undefined ? data.opacity : 1);
@@ -27392,6 +29428,12 @@ pc.extend(pc, function() {
     }
     if (data.flipY !== undefined) {
       component.flipY = data.flipY;
+    }
+    if (data.width !== undefined) {
+      component.width = data.width;
+    }
+    if (data.height !== undefined) {
+      component.height = data.height;
     }
     if (data.spriteAsset !== undefined) {
       component.spriteAsset = data.spriteAsset;
@@ -27505,6 +29547,7 @@ pc.extend(pc, function() {
     }
   }, onRemove:function() {
     this.system.app.graphicsDevice.off("resizecanvas", this._onResize, this);
+    this.fire("remove");
   }});
   Object.defineProperty(ScreenComponent.prototype, "resolution", {set:function(value) {
     if (!this._screenSpace) {
@@ -27532,9 +29575,8 @@ pc.extend(pc, function() {
   }, get:function() {
     if (this._scaleMode === pc.SCALEMODE_NONE) {
       return this._resolution;
-    } else {
-      return this._referenceResolution;
     }
+    return this._referenceResolution;
   }});
   Object.defineProperty(ScreenComponent.prototype, "screenSpace", {set:function(value) {
     this._screenSpace = value;
@@ -27644,6 +29686,8 @@ pc.extend(pc, function() {
   return {ScreenComponentData:ScreenComponentData};
 }());
 pc.extend(pc, function() {
+  var topMasks = [];
+  var _debugLogging = false;
   pc.ELEMENTTYPE_GROUP = "group";
   pc.ELEMENTTYPE_IMAGE = "image";
   pc.ELEMENTTYPE_TEXT = "text";
@@ -27657,8 +29701,8 @@ pc.extend(pc, function() {
     this._anchor = new pc.Vec4;
     this._localAnchor = new pc.Vec4;
     this._pivot = new pc.Vec2;
-    this._width = 32;
-    this._height = 32;
+    this._width = this._calculatedWidth = 32;
+    this._height = this._calculatedHeight = 32;
     this._margin = new pc.Vec4(0, 0, -32, -32);
     this._modelTransform = new pc.Mat4;
     this._screenToWorld = new pc.Mat4;
@@ -27680,6 +29724,8 @@ pc.extend(pc, function() {
     this._text = null;
     this._group = null;
     this._useInput = false;
+    this._layers = [pc.LAYERID_UI];
+    this._addedModel = null;
     this._batchGroupId = -1;
   };
   ElementComponent = pc.inherits(ElementComponent, pc.Component);
@@ -27719,10 +29765,10 @@ pc.extend(pc, function() {
     var element = this.element;
     var p = this.localPosition.data;
     var pvt = element._pivot.data;
-    element._margin.data[0] = p[0] - element._width * pvt[0];
-    element._margin.data[2] = element._localAnchor.data[2] - element._localAnchor.data[0] - element._width - element._margin.data[0];
-    element._margin.data[1] = p[1] - element._height * pvt[1];
-    element._margin.data[3] = element._localAnchor.data[3] - element._localAnchor.data[1] - element._height - element._margin.data[1];
+    element._margin.data[0] = p[0] - element._calculatedWidth * pvt[0];
+    element._margin.data[2] = element._localAnchor.data[2] - element._localAnchor.data[0] - element._calculatedWidth - element._margin.data[0];
+    element._margin.data[1] = p[1] - element._calculatedHeight * pvt[1];
+    element._margin.data[3] = element._localAnchor.data[3] - element._localAnchor.data[1] - element._calculatedHeight - element._margin.data[1];
     if (!this._dirtyLocal) {
       this._dirtify(true);
     }
@@ -27736,8 +29782,8 @@ pc.extend(pc, function() {
         var px = 0;
         var py = 1;
         if (this._parent && this._parent.element) {
-          resx = this._parent.element.width;
-          resy = this._parent.element.height;
+          resx = this._parent.element.calculatedWidth;
+          resy = this._parent.element.calculatedHeight;
           px = this._parent.element.pivot.x;
           py = this._parent.element.pivot.y;
         } else {
@@ -27759,10 +29805,10 @@ pc.extend(pc, function() {
       this.localTransform.setTRS(this.localPosition, this.localRotation, this.localScale);
       var p = this.localPosition.data;
       var pvt = element._pivot.data;
-      element._margin.data[0] = p[0] - element._width * pvt[0];
-      element._margin.data[2] = element._localAnchor.data[2] - element._localAnchor.data[0] - element._width - element._margin.data[0];
-      element._margin.data[1] = p[1] - element._height * pvt[1];
-      element._margin.data[3] = element._localAnchor.data[3] - element._localAnchor.data[1] - element._height - element._margin.data[1];
+      element._margin.data[0] = p[0] - element._calculatedWidth * pvt[0];
+      element._margin.data[2] = element._localAnchor.data[2] - element._localAnchor.data[0] - element._calculatedWidth - element._margin.data[0];
+      element._margin.data[1] = p[1] - element._calculatedHeight * pvt[1];
+      element._margin.data[3] = element._localAnchor.data[3] - element._localAnchor.data[1] - element._calculatedHeight - element._margin.data[1];
       this._dirtyLocal = false;
     }
     if (!screen) {
@@ -27799,7 +29845,7 @@ pc.extend(pc, function() {
           var depthOffset = vecA;
           depthOffset.set(0, 0, this.localPosition.z);
           var pivotOffset = vecB;
-          pivotOffset.set(element._absLeft + element._pivot.x * element.width, element._absBottom + element._pivot.y * element.height, 0);
+          pivotOffset.set(element._absLeft + element._pivot.x * element.calculatedWidth, element._absBottom + element._pivot.y * element.calculatedHeight, 0);
           matA.setTranslate(-pivotOffset.x, -pivotOffset.y, -pivotOffset.z);
           matB.setTRS(depthOffset, this.getLocalRotation(), this.getLocalScale());
           matC.setTranslate(pivotOffset.x, pivotOffset.y, pivotOffset.z);
@@ -27814,15 +29860,53 @@ pc.extend(pc, function() {
       this._dirtyWorld = false;
     }
   }, _onInsert:function(parent) {
-    var screen = this._findScreen();
+    var result = this._parseUpToScreen();
     this.entity._dirtify();
-    this._updateScreen(screen);
+    this._updateScreen(result.screen);
+    this._dirtifyMask();
+  }, _dirtifyMask:function() {
+    var parent = this.entity;
+    while (parent) {
+      var next = parent.getParent();
+      if ((next === null || next.screen) && parent.element) {
+        if (!this.system._prerender || !this.system._prerender.length) {
+          this.system._prerender = [];
+          this.system.app.once("prerender", this._onPrerender, this);
+          if (_debugLogging) {
+            console.log("register prerender");
+          }
+        }
+        var i = this.system._prerender.indexOf(this.entity);
+        if (i >= 0) {
+          this.system._prerender.splice(i, 1);
+        }
+        var j = this.system._prerender.indexOf(parent);
+        if (j < 0) {
+          this.system._prerender.push(parent);
+        }
+        if (_debugLogging) {
+          console.log("set prerender root to: " + parent.name);
+        }
+      }
+      parent = next;
+    }
+  }, _onPrerender:function() {
+    var ref = 0;
+    for (var i = 0;i < this.system._prerender.length;i++) {
+      var mask = this.system._prerender[i];
+      if (_debugLogging) {
+        console.log("prerender from: " + mask.name);
+      }
+      ref = mask.element.syncMask(ref) + 1;
+    }
+    this.system._prerender.length = 0;
   }, _updateScreen:function(screen) {
     if (this.screen && this.screen !== screen) {
       this.screen.screen.off("set:resolution", this._onScreenResize, this);
       this.screen.screen.off("set:referenceresolution", this._onScreenResize, this);
       this.screen.screen.off("set:scaleblend", this._onScreenResize, this);
       this.screen.screen.off("set:screenspace", this._onScreenSpaceChange, this);
+      this.screen.screen.off("remove", this._onScreenRemove, this);
     }
     this.screen = screen;
     if (this.screen) {
@@ -27830,8 +29914,9 @@ pc.extend(pc, function() {
       this.screen.screen.on("set:referenceresolution", this._onScreenResize, this);
       this.screen.screen.on("set:scaleblend", this._onScreenResize, this);
       this.screen.screen.on("set:screenspace", this._onScreenSpaceChange, this);
+      this.screen.screen.on("remove", this._onScreenRemove, this);
     }
-    this._calculateSize();
+    this._calculateSize(this._hasSplitAnchorsX, this._hasSplitAnchorsY);
     this.fire("set:screen", this.screen);
     this._anchorDirty = true;
     var children = this.entity.getChildren();
@@ -27843,27 +29928,124 @@ pc.extend(pc, function() {
     if (this.screen) {
       this.screen.screen.syncDrawOrder();
     }
-  }, _findScreen:function() {
-    var screen = this.entity._parent;
-    while (screen && !screen.screen) {
-      screen = screen._parent;
+  }, syncMask:function(ref) {
+    var result = this._parseUpToScreen();
+    return this._updateMask(result.mask, ref);
+  }, _setMaskedBy:function(mask) {
+    var i, mi, len;
+    var elem = this._image || this._text;
+    if (!elem) {
+      return;
     }
-    return screen;
+    if (mask) {
+      var ref = mask.element._image._maskRef;
+      if (_debugLogging) {
+        console.log("masking: " + this.entity.name + " with " + ref);
+      }
+      var sp = new pc.StencilParameters({ref:ref, func:pc.FUNC_EQUAL});
+      for (i = 0, len = elem._model.meshInstances.length;i < len;i++) {
+        mi = elem._model.meshInstances[i];
+        mi.stencilFront = mi.stencilBack = sp;
+      }
+      elem._maskedBy = mask;
+    } else {
+      if (_debugLogging) {
+        console.log("no masking on: " + this.entity.name);
+      }
+      for (i = 0, len = elem._model.meshInstances.length;i < len;i++) {
+        mi = elem._model.meshInstances[i];
+        mi.stencilFront = mi.stencilBack = null;
+      }
+      elem._maskedBy = null;
+    }
+  }, _getMaskDepth:function() {
+    var depth = 1;
+    var parent = this.entity;
+    while (parent) {
+      parent = parent.getParent();
+      if (parent && parent.element && parent.element.mask) {
+        depth++;
+      }
+    }
+    return depth;
+  }, _updateMask:function(mask, ref) {
+    var i, l, sp, children;
+    if (!ref) {
+      ref = 1;
+    }
+    if (mask) {
+      this._setMaskedBy(mask);
+      if (this.mask) {
+        if (_debugLogging) {
+          console.log("masking: " + this.entity.name + " with " + ref);
+        }
+        sp = new pc.StencilParameters({ref:ref++, func:pc.FUNC_EQUAL, zpass:pc.STENCILOP_INCREMENT});
+        this._image._meshInstance.stencilFront = sp;
+        this._image._meshInstance.stencilBack = sp;
+        this._image._maskRef = ref;
+        if (_debugLogging) {
+          console.log("masking from: " + this.entity.name + " with " + ref);
+        }
+        mask = this.entity;
+      }
+      children = this.entity.getChildren();
+      for (i = 0, l = children.length;i < l;i++) {
+        if (children[i].element) {
+          children[i].element._updateMask(mask, ref);
+        }
+      }
+    } else {
+      this._setMaskedBy(null);
+      if (this.mask) {
+        sp = new pc.StencilParameters({func:pc.FUNC_ALWAYS, zpass:pc.STENCILOP_REPLACE, ref:ref});
+        this._image._meshInstance.stencilFront = sp;
+        this._image._meshInstance.stencilBack = sp;
+        this._image._maskRef = ref;
+        if (_debugLogging) {
+          console.log("masking from: " + this.entity.name + " with " + ref);
+        }
+        mask = this.entity;
+      }
+      children = this.entity.getChildren();
+      for (i = 0, l = children.length;i < l;i++) {
+        if (children[i].element) {
+          children[i].element._updateMask(mask, ref);
+        }
+      }
+    }
+    return ref;
+  }, _parseUpToScreen:function() {
+    var result = {screen:null, mask:null};
+    var parent = this.entity._parent;
+    while (parent && !parent.screen) {
+      if (parent.element && parent.element.mask) {
+        if (!result.mask) {
+          result.mask = parent;
+        }
+      }
+      parent = parent.parent;
+    }
+    if (parent && parent.screen) {
+      result.screen = parent;
+    }
+    return result;
   }, _onScreenResize:function(res) {
     this._anchorDirty = true;
     this._cornersDirty = true;
     this._worldCornersDirty = true;
-    this._calculateSize();
+    this._calculateSize(this._hasSplitAnchorsX, this._hasSplitAnchorsY);
     this.fire("screen:set:resolution", res);
   }, _onScreenSpaceChange:function() {
     this.fire("screen:set:screenspace", this.screen.screen.screenSpace);
+  }, _onScreenRemove:function() {
+    this._updateScreen(null);
   }, _calculateLocalAnchors:function() {
     var resx = 1E3;
     var resy = 1E3;
     var parent = this.entity._parent;
     if (parent && parent.element) {
-      resx = parent.element.width;
-      resy = parent.element.height;
+      resx = parent.element.calculatedWidth;
+      resy = parent.element.calculatedHeight;
     } else {
       if (this.screen) {
         var res = this.screen.screen.resolution;
@@ -27879,6 +30061,36 @@ pc.extend(pc, function() {
     p.y += y;
     this._screenToWorld.transformPoint(p, p);
     return p;
+  }, onLayersChanged:function(oldComp, newComp) {
+    this.addModelToLayers(this._image ? this._image._model : this._text._model);
+    oldComp.off("add", this.onLayerAdded, this);
+    oldComp.off("remove", this.onLayerRemoved, this);
+    newComp.on("add", this.onLayerAdded, this);
+    newComp.on("remove", this.onLayerRemoved, this);
+  }, onLayerAdded:function(layer) {
+    var index = this.layers.indexOf(layer.id);
+    if (index < 0) {
+      return;
+    }
+    if (this._image) {
+      layer.addMeshInstances(this._image._model.meshInstances);
+    } else {
+      if (this._text) {
+        layer.addMeshInstances(this._text._model.meshInstances);
+      }
+    }
+  }, onLayerRemoved:function(layer) {
+    var index = this.layers.indexOf(layer.id);
+    if (index < 0) {
+      return;
+    }
+    if (this._image) {
+      layer.removeMeshInstances(this._image._model.meshInstances);
+    } else {
+      if (this._text) {
+        layer.removeMeshInstances(this._text._model.meshInstances);
+      }
+    }
   }, onEnable:function() {
     ElementComponent._super.onEnable.call(this);
     if (this._image) {
@@ -27893,8 +30105,28 @@ pc.extend(pc, function() {
     if (this.useInput && this.system.app.elementInput) {
       this.system.app.elementInput.addElement(this);
     }
+    if (this.mask) {
+      var maskDepth = this._getMaskDepth();
+      if (maskDepth === 1) {
+        this._topMask = true;
+        if (topMasks.indexOf(this) < 0) {
+          topMasks.push(this);
+        }
+      }
+    }
+    this.system.app.scene.on("set:layers", this.onLayersChanged, this);
+    if (this.system.app.scene.layers) {
+      this.system.app.scene.layers.on("add", this.onLayerAdded, this);
+      this.system.app.scene.layers.on("remove", this.onLayerRemoved, this);
+    }
+    this.fire("enableelement");
   }, onDisable:function() {
     ElementComponent._super.onDisable.call(this);
+    this.system.app.scene.off("set:layers", this.onLayersChanged, this);
+    if (this.system.app.scene.layers) {
+      this.system.app.scene.layers.off("add", this.onLayerAdded, this);
+      this.system.app.scene.layers.off("remove", this.onLayerRemoved, this);
+    }
     if (this._image) {
       this._image.onDisable();
     }
@@ -27907,6 +30139,14 @@ pc.extend(pc, function() {
     if (this.system.app.elementInput && this.useInput) {
       this.system.app.elementInput.removeElement(this);
     }
+    if (this._topMask) {
+      var index = topMasks.indexOf(this);
+      if (index >= 0) {
+        topMasks.splice(index, 1);
+      }
+      this._topMask = false;
+    }
+    this.fire("disableelement");
   }, onRemove:function() {
     this.entity.off("insert", this._onInsert, this);
     this._unpatch();
@@ -27919,32 +30159,72 @@ pc.extend(pc, function() {
     if (this.system.app.elementInput && this.useInput) {
       this.system.app.elementInput.removeElement(this);
     }
-  }, _calculateSize:function() {
+    if (this._topMask) {
+      var index = topMasks.indexOf(this);
+      if (index >= 0) {
+        topMasks.splice(index, 1);
+      }
+      this._topMask = false;
+    }
+  }, _calculateSize:function(propagateCalculatedWidth, propagateCalculatedHeight) {
     if (!this.entity._parent && !this.screen) {
       return;
     }
     this._calculateLocalAnchors();
+    var newWidth = this._absRight - this._absLeft;
+    var newHeight = this._absTop - this._absBottom;
+    if (propagateCalculatedWidth) {
+      this._setWidth(newWidth);
+    } else {
+      this._setCalculatedWidth(newWidth, false);
+    }
+    if (propagateCalculatedHeight) {
+      this._setHeight(newHeight);
+    } else {
+      this._setCalculatedHeight(newHeight, false);
+    }
     var p = this.entity.getLocalPosition();
-    this._setWidth(this._absRight - this._absLeft);
-    this._setHeight(this._absTop - this._absBottom);
-    p.x = this._margin.data[0] + this._width * this._pivot.data[0];
-    p.y = this._margin.data[1] + this._height * this._pivot.data[1];
+    p.x = this._margin.data[0] + this._calculatedWidth * this._pivot.data[0];
+    p.y = this._margin.data[1] + this._calculatedHeight * this._pivot.data[1];
     this.entity.setLocalPosition(p);
     this._sizeDirty = false;
   }, _setWidth:function(w) {
     this._width = w;
-    var i, l;
-    var c = this.entity._children;
-    for (i = 0, l = c.length;i < l;i++) {
-      if (c[i].element) {
-        c[i].element._anchorDirty = true;
-        c[i].element._sizeDirty = true;
-      }
-    }
+    this._setCalculatedWidth(w, false);
     this.fire("set:width", this._width);
-    this.fire("resize", this._width, this._height);
   }, _setHeight:function(h) {
     this._height = h;
+    this._setCalculatedHeight(h, false);
+    this.fire("set:height", this._height);
+  }, _setCalculatedWidth:function(value, updateMargins) {
+    var didChange = Math.abs(value - this._calculatedWidth) > 1E-4;
+    this._calculatedWidth = value;
+    if (updateMargins) {
+      var p = this.entity.getLocalPosition().data;
+      var pvt = this._pivot.data;
+      this._margin.data[0] = p[0] - this._calculatedWidth * pvt[0];
+      this._margin.data[2] = this._localAnchor.data[2] - this._localAnchor.data[0] - this._calculatedWidth - this._margin.data[0];
+    }
+    this._flagChildrenAsDirty();
+    this.fire("set:calculatedWidth", this._calculatedWidth);
+    if (didChange) {
+      this.fire("resize", this._calculatedWidth, this._calculatedHeight);
+    }
+  }, _setCalculatedHeight:function(value, updateMargins) {
+    var didChange = Math.abs(value - this._calculatedHeight) > 1E-4;
+    this._calculatedHeight = value;
+    if (updateMargins) {
+      var p = this.entity.getLocalPosition().data;
+      var pvt = this._pivot.data;
+      this._margin.data[1] = p[1] - this._calculatedHeight * pvt[1];
+      this._margin.data[3] = this._localAnchor.data[3] - this._localAnchor.data[1] - this._calculatedHeight - this._margin.data[1];
+    }
+    this._flagChildrenAsDirty();
+    this.fire("set:calculatedHeight", this._calculatedHeight);
+    if (didChange) {
+      this.fire("resize", this._calculatedWidth, this._calculatedHeight);
+    }
+  }, _flagChildrenAsDirty:function() {
     var i, l;
     var c = this.entity._children;
     for (i = 0, l = c.length;i < l;i++) {
@@ -27953,8 +30233,26 @@ pc.extend(pc, function() {
         c[i].element._sizeDirty = true;
       }
     }
-    this.fire("set:height", this._height);
-    this.fire("resize", this._width, this._height);
+  }, addModelToLayers:function(model) {
+    var layer;
+    this._addedModel = model;
+    for (var i = 0;i < this.layers.length;i++) {
+      layer = this.system.app.scene.layers.getLayerById(this.layers[i]);
+      if (!layer) {
+        continue;
+      }
+      layer.addMeshInstances(model.meshInstances);
+    }
+  }, removeModelFromLayers:function(model) {
+    var layer;
+    this._addedModel = null;
+    for (var i = 0;i < this.layers.length;i++) {
+      layer = this.system.app.scene.layers.getLayerById(this.layers[i]);
+      if (!layer) {
+        continue;
+      }
+      layer.removeMeshInstances(model.meshInstances);
+    }
   }});
   Object.defineProperty(ElementComponent.prototype, "type", {get:function() {
     return this._type;
@@ -27975,6 +30273,29 @@ pc.extend(pc, function() {
         if (value === pc.ELEMENTTYPE_TEXT) {
           this._text = new pc.TextElement(this);
         }
+      }
+    }
+  }});
+  Object.defineProperty(ElementComponent.prototype, "layers", {get:function() {
+    return this._layers;
+  }, set:function(value) {
+    var i, layer;
+    if (this._addedModel) {
+      for (i = 0;i < this._layers.length;i++) {
+        layer = this.system.app.scene.layers.getLayerById(this._layers[i]);
+        if (layer) {
+          layer.removeMeshInstances(this._addedModel.meshInstances);
+        }
+      }
+    }
+    this._layers = value;
+    if (!this.enabled || !this.entity.enabled || !this._addedModel) {
+      return;
+    }
+    for (i = 0;i < this._layers.length;i++) {
+      layer = this.system.app.scene.layers.getLayerById(this._layers[i]);
+      if (layer) {
+        layer.addMeshInstances(this._addedModel.meshInstances);
       }
     }
   }});
@@ -28000,7 +30321,7 @@ pc.extend(pc, function() {
     return this._margin;
   }, set:function(value) {
     this._margin.copy(value);
-    this._calculateSize();
+    this._calculateSize(true, true);
   }});
   Object.defineProperty(ElementComponent.prototype, "left", {get:function() {
     return this._margin.data[0];
@@ -28010,7 +30331,7 @@ pc.extend(pc, function() {
     var wr = this._absRight;
     var wl = this._localAnchor.data[0] + value;
     this._setWidth(wr - wl);
-    p.x = value + this._width * this._pivot.data[0];
+    p.x = value + this._calculatedWidth * this._pivot.data[0];
     this.entity.setLocalPosition(p);
   }});
   Object.defineProperty(ElementComponent.prototype, "right", {get:function() {
@@ -28021,7 +30342,7 @@ pc.extend(pc, function() {
     var wl = this._absLeft;
     var wr = this._localAnchor.data[2] - value;
     this._setWidth(wr - wl);
-    p.x = this._localAnchor.data[2] - this._localAnchor.data[0] - value - this._width * (1 - this._pivot.data[0]);
+    p.x = this._localAnchor.data[2] - this._localAnchor.data[0] - value - this._calculatedWidth * (1 - this._pivot.data[0]);
     this.entity.setLocalPosition(p);
   }});
   Object.defineProperty(ElementComponent.prototype, "top", {get:function() {
@@ -28032,7 +30353,7 @@ pc.extend(pc, function() {
     var wb = this._absBottom;
     var wt = this._localAnchor.data[3] - value;
     this._setHeight(wt - wb);
-    p.y = this._localAnchor.data[3] - this._localAnchor.data[1] - value - this._height * (1 - this._pivot.data[1]);
+    p.y = this._localAnchor.data[3] - this._localAnchor.data[1] - value - this._calculatedHeight * (1 - this._pivot.data[1]);
     this.entity.setLocalPosition(p);
   }});
   Object.defineProperty(ElementComponent.prototype, "bottom", {get:function() {
@@ -28043,46 +30364,32 @@ pc.extend(pc, function() {
     var wt = this._absTop;
     var wb = this._localAnchor.data[1] + value;
     this._setHeight(wt - wb);
-    p.y = value + this._height * this._pivot.data[1];
+    p.y = value + this._calculatedHeight * this._pivot.data[1];
     this.entity.setLocalPosition(p);
   }});
   Object.defineProperty(ElementComponent.prototype, "width", {get:function() {
     return this._width;
   }, set:function(value) {
     this._width = value;
-    var p = this.entity.getLocalPosition().data;
-    var pvt = this._pivot.data;
-    this._margin.data[0] = p[0] - this._width * pvt[0];
-    this._margin.data[2] = this._localAnchor.data[2] - this._localAnchor.data[0] - this._width - this._margin.data[0];
-    var i, l;
-    var c = this.entity._children;
-    for (i = 0, l = c.length;i < l;i++) {
-      if (c[i].element) {
-        c[i].element._anchorDirty = true;
-        c[i].element._sizeDirty = true;
-      }
-    }
+    this._setCalculatedWidth(value, true);
     this.fire("set:width", this._width);
-    this.fire("resize", this._width, this._height);
   }});
   Object.defineProperty(ElementComponent.prototype, "height", {get:function() {
     return this._height;
   }, set:function(value) {
     this._height = value;
-    var p = this.entity.getLocalPosition().data;
-    var pvt = this._pivot.data;
-    this._margin.data[1] = p[1] - this._height * pvt[1];
-    this._margin.data[3] = this._localAnchor.data[3] - this._localAnchor.data[1] - this._height - this._margin.data[1];
-    var i, l;
-    var c = this.entity._children;
-    for (i = 0, l = c.length;i < l;i++) {
-      if (c[i].element) {
-        c[i].element._anchorDirty = true;
-        c[i].element._sizeDirty = true;
-      }
-    }
+    this._setCalculatedHeight(value, true);
     this.fire("set:height", this._height);
-    this.fire("resize", this._width, this._height);
+  }});
+  Object.defineProperty(ElementComponent.prototype, "calculatedWidth", {get:function() {
+    return this._calculatedWidth;
+  }, set:function(value) {
+    this._setCalculatedWidth(value, true);
+  }});
+  Object.defineProperty(ElementComponent.prototype, "calculatedHeight", {get:function() {
+    return this._calculatedHeight;
+  }, set:function(value) {
+    this._setCalculatedHeight(value, true);
   }});
   Object.defineProperty(ElementComponent.prototype, "pivot", {get:function() {
     return this._pivot;
@@ -28102,7 +30409,10 @@ pc.extend(pc, function() {
     var dy = this._pivot.y - prevY;
     this._margin.data[1] += my * dy;
     this._margin.data[3] -= my * dy;
-    this._onScreenResize();
+    this._anchorDirty = true;
+    this._cornersDirty = true;
+    this._worldCornersDirty = true;
+    this._calculateSize();
     this.fire("set:pivot", this._pivot);
   }});
   Object.defineProperty(ElementComponent.prototype, "anchor", {get:function() {
@@ -28116,13 +30426,19 @@ pc.extend(pc, function() {
     if (!this.entity._parent && !this.screen) {
       this._calculateLocalAnchors();
     } else {
-      this._calculateSize();
+      this._calculateSize(this._hasSplitAnchorsX, this._hasSplitAnchorsY);
     }
     this._anchorDirty = true;
     if (!this.entity._dirtyLocal) {
       this.entity._dirtify(true);
     }
     this.fire("set:anchor", this._anchor);
+  }});
+  Object.defineProperty(ElementComponent.prototype, "_hasSplitAnchorsX", {get:function() {
+    return Math.abs(this._anchor.data[0] - this._anchor.data[2]) > .001;
+  }});
+  Object.defineProperty(ElementComponent.prototype, "_hasSplitAnchorsY", {get:function() {
+    return Math.abs(this._anchor.data[1] - this._anchor.data[3]) > .001;
   }});
   Object.defineProperty(ElementComponent.prototype, "screenCorners", {get:function() {
     if (!this._cornersDirty || !this.screen) {
@@ -28183,13 +30499,13 @@ pc.extend(pc, function() {
       matC.setTranslate(localPos.x, localPos.y, localPos.z);
       matD.copy(this.entity.parent.getWorldTransform());
       matD.mul(matC).mul(matB).mul(matA);
-      vecA.set(localPos.x - this.pivot.x * this.width, localPos.y - this.pivot.y * this.height, localPos.z);
+      vecA.set(localPos.x - this.pivot.x * this.calculatedWidth, localPos.y - this.pivot.y * this.calculatedHeight, localPos.z);
       matD.transformPoint(vecA, this._worldCorners[0]);
-      vecA.set(localPos.x + (1 - this.pivot.x) * this.width, localPos.y - this.pivot.y * this.height, localPos.z);
+      vecA.set(localPos.x + (1 - this.pivot.x) * this.calculatedWidth, localPos.y - this.pivot.y * this.calculatedHeight, localPos.z);
       matD.transformPoint(vecA, this._worldCorners[1]);
-      vecA.set(localPos.x + (1 - this.pivot.x) * this.width, localPos.y + (1 - this.pivot.y) * this.height, localPos.z);
+      vecA.set(localPos.x + (1 - this.pivot.x) * this.calculatedWidth, localPos.y + (1 - this.pivot.y) * this.calculatedHeight, localPos.z);
       matD.transformPoint(vecA, this._worldCorners[2]);
-      vecA.set(localPos.x - this.pivot.x * this.width, localPos.y + (1 - this.pivot.y) * this.height, localPos.z);
+      vecA.set(localPos.x - this.pivot.x * this.calculatedWidth, localPos.y + (1 - this.pivot.y) * this.calculatedHeight, localPos.z);
       matD.transformPoint(vecA, this._worldCorners[3]);
     }
     this._worldCornersDirty = false;
@@ -28233,10 +30549,10 @@ pc.extend(pc, function() {
     }
     if (value < 0 && this._batchGroupId >= 0 && this.enabled && this.entity.enabled) {
       if (this._image._model) {
-        this.system.app.scene.addModel(this._image._model);
+        this.addModelToLayers(this._image._model);
       } else {
         if (this._text._model) {
-          this.system.app.scene.addModel(this._text._model);
+          this.addModelToLayers(this._text._model);
         }
       }
     }
@@ -28249,10 +30565,9 @@ pc.extend(pc, function() {
       } else {
         if (this._image) {
           return this._image[name];
-        } else {
-          return null;
         }
       }
+      return null;
     }, set:function(value) {
       if (this._text) {
         this._text[name] = value;
@@ -28269,6 +30584,8 @@ pc.extend(pc, function() {
   _define("fontAsset");
   _define("spacing");
   _define("lineHeight");
+  _define("wrapLines");
+  _define("lines");
   _define("alignment");
   _define("autoWidth");
   _define("autoHeight");
@@ -28279,13 +30596,17 @@ pc.extend(pc, function() {
   _define("materialAsset");
   _define("sprite");
   _define("spriteAsset");
-  _define("frame");
+  _define("spriteFrame");
+  _define("pixelsPerUnit");
   _define("opacity");
   _define("rect");
+  _define("mask");
   return {ElementComponent:ElementComponent};
 }());
 pc.extend(pc, function() {
   var _schema = ["enabled"];
+  var nineSliceBasePS = ["varying vec2 vMask;", "varying vec2 vTiledUv;", "uniform vec4 innerOffset;", "uniform vec2 outerScale;", "uniform vec4 atlasRect;", "vec2 nineSlicedUv;"].join("\n");
+  var nineSliceUvPs = ["vec2 tileMask = step(vMask, vec2(0.99999));", "vec2 clampedUv = mix(innerOffset.xy*0.5, vec2(1.0) - innerOffset.zw*0.5, fract(vTiledUv));", "clampedUv = clampedUv * atlasRect.zw + atlasRect.xy;", "nineSlicedUv = vUv0 * tileMask + clampedUv * (vec2(1.0) - tileMask);"].join("\n");
   var ElementComponentSystem = function ElementComponentSystem(app) {
     this.id = "element";
     this.app = app;
@@ -28302,9 +30623,10 @@ pc.extend(pc, function() {
     pixelData[3] = 255;
     pixels.set(pixelData);
     this._defaultTexture.unlock();
+    this._maskMaterials = {};
     this.defaultImageMaterial = new pc.StandardMaterial;
-    this.defaultImageMaterial.diffuse = new pc.Color(0, 0, 0, 1);
-    this.defaultImageMaterial.emissive = new pc.Color(.5, .5, .5, 1);
+    this.defaultImageMaterial.diffuse.set(0, 0, 0);
+    this.defaultImageMaterial.emissive.set(.5, .5, .5);
     this.defaultImageMaterial.emissiveMap = this._defaultTexture;
     this.defaultImageMaterial.emissiveTint = true;
     this.defaultImageMaterial.opacityMap = this._defaultTexture;
@@ -28318,48 +30640,90 @@ pc.extend(pc, function() {
     this.defaultImageMaterial.blendType = pc.BLEND_PREMULTIPLIED;
     this.defaultImageMaterial.depthWrite = false;
     this.defaultImageMaterial.update();
-    this.defaultScreenSpaceImageMaterial = new pc.StandardMaterial;
-    this.defaultScreenSpaceImageMaterial.diffuse = new pc.Color(0, 0, 0, 1);
-    this.defaultScreenSpaceImageMaterial.emissive = new pc.Color(.5, .5, .5, 1);
-    this.defaultScreenSpaceImageMaterial.emissiveMap = this._defaultTexture;
-    this.defaultScreenSpaceImageMaterial.emissiveTint = true;
-    this.defaultScreenSpaceImageMaterial.opacityMap = this._defaultTexture;
-    this.defaultScreenSpaceImageMaterial.opacityMapChannel = "a";
-    this.defaultScreenSpaceImageMaterial.opacityTint = true;
-    this.defaultScreenSpaceImageMaterial.opacity = 0;
-    this.defaultScreenSpaceImageMaterial.useLighting = false;
-    this.defaultScreenSpaceImageMaterial.useGammaTonemap = false;
-    this.defaultScreenSpaceImageMaterial.useFog = false;
-    this.defaultScreenSpaceImageMaterial.useSkybox = false;
-    this.defaultScreenSpaceImageMaterial.blendType = pc.BLEND_PREMULTIPLIED;
+    this.defaultImageMaskMaterial = this.defaultImageMaterial.clone();
+    this.defaultImageMaskMaterial.alphaTest = 1;
+    this.defaultImageMaskMaterial.redWrite = false;
+    this.defaultImageMaskMaterial.greenWrite = false;
+    this.defaultImageMaskMaterial.blueWrite = false;
+    this.defaultImageMaskMaterial.alphaWrite = false;
+    this.defaultImageMaskMaterial.update();
+    this.defaultImage9SlicedMaterial = this.defaultImageMaterial.clone();
+    this.defaultImage9SlicedMaterial.chunks.basePS = pc.shaderChunks.basePS + nineSliceBasePS;
+    this.defaultImage9SlicedMaterial.chunks.startPS = pc.shaderChunks.startPS + "nineSlicedUv = vUv0;\n";
+    this.defaultImage9SlicedMaterial.chunks.emissivePS = pc.shaderChunks.emissivePS.replace("$UV", "nineSlicedUv");
+    this.defaultImage9SlicedMaterial.chunks.opacityPS = pc.shaderChunks.opacityPS.replace("$UV", "nineSlicedUv");
+    this.defaultImage9SlicedMaterial.chunks.transformVS = "#define NINESLICED\n" + pc.shaderChunks.transformVS;
+    this.defaultImage9SlicedMaterial.chunks.uv0VS = pc.shaderChunks.uv9SliceVS;
+    this.defaultImage9SlicedMaterial.update();
+    this.defaultImage9TiledMaterial = this.defaultImage9SlicedMaterial.clone();
+    this.defaultImage9TiledMaterial.chunks.basePS = pc.shaderChunks.basePS + "#define NINESLICETILED\n" + nineSliceBasePS;
+    this.defaultImage9TiledMaterial.chunks.startPS = pc.shaderChunks.startPS + nineSliceUvPs;
+    this.defaultImage9TiledMaterial.chunks.emissivePS = pc.shaderChunks.emissivePS.replace("$UV", "nineSlicedUv, -1000.0");
+    this.defaultImage9TiledMaterial.chunks.opacityPS = pc.shaderChunks.opacityPS.replace("$UV", "nineSlicedUv, -1000.0");
+    this.defaultImage9TiledMaterial.update();
+    this.defaultImage9SlicedMaskMaterial = this.defaultImage9SlicedMaterial.clone();
+    this.defaultImage9SlicedMaskMaterial.alphaTest = 1;
+    this.defaultImage9SlicedMaskMaterial.redWrite = false;
+    this.defaultImage9SlicedMaskMaterial.greenWrite = false;
+    this.defaultImage9SlicedMaskMaterial.blueWrite = false;
+    this.defaultImage9SlicedMaskMaterial.alphaWrite = false;
+    this.defaultImage9SlicedMaskMaterial.update();
+    this.defaultImage9TiledMaskMaterial = this.defaultImage9TiledMaterial.clone();
+    this.defaultImage9TiledMaskMaterial.alphaTest = 1;
+    this.defaultImage9TiledMaskMaterial.redWrite = false;
+    this.defaultImage9TiledMaskMaterial.greenWrite = false;
+    this.defaultImage9TiledMaskMaterial.blueWrite = false;
+    this.defaultImage9TiledMaskMaterial.alphaWrite = false;
+    this.defaultImage9TiledMaskMaterial.update();
+    this.defaultScreenSpaceImageMaterial = this.defaultImageMaterial.clone();
     this.defaultScreenSpaceImageMaterial.depthTest = false;
-    this.defaultScreenSpaceImageMaterial.depthWrite = false;
     this.defaultScreenSpaceImageMaterial.update();
+    this.defaultScreenSpaceImage9SlicedMaterial = this.defaultImage9SlicedMaterial.clone();
+    this.defaultScreenSpaceImage9SlicedMaterial.depthTest = false;
+    this.defaultScreenSpaceImage9SlicedMaterial.update();
+    this.defaultScreenSpaceImage9TiledMaterial = this.defaultScreenSpaceImage9SlicedMaterial.clone();
+    this.defaultScreenSpaceImage9TiledMaterial.chunks.basePS = pc.shaderChunks.basePS + "#define NINESLICETILED\n" + nineSliceBasePS;
+    this.defaultScreenSpaceImage9TiledMaterial.chunks.startPS = pc.shaderChunks.startPS + nineSliceUvPs;
+    this.defaultScreenSpaceImage9TiledMaterial.chunks.emissivePS = pc.shaderChunks.emissivePS.replace("$UV", "nineSlicedUv, -1000.0");
+    this.defaultScreenSpaceImage9TiledMaterial.chunks.opacityPS = pc.shaderChunks.opacityPS.replace("$UV", "nineSlicedUv, -1000.0");
+    this.defaultScreenSpaceImage9TiledMaterial.update();
+    this.defaultScreenSpaceImageMask9SlicedMaterial = this.defaultScreenSpaceImage9SlicedMaterial.clone();
+    this.defaultScreenSpaceImageMask9SlicedMaterial.alphaTest = 1;
+    this.defaultScreenSpaceImageMask9SlicedMaterial.redWrite = false;
+    this.defaultScreenSpaceImageMask9SlicedMaterial.greenWrite = false;
+    this.defaultScreenSpaceImageMask9SlicedMaterial.blueWrite = false;
+    this.defaultScreenSpaceImageMask9SlicedMaterial.alphaWrite = false;
+    this.defaultScreenSpaceImageMask9SlicedMaterial.update();
+    this.defaultScreenSpaceImageMask9TiledMaterial = this.defaultScreenSpaceImage9TiledMaterial.clone();
+    this.defaultScreenSpaceImageMask9TiledMaterial.alphaTest = 1;
+    this.defaultScreenSpaceImageMask9TiledMaterial.redWrite = false;
+    this.defaultScreenSpaceImageMask9TiledMaterial.greenWrite = false;
+    this.defaultScreenSpaceImageMask9TiledMaterial.blueWrite = false;
+    this.defaultScreenSpaceImageMask9TiledMaterial.alphaWrite = false;
+    this.defaultScreenSpaceImageMask9TiledMaterial.update();
+    this.defaultScreenSpaceImageMaskMaterial = this.defaultScreenSpaceImageMaterial.clone();
+    this.defaultScreenSpaceImageMaskMaterial.alphaTest = 1;
+    this.defaultScreenSpaceImageMaskMaterial.redWrite = false;
+    this.defaultScreenSpaceImageMaskMaterial.greenWrite = false;
+    this.defaultScreenSpaceImageMaskMaterial.blueWrite = false;
+    this.defaultScreenSpaceImageMaskMaterial.alphaWrite = false;
+    this.defaultScreenSpaceImageMaskMaterial.update();
     this.defaultTextMaterial = new pc.StandardMaterial;
     this.defaultTextMaterial.msdfMap = this._defaultTexture;
     this.defaultTextMaterial.useLighting = false;
     this.defaultTextMaterial.useGammaTonemap = false;
     this.defaultTextMaterial.useFog = false;
     this.defaultTextMaterial.useSkybox = false;
-    this.defaultTextMaterial.diffuse = new pc.Color(0, 0, 0, 1);
-    this.defaultTextMaterial.emissive = new pc.Color(1, 1, 1, 1);
+    this.defaultTextMaterial.diffuse.set(0, 0, 0);
+    this.defaultTextMaterial.emissive.set(1, 1, 1);
     this.defaultTextMaterial.opacity = .5;
     this.defaultTextMaterial.blendType = pc.BLEND_PREMULTIPLIED;
     this.defaultTextMaterial.depthWrite = false;
     this.defaultTextMaterial.update();
-    this.defaultScreenSpaceTextMaterial = new pc.StandardMaterial;
-    this.defaultScreenSpaceTextMaterial.msdfMap = this._defaultTexture;
-    this.defaultScreenSpaceTextMaterial.useLighting = false;
-    this.defaultScreenSpaceTextMaterial.useGammaTonemap = false;
-    this.defaultScreenSpaceTextMaterial.useFog = false;
-    this.defaultScreenSpaceTextMaterial.useSkybox = false;
-    this.defaultScreenSpaceTextMaterial.diffuse = new pc.Color(0, 0, 0, 1);
-    this.defaultScreenSpaceTextMaterial.emissive = new pc.Color(1, 1, 1, 1);
-    this.defaultScreenSpaceTextMaterial.opacity = .5;
-    this.defaultScreenSpaceTextMaterial.blendType = pc.BLEND_PREMULTIPLIED;
-    this.defaultScreenSpaceTextMaterial.depthWrite = false;
+    this.defaultScreenSpaceTextMaterial = this.defaultTextMaterial.clone();
     this.defaultScreenSpaceTextMaterial.depthTest = false;
     this.defaultScreenSpaceTextMaterial.update();
+    this.defaultImageMaterials = [this.defaultImageMaterial, this.defaultImageMaskMaterial, this.defaultImage9SlicedMaterial, this.defaultImage9TiledMaterial, this.defaultImage9SlicedMaskMaterial, this.defaultImage9TiledMaskMaterial, this.defaultScreenSpaceImageMaterial, this.defaultScreenSpaceImage9SlicedMaterial, this.defaultScreenSpaceImage9TiledMaterial, this.defaultScreenSpaceImageMask9SlicedMaterial, this.defaultScreenSpaceImageMask9TiledMaterial, this.defaultScreenSpaceImageMaskMaterial];
     this.on("beforeremove", this.onRemoveComponent, this);
   };
   ElementComponentSystem = pc.inherits(ElementComponentSystem, pc.ComponentSystem);
@@ -28409,11 +30773,23 @@ pc.extend(pc, function() {
     if (_marginChange) {
       component.margin = component._margin;
     }
+    var shouldForceSetAnchor = false;
     if (data.width !== undefined && !splitHorAnchors) {
       component.width = data.width;
+    } else {
+      if (splitHorAnchors) {
+        shouldForceSetAnchor = true;
+      }
     }
     if (data.height !== undefined && !splitVerAnchors) {
       component.height = data.height;
+    } else {
+      if (splitVerAnchors) {
+        shouldForceSetAnchor = true;
+      }
+    }
+    if (shouldForceSetAnchor) {
+      component.anchor = component.anchor;
     }
     if (data.enabled !== undefined) {
       component.enabled = data.enabled;
@@ -28422,6 +30798,9 @@ pc.extend(pc, function() {
       component.useInput = data.useInput;
     }
     component.batchGroupId = data.batchGroupId === undefined || data.batchGroupId === null ? -1 : data.batchGroupId;
+    if (data.layers && pc.type(data.layers) === "array") {
+      component.layers = data.layers.slice(0);
+    }
     component.type = data.type;
     if (component.type === pc.ELEMENTTYPE_IMAGE) {
       if (data.rect !== undefined) {
@@ -28438,9 +30817,15 @@ pc.extend(pc, function() {
           component.color.set(data.color[0], data.color[1], data.color[2], data.opacity !== undefined ? data.opacity : 1);
         }
         component.color = component.color;
+      } else {
+        var opacity = data.opacity || 1;
+        component.color.set(1, 1, 1, opacity);
+        component.color = component.color;
       }
       if (data.opacity !== undefined) {
         component.opacity = data.opacity;
+      } else {
+        component.opacity = 1;
       }
       if (data.textureAsset !== undefined) {
         component.textureAsset = data.textureAsset;
@@ -28454,14 +30839,20 @@ pc.extend(pc, function() {
       if (data.sprite) {
         component.sprite = data.sprite;
       }
-      if (data.frame !== undefined) {
-        component.frame = data.frame;
+      if (data.spriteFrame !== undefined) {
+        component.spriteFrame = data.spriteFrame;
+      }
+      if (data.pixelsPerUnit !== undefined && data.pixelsPerUnit !== null) {
+        component.pixelsPerUnit = data.pixelsPerUnit;
       }
       if (data.materialAsset !== undefined) {
         component.materialAsset = data.materialAsset;
       }
       if (data.material) {
         component.material = data.material;
+      }
+      if (data.mask !== undefined) {
+        component.mask = data.mask;
       }
     } else {
       if (component.type === pc.ELEMENTTYPE_TEXT) {
@@ -28497,6 +30888,9 @@ pc.extend(pc, function() {
         if (data.lineHeight !== undefined) {
           component.lineHeight = data.lineHeight;
         }
+        if (data.wrapLines !== undefined) {
+          component.wrapLines = data.wrapLines;
+        }
         if (data.fontAsset !== undefined) {
           component.fontAsset = data.fontAsset;
         }
@@ -28509,17 +30903,17 @@ pc.extend(pc, function() {
       } else {
       }
     }
-    var screen = component._findScreen();
-    if (screen) {
-      component._updateScreen(screen);
+    var result = component._parseUpToScreen();
+    if (result.screen) {
+      component._updateScreen(result.screen);
     }
     ElementComponentSystem._super.initializeComponentData.call(this, component, data, properties);
   }, onRemoveComponent:function(entity, component) {
     component.onRemove();
   }, cloneComponent:function(entity, clone) {
     var source = entity.element;
-    return this.addComponent(clone, {enabled:source.enabled, width:source.width, height:source.height, anchor:source.anchor.clone(), pivot:source.pivot.clone(), margin:source.margin.clone(), alignment:source.alignment && source.alignment.clone() || source.alignment, autoWidth:source.autoWidth, autoHeight:source.autoHeight, type:source.type, rect:source.rect && source.rect.clone() || source.rect, materialAsset:source.materialAsset, material:source.material, color:source.color && source.color.clone() ||
-    source.color, opacity:source.opacity, textureAsset:source.textureAsset, texture:source.texture, spriteAsset:source.spriteAsset, sprite:source.sprite, frame:source.frame, text:source.text, spacing:source.spacing, lineHeight:source.lineHeight, fontSize:source.fontSize, fontAsset:source.fontAsset, font:source.font, useInput:source.useInput, batchGroupId:source.batchGroupId});
+    return this.addComponent(clone, {enabled:source.enabled, width:source.width, height:source.height, anchor:source.anchor.clone(), pivot:source.pivot.clone(), margin:source.margin.clone(), alignment:source.alignment && source.alignment.clone() || source.alignment, autoWidth:source.autoWidth, autoHeight:source.autoHeight, type:source.type, rect:source.rect && source.rect.clone() || source.rect, materialAsset:source.materialAsset, material:source.material, color:source.color && source.color.clone() || 
+    source.color, opacity:source.opacity, textureAsset:source.textureAsset, texture:source.texture, spriteAsset:source.spriteAsset, sprite:source.sprite, spriteFrame:source.spriteFrame, pixelsPerUnit:source.pixelsPerUnit, text:source.text, spacing:source.spacing, lineHeight:source.lineHeight, wrapLines:source.wrapLines, layers:source.layers, fontSize:source.fontSize, fontAsset:source.fontAsset, font:source.font, useInput:source.useInput, batchGroupId:source.batchGroupId, mask:source.mask});
   }});
   return {ElementComponentSystem:ElementComponentSystem};
 }());
@@ -28541,14 +30935,21 @@ pc.extend(pc, function() {
     this._material = null;
     this._spriteAsset = null;
     this._sprite = null;
-    this._frame = 0;
+    this._spriteFrame = 0;
+    this._pixelsPerUnit = null;
     this._rect = new pc.Vec4(0, 0, 1, 1);
     this._color = new pc.Color(1, 1, 1, 1);
+    this._mask = false;
+    this._maskRef = 0;
     this._positions = [];
     this._normals = [];
     this._uvs = [];
     this._indices = [];
-    this._mesh = this._createMesh();
+    this._outerScale = new pc.Vec2;
+    this._innerOffset = new pc.Vec4;
+    this._atlasRect = new pc.Vec4;
+    this._defaultMesh = this._createMesh();
+    this._mesh = this._defaultMesh;
     this._node = new pc.GraphNode;
     this._model = new pc.Model;
     this._model.graph = this._node;
@@ -28557,10 +30958,12 @@ pc.extend(pc, function() {
     this._meshInstance.receiveShadow = false;
     this._model.meshInstances.push(this._meshInstance);
     this._drawOrder = 0;
+    this._updateAabbFunc = this._updateAabb.bind(this);
     this._entity.addChild(this._model.graph);
     this._model._entity = this._entity;
     this._onScreenChange(this._element.screen);
-    this._element.on("resize", this._onParentResize, this);
+    this._element.on("resize", this._onParentResizeOrPivotChange, this);
+    this._element.on("set:pivot", this._onParentResizeOrPivotChange, this);
     this._element.on("screen:set:screenspace", this._onScreenSpaceChange, this);
     this._element.on("set:screen", this._onScreenChange, this);
     this._element.on("set:draworder", this._onDrawOrderChange, this);
@@ -28568,17 +30971,19 @@ pc.extend(pc, function() {
   };
   pc.extend(ImageElement.prototype, {destroy:function() {
     if (this._model) {
-      this._system.app.scene.removeModel(this._model);
+      this._element.removeModelFromLayers(this._model);
+      this._meshInstance.mesh = this._defaultMesh;
       this._model.destroy();
       this._model = null;
     }
-    this._element.off("resize", this._onParentResize, this);
+    this._element.off("resize", this._onParentResizeOrPivotChange, this);
+    this._element.off("set:pivot", this._onParentResizeOrPivotChange, this);
     this._element.off("screen:set:screenspace", this._onScreenSpaceChange, this);
     this._element.off("set:screen", this._onScreenChange, this);
     this._element.off("set:draworder", this._onDrawOrderChange, this);
     this._element.off("screen:set:resolution", this._onResolutionChange, this);
   }, _onResolutionChange:function(res) {
-  }, _onParentResize:function() {
+  }, _onParentResizeOrPivotChange:function() {
     if (this._mesh) {
       this._updateMesh(this._mesh);
     }
@@ -28596,30 +31001,89 @@ pc.extend(pc, function() {
       this._meshInstance.drawOrder = order;
     }
   }, _hasUserMaterial:function() {
-    return !!this._materialAsset || !!this._material && this._material !== this._system.defaultScreenSpaceImageMaterial && this._material !== this._system.defaultImageMaterial;
+    return !!this._materialAsset || !!this._material && this._system.defaultImageMaterials.indexOf(this._material) === -1;
+  }, _use9Slicing:function() {
+    return this.sprite && (this.sprite.renderMode === pc.SPRITE_RENDERMODE_SLICED || this.sprite.renderMode === pc.SPRITE_RENDERMODE_TILED);
   }, _updateMaterial:function(screenSpace) {
     if (screenSpace) {
       if (!this._hasUserMaterial()) {
-        this._material = this._system.defaultScreenSpaceImageMaterial;
+        if (this._mask) {
+          if (this.sprite) {
+            if (this.sprite.renderMode === pc.SPRITE_RENDERMODE_SLICED) {
+              this._material = this._system.defaultScreenSpaceImageMask9SlicedMaterial;
+            } else {
+              if (this.sprite.renderMode === pc.SPRITE_RENDERMODE_TILED) {
+                this._material = this._system.defaultScreenSpaceImageMask9TiledMaterial;
+              } else {
+                this._material = this._system.defaultScreenSpaceImageMaskMaterial;
+              }
+            }
+          } else {
+            this._material = this._system.defaultScreenSpaceImageMaskMaterial;
+          }
+        } else {
+          if (this.sprite) {
+            if (this.sprite.renderMode === pc.SPRITE_RENDERMODE_SLICED) {
+              this._material = this._system.defaultScreenSpaceImage9SlicedMaterial;
+            } else {
+              if (this.sprite.renderMode === pc.SPRITE_RENDERMODE_TILED) {
+                this._material = this._system.defaultScreenSpaceImage9TiledMaterial;
+              } else {
+                this._material = this._system.defaultScreenSpaceImageMaterial;
+              }
+            }
+          } else {
+            this._material = this._system.defaultScreenSpaceImageMaterial;
+          }
+        }
       }
       if (this._meshInstance) {
-        this._meshInstance.layer = pc.scene.LAYER_HUD;
+        this._meshInstance.cull = false;
       }
     } else {
       if (!this._hasUserMaterial()) {
-        this._material = this._system.defaultImageMaterial;
+        if (this._mask) {
+          if (this.sprite) {
+            if (this.sprite.renderMode === pc.SPRITE_RENDERMODE_SLICED) {
+              this._material = this._system.defaultImage9SlicedMaskMaterial;
+            } else {
+              if (this.sprite.renderMode === pc.SPRITE_RENDERMODE_TILED) {
+                this._material = this._system.defaultImage9TiledMaskMaterial;
+              } else {
+                this._material = this._system.defaultImageMaskMaterial;
+              }
+            }
+          } else {
+            this._material = this._system.defaultImageMaskMaterial;
+          }
+        } else {
+          if (this.sprite) {
+            if (this.sprite.renderMode === pc.SPRITE_RENDERMODE_SLICED) {
+              this._material = this._system.defaultImage9SlicedMaterial;
+            } else {
+              if (this.sprite.renderMode === pc.SPRITE_RENDERMODE_TILED) {
+                this._material = this._system.defaultImage9TiledMaterial;
+              } else {
+                this._material = this._system.defaultImageMaterial;
+              }
+            }
+          } else {
+            this._material = this._system.defaultImageMaterial;
+          }
+        }
       }
       if (this._meshInstance) {
-        this._meshInstance.layer = pc.scene.LAYER_WORLD;
+        this._meshInstance.cull = true;
       }
     }
     if (this._meshInstance) {
       this._meshInstance.material = this._material;
       this._meshInstance.screenSpace = screenSpace;
+      this._meshInstance.layer = screenSpace ? pc.scene.LAYER_HUD : pc.scene.LAYER_WORLD;
     }
   }, _createMesh:function() {
-    var w = this._element.width;
-    var h = this._element.height;
+    var w = this._element.calculatedWidth;
+    var h = this._element.calculatedHeight;
     this._positions[0] = 0;
     this._positions[1] = 0;
     this._positions[2] = 0;
@@ -28656,60 +31120,118 @@ pc.extend(pc, function() {
     return mesh;
   }, _updateMesh:function(mesh) {
     var i;
-    var w = this._element.width;
-    var h = this._element.height;
+    var w = this._element.calculatedWidth;
+    var h = this._element.calculatedHeight;
     if (this._element.screen) {
       this._updateMaterial(this._element.screen.screen.screenSpace);
     } else {
       this._updateMaterial();
     }
-    this._positions[0] = 0;
-    this._positions[1] = 0;
-    this._positions[2] = 0;
-    this._positions[3] = w;
-    this._positions[4] = 0;
-    this._positions[5] = 0;
-    this._positions[6] = w;
-    this._positions[7] = h;
-    this._positions[8] = 0;
-    this._positions[9] = 0;
-    this._positions[10] = h;
-    this._positions[11] = 0;
-    var hp = this._element.pivot.data[0];
-    var vp = this._element.pivot.data[1];
-    for (i = 0;i < this._positions.length;i += 3) {
-      this._positions[i] -= hp * w;
-      this._positions[i + 1] -= vp * h;
-    }
-    var rect = this._rect;
-    if (this._sprite && this._sprite.frameKeys[this._frame] && this._sprite.atlas) {
-      var frame = this._sprite.atlas.frames[this._sprite.frameKeys[this._frame]];
-      if (frame) {
-        rect = frame.rect;
-      }
-    }
-    this._uvs[0] = rect.data[0];
-    this._uvs[1] = rect.data[1];
-    this._uvs[2] = rect.data[0] + rect.data[2];
-    this._uvs[3] = rect.data[1];
-    this._uvs[4] = rect.data[0] + rect.data[2];
-    this._uvs[5] = rect.data[1] + rect.data[3];
-    this._uvs[6] = rect.data[0];
-    this._uvs[7] = rect.data[1] + rect.data[3];
-    var vb = mesh.vertexBuffer;
-    var it = new pc.VertexIterator(vb);
-    var numVertices = 4;
-    for (i = 0;i < numVertices;i++) {
-      it.element[pc.SEMANTIC_POSITION].set(this._positions[i * 3 + 0], this._positions[i * 3 + 1], this._positions[i * 3 + 2]);
-      it.element[pc.SEMANTIC_NORMAL].set(this._normals[i * 3 + 0], this._normals[i * 3 + 1], this._normals[i * 3 + 2]);
-      it.element[pc.SEMANTIC_TEXCOORD0].set(this._uvs[i * 2 + 0], this._uvs[i * 2 + 1]);
-      it.next();
-    }
-    it.end();
-    mesh.aabb.compute(this._positions);
     if (this._meshInstance) {
       this._meshInstance._aabbVer = -1;
     }
+    if (this.sprite && (this.sprite.renderMode === pc.SPRITE_RENDERMODE_SLICED || this.sprite.renderMode === pc.SPRITE_RENDERMODE_TILED)) {
+      var frameData = this._sprite.atlas.frames[this._sprite.frameKeys[this._spriteFrame]];
+      var borderWidthScale = 2 / frameData.rect.z;
+      var borderHeightScale = 2 / frameData.rect.w;
+      this._innerOffset.set(frameData.border.x * borderWidthScale, frameData.border.y * borderHeightScale, frameData.border.z * borderWidthScale, frameData.border.w * borderHeightScale);
+      var tex = this.sprite.atlas.texture;
+      this._atlasRect.set(frameData.rect.x / tex.width, frameData.rect.y / tex.height, frameData.rect.z / tex.width, frameData.rect.w / tex.height);
+      var ppu = this._pixelsPerUnit !== null ? this._pixelsPerUnit : this.sprite.pixelsPerUnit;
+      var scaleMulX = frameData.rect.z / ppu;
+      var scaleMulY = frameData.rect.w / ppu;
+      this._outerScale.set(Math.max(w, this._innerOffset.x * scaleMulX), Math.max(h, this._innerOffset.y * scaleMulY));
+      var scaleX = scaleMulX;
+      var scaleY = scaleMulY;
+      this._outerScale.x /= scaleMulX;
+      this._outerScale.y /= scaleMulY;
+      scaleX *= pc.math.clamp(w / (this._innerOffset.x * scaleMulX), 1E-4, 1);
+      scaleY *= pc.math.clamp(h / (this._innerOffset.y * scaleMulY), 1E-4, 1);
+      if (this._meshInstance) {
+        this._meshInstance.setParameter("innerOffset", this._innerOffset.data);
+        this._meshInstance.setParameter("atlasRect", this._atlasRect.data);
+        this._meshInstance.setParameter("outerScale", this._outerScale.data, 4294967295);
+        this._meshInstance._updateAabbFunc = this._updateAabbFunc;
+      }
+      if (this._node) {
+        this._node.setLocalScale(scaleX, scaleY, 1);
+        this._node.setLocalPosition((.5 - this._element.pivot.x) * w, (.5 - this._element.pivot.y) * h, 0);
+      }
+    } else {
+      this._positions[0] = 0;
+      this._positions[1] = 0;
+      this._positions[2] = 0;
+      this._positions[3] = w;
+      this._positions[4] = 0;
+      this._positions[5] = 0;
+      this._positions[6] = w;
+      this._positions[7] = h;
+      this._positions[8] = 0;
+      this._positions[9] = 0;
+      this._positions[10] = h;
+      this._positions[11] = 0;
+      var hp = this._element.pivot.data[0];
+      var vp = this._element.pivot.data[1];
+      for (i = 0;i < this._positions.length;i += 3) {
+        this._positions[i] -= hp * w;
+        this._positions[i + 1] -= vp * h;
+      }
+      w = 1;
+      h = 1;
+      var rect = this._rect;
+      if (this._sprite && this._sprite.frameKeys[this._spriteFrame] && this._sprite.atlas) {
+        var frame = this._sprite.atlas.frames[this._sprite.frameKeys[this._spriteFrame]];
+        if (frame) {
+          rect = frame.rect;
+          w = this._sprite.atlas.texture.width;
+          h = this._sprite.atlas.texture.height;
+        }
+      }
+      this._uvs[0] = rect.data[0] / w;
+      this._uvs[1] = rect.data[1] / h;
+      this._uvs[2] = (rect.data[0] + rect.data[2]) / w;
+      this._uvs[3] = rect.data[1] / h;
+      this._uvs[4] = (rect.data[0] + rect.data[2]) / w;
+      this._uvs[5] = (rect.data[1] + rect.data[3]) / h;
+      this._uvs[6] = rect.data[0] / w;
+      this._uvs[7] = (rect.data[1] + rect.data[3]) / h;
+      var vb = mesh.vertexBuffer;
+      var it = new pc.VertexIterator(vb);
+      var numVertices = 4;
+      for (i = 0;i < numVertices;i++) {
+        it.element[pc.SEMANTIC_POSITION].set(this._positions[i * 3 + 0], this._positions[i * 3 + 1], this._positions[i * 3 + 2]);
+        it.element[pc.SEMANTIC_NORMAL].set(this._normals[i * 3 + 0], this._normals[i * 3 + 1], this._normals[i * 3 + 2]);
+        it.element[pc.SEMANTIC_TEXCOORD0].set(this._uvs[i * 2 + 0], this._uvs[i * 2 + 1]);
+        it.next();
+      }
+      it.end();
+      mesh.aabb.compute(this._positions);
+      if (this._node) {
+        this._node.setLocalScale(1, 1, 1);
+        this._node.setLocalPosition(0, 0, 0);
+      }
+      if (this._meshInstance) {
+        this._meshInstance._updateAabbFunc = null;
+      }
+    }
+  }, _updateAabb:function(aabb) {
+    aabb.center.set(0, 0, 0);
+    aabb.halfExtents.set(this._outerScale.x * .5, this._outerScale.y * .5, .001);
+    aabb.setFromTransformedAabb(aabb, this._node.getWorldTransform());
+    return aabb;
+  }, _getHigherMask:function() {
+    var parent = this._entity;
+    while (parent) {
+      parent = parent.getParent();
+      if (parent && parent.element && parent.element.mask) {
+        return parent;
+      }
+    }
+    return null;
+  }, _toggleMask:function() {
+    this._element._dirtifyMask();
+    var screenSpace = this._element.screen ? this._element.screen.screen.screenSpace : false;
+    this._updateMaterial(screenSpace);
   }, _onMaterialLoad:function(asset) {
     this.material = asset.resource;
   }, _onMaterialAdded:function(asset) {
@@ -28773,6 +31295,20 @@ pc.extend(pc, function() {
         this.sprite = asset.resource;
       }
     }
+  }, _onSpriteMeshesChange:function() {
+    this.spriteFrame = this.spriteFrame;
+  }, _onSpritePpuChange:function() {
+    if (this.sprite.renderMode !== pc.SPRITE_RENDERMODE_SIMPLE && this._pixelsPerUnit === null) {
+      this.spriteFrame = this.spriteFrame;
+    }
+  }, _onAtlasTextureChange:function() {
+    if (this.sprite && this.sprite.atlas && this.sprite.atlas.texture) {
+      this._meshInstance.setParameter("texture_emissiveMap", this._sprite.atlas.texture);
+      this._meshInstance.setParameter("texture_opacityMap", this._sprite.atlas.texture);
+    } else {
+      this._meshInstance.deleteParameter("texture_emissiveMap");
+      this._meshInstance.deleteParameter("texture_opacityMap");
+    }
   }, _onTextureAtlasLoad:function(atlasAsset) {
     var spriteAsset = this._spriteAsset;
     if (spriteAsset instanceof pc.Asset) {
@@ -28784,12 +31320,12 @@ pc.extend(pc, function() {
     this._onSpriteAssetLoad(asset);
   }, _onSpriteAssetRemove:function(asset) {
   }, onEnable:function() {
-    if (this._model && !this._system.app.scene.containsModel(this._model)) {
-      this._system.app.scene.addModel(this._model);
+    if (this._model) {
+      this._element.addModelToLayers(this._model);
     }
   }, onDisable:function() {
-    if (this._model && this._system.app.scene.containsModel(this._model)) {
-      this._system.app.scene.removeModel(this._model);
+    if (this._model) {
+      this._element.removeModelFromLayers(this._model);
     }
   }});
   Object.defineProperty(ImageElement.prototype, "color", {get:function() {
@@ -28826,11 +31362,12 @@ pc.extend(pc, function() {
     if (!value) {
       var screenSpace = this._element.screen ? this._element.screen.screen.screenSpace : false;
       value = screenSpace ? this._system.defaultScreenSpaceImageMaterial : this._system.defaultImageMaterial;
+      value = this._mask ? this._system.defaultScreenSpaceImageMaskMaterial : this._system.defaultImageMaskMaterial;
     }
     this._material = value;
     if (value) {
       this._meshInstance.material = value;
-      if (value !== this._system.defaultScreenSpaceImageMaterial && value !== this._system.defaultImageMaterial) {
+      if (value !== this._system.defaultScreenSpaceImageMaterial && value !== this._system.defaultImageMaterial && value !== this._system.defaultImageMaskMaterial && value !== this._system.defaultScreenSpaceImageMaskMaterial) {
         this._meshInstance.deleteParameter("material_opacity");
         this._meshInstance.deleteParameter("material_emissive");
       } else {
@@ -28949,47 +31486,85 @@ pc.extend(pc, function() {
   Object.defineProperty(ImageElement.prototype, "sprite", {get:function() {
     return this._sprite;
   }, set:function(value) {
+    if (this._sprite) {
+      this._sprite.off("set:meshes", this._onSpriteMeshesChange, this);
+      this._sprite.off("set:pixelsPerUnit", this._onSpritePpuChange, this);
+      this._sprite.off("set:atlas", this._onAtlasTextureChange, this);
+      if (this._sprite.atlas) {
+        this._sprite.atlas.off("set:texture", this._onAtlasTextureChange, this);
+      }
+    }
     this._sprite = value;
-    if (this._sprite && this._sprite.atlas && this._sprite.atlas.texture) {
-      this._meshInstance.setParameter("texture_emissiveMap", this._sprite.atlas.texture);
-      this._meshInstance.setParameter("texture_opacityMap", this._sprite.atlas.texture);
-      this.frame = this.frame;
+    if (this._sprite) {
+      this._sprite.on("set:meshes", this._onSpriteMeshesChange, this);
+      this._sprite.on("set:pixelsPerUnit", this._onSpritePpuChange, this);
+      this._sprite.on("set:atlas", this._onAtlasTextureChange, this);
+      if (this._sprite.atlas) {
+        this._sprite.atlas.on("set:texture", this._onAtlasTextureChange, this);
+      }
+    }
+    if (this._meshInstance) {
+      if (this._sprite && this._sprite.atlas && this._sprite.atlas.texture) {
+        this._meshInstance.setParameter("texture_emissiveMap", this._sprite.atlas.texture);
+        this._meshInstance.setParameter("texture_opacityMap", this._sprite.atlas.texture);
+      } else {
+        this._meshInstance.deleteParameter("texture_emissiveMap");
+        this._meshInstance.deleteParameter("texture_opacityMap");
+      }
+    }
+    this.spriteFrame = this.spriteFrame;
+  }});
+  Object.defineProperty(ImageElement.prototype, "spriteFrame", {get:function() {
+    return this._spriteFrame;
+  }, set:function(value) {
+    if (this._sprite) {
+      this._spriteFrame = pc.math.clamp(value, 0, this._sprite.frameKeys.length - 1);
     } else {
-      this._meshInstance.deleteParameter("texture_emissiveMap");
-      this._meshInstance.deleteParameter("texture_opacityMap");
+      this._spriteFrame = value;
+    }
+    var nineSlice = false;
+    var mesh = null;
+    if (this._sprite && this._sprite.atlas) {
+      mesh = this._sprite.meshes[this.spriteFrame];
+      nineSlice = this._sprite.renderMode === pc.SPRITE_RENDERMODE_SLICED || this._sprite.renderMode === pc.SPRITE_RENDERMODE_TILED;
+    }
+    this.mesh = nineSlice ? mesh : this._defaultMesh;
+    if (this.mesh) {
+      this._updateMesh(this.mesh);
     }
   }});
-  Object.defineProperty(ImageElement.prototype, "frame", {get:function() {
-    return this._frame;
+  Object.defineProperty(ImageElement.prototype, "mesh", {get:function() {
+    return this._mesh;
   }, set:function(value) {
-    this._frame = value;
-    if (this._sprite && this._sprite.atlas) {
-      if (value < 0 || value >= this._sprite.frameKeys.length) {
-        return;
+    this._mesh = value;
+    if (this._meshInstance) {
+      this._meshInstance.mesh = this._mesh;
+      this._meshInstance.visible = !!this._mesh;
+      this._meshInstance._aabbVer = -1;
+      if (this._mesh === this._defaultMesh) {
+        this._meshInstance._updateAabbFunc = null;
+      } else {
+        this._meshInstance._updateAabbFunc = this._updateAabbFunc;
       }
-      var frame = this._sprite.atlas.frames[this._sprite.frameKeys[value]];
-      if (!frame) {
-        return;
-      }
-      if (!this._sprite) {
-        return;
-      }
-      this._uvs[0] = frame.rect.data[0];
-      this._uvs[1] = frame.rect.data[1];
-      this._uvs[2] = frame.rect.data[0] + frame.rect.data[2];
-      this._uvs[3] = frame.rect.data[1];
-      this._uvs[4] = frame.rect.data[0] + frame.rect.data[2];
-      this._uvs[5] = frame.rect.data[1] + frame.rect.data[3];
-      this._uvs[6] = frame.rect.data[0];
-      this._uvs[7] = frame.rect.data[1] + frame.rect.data[3];
-      var vb = this._mesh.vertexBuffer;
-      var it = new pc.VertexIterator(vb);
-      var numVertices = 4;
-      for (var i = 0;i < numVertices;i++) {
-        it.element[pc.SEMANTIC_TEXCOORD0].set(this._uvs[i * 2 + 0], this._uvs[i * 2 + 1]);
-        it.next();
-      }
-      it.end();
+    }
+  }});
+  Object.defineProperty(ImageElement.prototype, "mask", {get:function() {
+    return this._mask;
+  }, set:function(value) {
+    if (this._mask !== value) {
+      this._mask = value;
+      this._toggleMask();
+    }
+  }});
+  Object.defineProperty(ImageElement.prototype, "pixelsPerUnit", {get:function() {
+    return this._pixelsPerUnit;
+  }, set:function(value) {
+    if (this._pixelsPerUnit === value) {
+      return;
+    }
+    this._pixelsPerUnit = value;
+    if (this._sprite && (this._sprite.renderMode === pc.SPRITE_RENDERMODE_SLICED || this._sprite.renderMode === pc.SPRITE_RENDERMODE_TILED)) {
+      this.spriteFrame = this.spriteFrame;
     }
   }});
   return {ImageElement:ImageElement};
@@ -29006,6 +31581,8 @@ pc.extend(pc, function() {
     this._spacing = 1;
     this._fontSize = 32;
     this._lineHeight = 32;
+    this._wrapLines = false;
+    this._drawOrder = 0;
     this._alignment = new pc.Vec2(.5, .5);
     this._autoWidth = true;
     this._autoHeight = true;
@@ -29018,6 +31595,8 @@ pc.extend(pc, function() {
     this._meshInfo = [];
     this._material = null;
     this._noResize = false;
+    this._currentMaterialType = null;
+    this._maskedMaterialSrc = null;
     this._onScreenChange(this._element.screen);
     element.on("resize", this._onParentResize, this);
     this._element.on("set:screen", this._onScreenChange, this);
@@ -29025,9 +31604,12 @@ pc.extend(pc, function() {
     element.on("set:draworder", this._onDrawOrderChange, this);
     element.on("set:pivot", this._onPivotChange, this);
   };
+  var LINE_BREAK_CHAR = /^[\r\n]$/;
+  var WHITESPACE_CHAR = /^[ \t]$/;
+  var WORD_BOUNDARY_CHAR = /^[ \t\-]$/;
   pc.extend(TextElement.prototype, {destroy:function() {
     if (this._model) {
-      this._system.app.scene.removeModel(this._model);
+      this._element.removeModelFromLayers(this._model);
       this._model.destroy();
       this._model = null;
     }
@@ -29054,7 +31636,9 @@ pc.extend(pc, function() {
   }, _onDrawOrderChange:function(order) {
     this._drawOrder = order;
     if (this._model) {
-      for (var i = 0, len = this._model.meshInstances.length;i < len;i++) {
+      var i;
+      var len;
+      for (i = 0, len = this._model.meshInstances.length;i < len;i++) {
         this._model.meshInstances[i].drawOrder = order;
       }
     }
@@ -29063,6 +31647,8 @@ pc.extend(pc, function() {
       this._updateText();
     }
   }, _updateText:function(text) {
+    var i;
+    var len;
     if (text === undefined) {
       text = this._text;
     }
@@ -29072,7 +31658,7 @@ pc.extend(pc, function() {
       text = " ";
     }
     var charactersPerTexture = {};
-    for (var i = 0;i < textLength;i++) {
+    for (i = 0;i < textLength;i++) {
       var code = text.charCodeAt(i);
       var info = this._font.data.chars[code];
       if (!info) {
@@ -29084,14 +31670,14 @@ pc.extend(pc, function() {
       }
       charactersPerTexture[map]++;
     }
-    var removedModel = !this._system.app.scene.containsModel(this._model);
+    var removedModel = false;
     var screenSpace = this._element.screen && this._element.screen.screen.screenSpace;
-    for (var i = 0, len = this._meshInfo.length;i < len;i++) {
+    for (i = 0, len = this._meshInfo.length;i < len;i++) {
       var l = charactersPerTexture[i] || 0;
       var meshInfo = this._meshInfo[i];
       if (meshInfo.count !== l) {
         if (!removedModel) {
-          this._system.app.scene.removeModel(this._model);
+          this._element.removeModelFromLayers(this._model);
           removedModel = true;
         }
         meshInfo.count = l;
@@ -29131,7 +31717,7 @@ pc.extend(pc, function() {
         mi.receiveShadow = false;
         mi.drawOrder = this._drawOrder;
         if (screenSpace) {
-          mi.layer = pc.scene.LAYER_HUD;
+          mi.cull = false;
         }
         mi.screenSpace = screenSpace;
         mi.setParameter("texture_msdfMap", this._font.textures[i]);
@@ -29144,18 +31730,23 @@ pc.extend(pc, function() {
         this._model.meshInstances.push(mi);
       }
     }
+    if (this._maskedBy) {
+      this._element._setMaskedBy(this._maskedBy);
+    }
     if (removedModel && this._element.enabled && this._entity.enabled) {
-      this._system.app.scene.addModel(this._model);
+      this._element.addModelToLayers(this._model);
     }
     this._updateMeshes(text);
   }, _removeMeshInstance:function(meshInstance) {
+    var ib;
+    var iblen;
     var oldMesh = meshInstance.mesh;
     if (oldMesh) {
       if (oldMesh.vertexBuffer) {
         oldMesh.vertexBuffer.destroy();
       }
       if (oldMesh.indexBuffer) {
-        for (var ib = 0, iblen = oldMesh.indexBuffer.length;ib < iblen;ib++) {
+        for (ib = 0, iblen = oldMesh.indexBuffer.length;ib < iblen;ib++) {
           oldMesh.indexBuffer[ib].destroy();
         }
       }
@@ -29164,41 +31755,63 @@ pc.extend(pc, function() {
     if (idx !== -1) {
       this._model.meshInstances.splice(idx, 1);
     }
+  }, _setMaterial:function(material) {
+    var i;
+    var len;
+    this._material = material;
+    if (this._model) {
+      for (i = 0, len = this._model.meshInstances.length;i < len;i++) {
+        var mi = this._model.meshInstances[i];
+        mi.material = material;
+      }
+    }
   }, _updateMaterial:function(screenSpace) {
-    var layer;
+    var cull;
     if (screenSpace) {
       this._material = this._system.defaultScreenSpaceTextMaterial;
-      layer = pc.scene.LAYER_HUD;
+      cull = false;
     } else {
       this._material = this._system.defaultTextMaterial;
-      layer = pc.scene.LAYER_WORLD;
+      cull = true;
     }
     if (this._model) {
       for (var i = 0, len = this._model.meshInstances.length;i < len;i++) {
         var mi = this._model.meshInstances[i];
-        mi.layer = layer;
+        mi.cull = cull;
         mi.material = this._material;
         mi.screenSpace = screenSpace;
       }
     }
   }, _updateMeshes:function(text) {
     var json = this._font.data;
+    var self = this;
     this.width = 0;
     this.height = 0;
-    var lineWidths = [];
+    this._lineWidths = [];
+    this._lineContents = [];
     var l = text.length;
     var _x = 0;
+    var _xMinusTrailingWhitespace = 0;
     var _y = 0;
     var _z = 0;
     var lines = 1;
-    var lastLine = 0;
+    var wordStartX = 0;
+    var wordStartIndex = 0;
+    var lineStartIndex = 0;
+    var numWordsThisLine = 0;
+    var numCharsThisLine = 0;
+    var splitHorizontalAnchors = Math.abs(this._element.anchor.x - this._element.anchor.z) >= 1E-4;
+    var maxLineWidth = this._element.calculatedWidth;
+    if (this.autoWidth && !splitHorizontalAnchors || !this._wrapLines) {
+      maxLineWidth = Number.POSITIVE_INFINITY;
+    }
     var fontMinY = 0;
     var fontMaxY = 0;
     var scale = 1;
     var MAGIC = 32;
-    var char, data, i;
-    for (char in json.chars) {
-      data = json.chars[char];
+    var char, charCode, data, i, quad;
+    for (charCode in json.chars) {
+      data = json.chars[charCode];
       scale = data.height / MAGIC * this._fontSize / data.height;
       if (data.bounds) {
         fontMinY = Math.min(fontMinY, data.bounds[1] * scale);
@@ -29209,24 +31822,27 @@ pc.extend(pc, function() {
       this._meshInfo[i].quad = 0;
       this._meshInfo[i].lines = {};
     }
+    function breakLine(lineBreakIndex, lineBreakX) {
+      self._lineWidths.push(lineBreakX);
+      self._lineContents.push(text.substring(lineStartIndex, lineBreakIndex));
+      _x = 0;
+      _y -= self._lineHeight;
+      lines++;
+      numWordsThisLine = 0;
+      numCharsThisLine = 0;
+      wordStartX = 0;
+      lineStartIndex = lineBreakIndex;
+    }
     for (i = 0;i < l;i++) {
-      char = text.charCodeAt(i);
-      if (char === 10 || char === 13) {
-        _y -= this._lineHeight;
-        _x = 0;
-        lines++;
-        lastLine = lines;
-        lineWidths.push(0);
-        continue;
-      }
-      lineWidths[lines - 1] = 0;
+      char = text.charAt(i);
+      charCode = text.charCodeAt(i);
       var x = 0;
       var y = 0;
       var advance = 0;
       var quadsize = 1;
       var glyphMinX = 0;
       var glyphWidth = 0;
-      data = json.chars[char];
+      data = json.chars[charCode];
       if (data && data.scale) {
         var size = (data.width + data.height) / 2;
         scale = size / MAGIC * this._fontSize / size;
@@ -29247,8 +31863,31 @@ pc.extend(pc, function() {
         y = 0;
         quadsize = this._fontSize;
       }
+      var isLineBreak = LINE_BREAK_CHAR.test(char);
+      var isWordBoundary = WORD_BOUNDARY_CHAR.test(char);
+      var isWhitespace = WHITESPACE_CHAR.test(char);
+      if (isLineBreak) {
+        breakLine(i, _xMinusTrailingWhitespace);
+        wordStartIndex = i + 1;
+        lineStartIndex = i + 1;
+        continue;
+      }
       var meshInfo = this._meshInfo[data && data.map || 0];
-      var quad = meshInfo.quad;
+      var candidateLineWidth = _x + glyphWidth + glyphMinX;
+      if (candidateLineWidth >= maxLineWidth && numCharsThisLine > 0 && !isWhitespace) {
+        if (numWordsThisLine === 0) {
+          wordStartIndex = i;
+          breakLine(i, _xMinusTrailingWhitespace);
+        } else {
+          var backtrack = Math.max(i - wordStartIndex, 0);
+          i -= backtrack + 1;
+          meshInfo.lines[lines - 1] -= backtrack;
+          meshInfo.quad -= backtrack;
+          breakLine(wordStartIndex, wordStartX);
+          continue;
+        }
+      }
+      quad = meshInfo.quad;
       meshInfo.lines[lines - 1] = quad;
       meshInfo.positions[quad * 4 * 3 + 0] = _x - x;
       meshInfo.positions[quad * 4 * 3 + 1] = _y - y;
@@ -29263,10 +31902,18 @@ pc.extend(pc, function() {
       meshInfo.positions[quad * 4 * 3 + 10] = _y - y + quadsize;
       meshInfo.positions[quad * 4 * 3 + 11] = _z;
       this.width = Math.max(this.width, _x + glyphWidth + glyphMinX);
-      lineWidths[lines - 1] = Math.max(lineWidths[lines - 1], _x + glyphWidth + glyphMinX);
       this.height = Math.max(this.height, fontMaxY - (_y + fontMinY));
       _x = _x + this._spacing * advance;
-      var uv = this._getUv(char);
+      if (!isWhitespace && !isLineBreak) {
+        _xMinusTrailingWhitespace = _x;
+      }
+      if (isWordBoundary) {
+        numWordsThisLine++;
+        wordStartX = _xMinusTrailingWhitespace;
+        wordStartIndex = i + 1;
+      }
+      numCharsThisLine++;
+      var uv = this._getUv(charCode);
       meshInfo.uvs[quad * 4 * 2 + 0] = uv[0];
       meshInfo.uvs[quad * 4 * 2 + 1] = uv[1];
       meshInfo.uvs[quad * 4 * 2 + 2] = uv[2];
@@ -29276,6 +31923,9 @@ pc.extend(pc, function() {
       meshInfo.uvs[quad * 4 * 2 + 6] = uv[0];
       meshInfo.uvs[quad * 4 * 2 + 7] = uv[3];
       meshInfo.quad++;
+    }
+    if (lineStartIndex < l) {
+      breakLine(l, _x);
     }
     this._noResize = true;
     this.autoWidth = this._autoWidth;
@@ -29292,9 +31942,9 @@ pc.extend(pc, function() {
       var prevQuad = 0;
       for (var line in this._meshInfo[i].lines) {
         var index = this._meshInfo[i].lines[line];
-        var hoffset = -hp * this._element.width + ha * (this._element.width - lineWidths[parseInt(line, 10)]);
-        var voffset = (1 - vp) * this._element.height - fontMaxY - (1 - va) * (this._element.height - this.height);
-        for (var quad = prevQuad;quad <= index;quad++) {
+        var hoffset = -hp * this._element.calculatedWidth + ha * (this._element.calculatedWidth - this._lineWidths[parseInt(line, 10)]);
+        var voffset = (1 - vp) * this._element.calculatedHeight - fontMaxY - (1 - va) * (this._element.calculatedHeight - this.height);
+        for (quad = prevQuad;quad <= index;quad++) {
           this._meshInfo[i].positions[quad * 4 * 3] += hoffset;
           this._meshInfo[i].positions[quad * 4 * 3 + 3] += hoffset;
           this._meshInfo[i].positions[quad * 4 * 3 + 6] += hoffset;
@@ -29381,12 +32031,12 @@ pc.extend(pc, function() {
     var edge = 1 - data.chars[char].height / height;
     return [x1 / width, edge - y1 / height, x2 / width, edge - y2 / height];
   }, onEnable:function() {
-    if (this._model && !this._system.app.scene.containsModel(this._model)) {
-      this._system.app.scene.addModel(this._model);
+    if (this._model) {
+      this._element.addModelToLayers(this._model);
     }
   }, onDisable:function() {
-    if (this._model && this._system.app.scene.containsModel(this._model)) {
-      this._system.app.scene.removeModel(this._model);
+    if (this._model) {
+      this._element.removeModelFromLayers(this._model);
     }
   }});
   Object.defineProperty(TextElement.prototype, "text", {get:function() {
@@ -29432,6 +32082,18 @@ pc.extend(pc, function() {
     if (_prev !== value && this._font) {
       this._updateText();
     }
+  }});
+  Object.defineProperty(TextElement.prototype, "wrapLines", {get:function() {
+    return this._wrapLines;
+  }, set:function(value) {
+    var _prev = this._wrapLines;
+    this._wrapLines = value;
+    if (_prev !== value && this._font) {
+      this._updateText();
+    }
+  }});
+  Object.defineProperty(TextElement.prototype, "lines", {get:function() {
+    return this._lineContents;
   }});
   Object.defineProperty(TextElement.prototype, "spacing", {get:function() {
     return this._spacing;
@@ -29482,11 +32144,13 @@ pc.extend(pc, function() {
   Object.defineProperty(TextElement.prototype, "font", {get:function() {
     return this._font;
   }, set:function(value) {
+    var i;
+    var len;
     this._font = value;
     if (!value) {
       return;
     }
-    for (var i = 0, len = this._font.textures.length;i < len;i++) {
+    for (i = 0, len = this._font.textures.length;i < len;i++) {
       if (!this._meshInfo[i]) {
         this._meshInfo[i] = {count:0, quad:0, lines:{}, positions:[], normals:[], uvs:[], indices:[], meshInstance:null};
       } else {
@@ -29500,10 +32164,10 @@ pc.extend(pc, function() {
       }
     }
     var removedModel = false;
-    for (var i = this._font.textures.length;i < this._meshInfo.length;i++) {
+    for (i = this._font.textures.length;i < this._meshInfo.length;i++) {
       if (this._meshInfo[i].meshInstance) {
         if (!removedModel) {
-          this._system.app.scene.removeModel(this._model);
+          this._element.removeModelFromLayers(this._model);
           removedModel = true;
         }
         this._removeMeshInstance(this._meshInfo[i].meshInstance);
@@ -29530,7 +32194,7 @@ pc.extend(pc, function() {
     return this._autoWidth;
   }, set:function(value) {
     this._autoWidth = value;
-    if (value) {
+    if (value && Math.abs(this._element.anchor.x - this._element.anchor.z) < 1E-4) {
       this._element.width = this.width;
     }
   }});
@@ -29538,11 +32202,694 @@ pc.extend(pc, function() {
     return this._autoHeight;
   }, set:function(value) {
     this._autoHeight = value;
-    if (value) {
+    if (value && Math.abs(this._element.anchor.y - this._element.anchor.w) < 1E-4) {
       this._element.height = this.height;
     }
   }});
   return {TextElement:TextElement};
+}());
+pc.extend(pc, {ORIENTATION_HORIZONTAL:0, ORIENTATION_VERTICAL:1, FITTING_NONE:0, FITTING_STRETCH:1, FITTING_SHRINK:2, FITTING_BOTH:3});
+pc.extend(pc, function() {
+  var LayoutGroupComponent = function LayoutGroupComponent(system, entity) {
+    this._orientation = pc.ORIENTATION_HORIZONTAL;
+    this._reverseX = false;
+    this._reverseY = true;
+    this._alignment = new pc.Vec2(0, 1);
+    this._padding = new pc.Vec4;
+    this._spacing = new pc.Vec2;
+    this._widthFitting = pc.FITTING_NONE;
+    this._heightFitting = pc.FITTING_NONE;
+    this._wrap = false;
+    this._layoutCalculator = new pc.LayoutCalculator;
+    this._listenForReflowEvents(this.entity, "on");
+    this.entity.children.forEach(function(child) {
+      this._listenForReflowEvents(child, "on");
+    }.bind(this));
+    this.entity.on("childinsert", this._onChildInsert, this);
+    this.entity.on("childremove", this._onChildRemove, this);
+    system.app.systems.element.on("add", this._onElementOrLayoutComponentAdd, this);
+    system.app.systems.element.on("beforeremove", this._onElementOrLayoutComponentRemove, this);
+    system.app.systems.layoutchild.on("add", this._onElementOrLayoutComponentAdd, this);
+    system.app.systems.layoutchild.on("beforeremove", this._onElementOrLayoutComponentRemove, this);
+  };
+  LayoutGroupComponent = pc.inherits(LayoutGroupComponent, pc.Component);
+  pc.extend(LayoutGroupComponent.prototype, {_isSelfOrChild:function(entity) {
+    return entity === this.entity || this.entity.children.indexOf(entity) !== -1;
+  }, _listenForReflowEvents:function(target, onOff) {
+    if (target.element) {
+      target.element[onOff]("enableelement", this._scheduleReflow, this);
+      target.element[onOff]("disableelement", this._scheduleReflow, this);
+      target.element[onOff]("resize", this._scheduleReflow, this);
+      target.element[onOff]("set:pivot", this._scheduleReflow, this);
+    }
+    if (target.layoutchild) {
+      target.layoutchild[onOff]("set_enabled", this._scheduleReflow, this);
+      target.layoutchild[onOff]("resize", this._scheduleReflow, this);
+    }
+  }, _onElementOrLayoutComponentAdd:function(entity) {
+    if (this._isSelfOrChild(entity)) {
+      this._listenForReflowEvents(entity, "on");
+      this._scheduleReflow();
+    }
+  }, _onElementOrLayoutComponentRemove:function(entity) {
+    if (this._isSelfOrChild(entity)) {
+      this._listenForReflowEvents(entity, "off");
+      this._scheduleReflow();
+    }
+  }, _onChildInsert:function(child) {
+    this._listenForReflowEvents(child, "on");
+    this._scheduleReflow();
+  }, _onChildRemove:function(child) {
+    this._listenForReflowEvents(child, "off");
+    this._scheduleReflow();
+  }, _scheduleReflow:function() {
+    if (this.enabled && this.entity && this.entity.enabled && !this._isPerformingReflow) {
+      this.system.scheduleReflow(this);
+    }
+  }, reflow:function() {
+    var container = getElement(this.entity);
+    var elements = this.entity.children.filter(isEnabledAndHasEnabledElement).map(getElement);
+    if (!container || elements.length === 0) {
+      return;
+    }
+    var containerWidth = Math.max(container.calculatedWidth, 0);
+    var containerHeight = Math.max(container.calculatedHeight, 0);
+    var options = {orientation:this._orientation, reverseX:this._reverseX, reverseY:this._reverseY, alignment:this._alignment, padding:this._padding, spacing:this._spacing, widthFitting:this._widthFitting, heightFitting:this._heightFitting, wrap:this._wrap, containerSize:new pc.Vec2(containerWidth, containerHeight)};
+    this._isPerformingReflow = true;
+    this._layoutCalculator.calculateLayout(elements, options);
+    this._isPerformingReflow = false;
+  }, onEnable:function() {
+    this._scheduleReflow();
+  }, onRemove:function() {
+    this.entity.off("childinsert", this._onChildInsert, this);
+    this.entity.off("childremove", this._onChildRemove, this);
+    this._listenForReflowEvents(this.entity, "off");
+    this.entity.children.forEach(function(child) {
+      this._listenForReflowEvents(child, "off");
+    }.bind(this));
+    this.system.app.systems.element.off("add", this._onElementOrLayoutComponentAdd, this);
+    this.system.app.systems.element.off("beforeremove", this._onElementOrLayoutComponentRemove, this);
+    this.system.app.systems.layoutchild.off("add", this._onElementOrLayoutComponentAdd, this);
+    this.system.app.systems.layoutchild.off("beforeremove", this._onElementOrLayoutComponentRemove, this);
+  }});
+  function getElement(entity) {
+    return entity.element;
+  }
+  function isEnabledAndHasEnabledElement(entity) {
+    return entity.enabled && entity.element && entity.element.enabled;
+  }
+  function defineReflowSchedulingProperty(name) {
+    var _name = "_" + name;
+    Object.defineProperty(LayoutGroupComponent.prototype, name, {get:function() {
+      return this[_name];
+    }, set:function(value) {
+      if (this[_name] !== value) {
+        this[_name] = value;
+        this._scheduleReflow();
+      }
+    }});
+  }
+  defineReflowSchedulingProperty("orientation");
+  defineReflowSchedulingProperty("reverseX");
+  defineReflowSchedulingProperty("reverseY");
+  defineReflowSchedulingProperty("alignment");
+  defineReflowSchedulingProperty("padding");
+  defineReflowSchedulingProperty("spacing");
+  defineReflowSchedulingProperty("widthFitting");
+  defineReflowSchedulingProperty("heightFitting");
+  defineReflowSchedulingProperty("wrap");
+  return {LayoutGroupComponent:LayoutGroupComponent};
+}());
+pc.extend(pc, function() {
+  var _schema = ["enabled"];
+  var LayoutGroupComponentSystem = function LayoutGroupComponentSystem(app) {
+    this.id = "layoutgroup";
+    this.app = app;
+    app.systems.add(this.id, this);
+    this.ComponentType = pc.LayoutGroupComponent;
+    this.DataType = pc.LayoutGroupComponentData;
+    this.schema = _schema;
+    this._reflowQueue = [];
+    this.on("beforeremove", this._onRemoveComponent, this);
+    pc.ComponentSystem.on("postUpdate", this._onPostUpdate, this);
+  };
+  LayoutGroupComponentSystem = pc.inherits(LayoutGroupComponentSystem, pc.ComponentSystem);
+  pc.Component._buildAccessors(pc.LayoutGroupComponent.prototype, _schema);
+  pc.extend(LayoutGroupComponentSystem.prototype, {initializeComponentData:function(component, data, properties) {
+    if (data.enabled !== undefined) {
+      component.enabled = data.enabled;
+    }
+    if (data.orientation !== undefined) {
+      component.orientation = data.orientation;
+    }
+    if (data.reverseX !== undefined) {
+      component.reverseX = data.reverseX;
+    }
+    if (data.reverseY !== undefined) {
+      component.reverseY = data.reverseY;
+    }
+    if (data.alignment !== undefined) {
+      if (data.alignment instanceof pc.Vec2) {
+        component.alignment.copy(data.alignment);
+      } else {
+        component.alignment.set(data.alignment[0], data.alignment[1]);
+      }
+      component.alignment = component.alignment;
+    }
+    if (data.padding !== undefined) {
+      if (data.padding instanceof pc.Vec4) {
+        component.padding.copy(data.padding);
+      } else {
+        component.padding.set(data.padding[0], data.padding[1], data.padding[2], data.padding[3]);
+      }
+      component.padding = component.padding;
+    }
+    if (data.spacing !== undefined) {
+      if (data.spacing instanceof pc.Vec2) {
+        component.spacing.copy(data.spacing);
+      } else {
+        component.spacing.set(data.spacing[0], data.spacing[1]);
+      }
+      component.spacing = component.spacing;
+    }
+    if (data.widthFitting !== undefined) {
+      component.widthFitting = data.widthFitting;
+    }
+    if (data.heightFitting !== undefined) {
+      component.heightFitting = data.heightFitting;
+    }
+    if (data.wrap !== undefined) {
+      component.wrap = data.wrap;
+    }
+    LayoutGroupComponentSystem._super.initializeComponentData.call(this, component, data, properties);
+  }, cloneComponent:function(entity, clone) {
+    var layoutGroup = entity.layoutgroup;
+    return this.addComponent(clone, {enabled:layoutGroup.enabled, orientation:layoutGroup.orientation, reverseX:layoutGroup.reverseX, reverseY:layoutGroup.reverseY, alignment:layoutGroup.alignment, padding:layoutGroup.padding, spacing:layoutGroup.spacing, widthFitting:layoutGroup.widthFitting, heightFitting:layoutGroup.heightFitting, wrap:layoutGroup.wrap});
+  }, scheduleReflow:function(component) {
+    if (this._reflowQueue.indexOf(component) === -1) {
+      this._reflowQueue.push(component);
+    }
+  }, _onPostUpdate:function() {
+    this._processReflowQueue();
+  }, _processReflowQueue:function() {
+    if (this._reflowQueue.length === 0) {
+      return;
+    }
+    this._reflowQueue.sort(function(componentA, componentB) {
+      return componentA.entity.graphDepth < componentB.entity.graphDepth;
+    });
+    while (this._reflowQueue.length > 0) {
+      var component = this._reflowQueue.shift();
+      component.reflow();
+    }
+    this._reflowQueue = [];
+  }, _onRemoveComponent:function(entity, component) {
+    component.onRemove();
+  }});
+  return {LayoutGroupComponentSystem:LayoutGroupComponentSystem};
+}());
+pc.extend(pc, function() {
+  var LayoutGroupComponentData = function() {
+    this.enabled = true;
+  };
+  LayoutGroupComponentData = pc.inherits(LayoutGroupComponentData, pc.ComponentData);
+  return {LayoutGroupComponentData:LayoutGroupComponentData};
+}());
+pc.extend(pc, function() {
+  function LayoutCalculator() {
+  }
+  var AXIS_MAPPINGS = {};
+  AXIS_MAPPINGS[pc.ORIENTATION_HORIZONTAL] = {axis:"x", size:"width", calculatedSize:"calculatedWidth", minSize:"minWidth", maxSize:"maxWidth", fitting:"widthFitting", fittingProportion:"fitWidthProportion"};
+  AXIS_MAPPINGS[pc.ORIENTATION_VERTICAL] = {axis:"y", size:"height", calculatedSize:"calculatedHeight", minSize:"minHeight", maxSize:"maxHeight", fitting:"heightFitting", fittingProportion:"fitHeightProportion"};
+  var OPPOSITE_ORIENTATION = {};
+  OPPOSITE_ORIENTATION[pc.ORIENTATION_HORIZONTAL] = pc.ORIENTATION_VERTICAL;
+  OPPOSITE_ORIENTATION[pc.ORIENTATION_VERTICAL] = pc.ORIENTATION_HORIZONTAL;
+  var PROPERTY_DEFAULTS = {minWidth:0, minHeight:0, maxWidth:Number.POSITIVE_INFINITY, maxHeight:Number.POSITIVE_INFINITY, width:null, height:null, fitWidthProportion:0, fitHeightProportion:0};
+  var FITTING_ACTION = {NONE:"NONE", APPLY_STRETCHING:"APPLY_STRETCHING", APPLY_SHRINKING:"APPLY_SHRINKING"};
+  function createCalculator(orientation) {
+    var availableSpace;
+    var options;
+    var a = AXIS_MAPPINGS[orientation];
+    var b = AXIS_MAPPINGS[OPPOSITE_ORIENTATION[orientation]];
+    function minExtentA(element, size) {
+      return -size[a.size] * element.pivot[a.axis];
+    }
+    function minExtentB(element, size) {
+      return -size[b.size] * element.pivot[b.axis];
+    }
+    function maxExtentA(element, size) {
+      return size[a.size] * (1 - element.pivot[a.axis]);
+    }
+    function maxExtentB(element, size) {
+      return size[b.size] * (1 - element.pivot[b.axis]);
+    }
+    function calculateAll(allElements, layoutOptions) {
+      options = layoutOptions;
+      availableSpace = new pc.Vec2(options.containerSize.x - options.padding.data[0] - options.padding.data[2], options.containerSize.y - options.padding.data[1] - options.padding.data[3]);
+      resetAnchors(allElements);
+      var lines = reverseLinesIfRequired(splitLines(allElements));
+      var sizes = calculateSizesOnAxisB(lines, calculateSizesOnAxisA(lines));
+      var positions = calculateBasePositions(lines, sizes);
+      applyAlignmentAndPadding(lines, sizes, positions);
+      applySizesAndPositions(lines, sizes, positions);
+    }
+    function resetAnchors(allElements) {
+      for (var i = 0;i < allElements.length;++i) {
+        var element = allElements[i];
+        var anchor = element.anchor.data;
+        if (anchor[0] !== 0 || anchor[1] !== 0 || anchor[2] !== 0 || anchor[3] !== 0) {
+          element.anchor = [0, 0, 0, 0];
+        }
+      }
+    }
+    function splitLines(allElements) {
+      if (!options.wrap) {
+        return [allElements];
+      }
+      var lines = [[]];
+      var sizes = getElementSizeProperties(allElements);
+      var runningSize = 0;
+      var allowOverrun = options[a.fitting] === pc.FITTING_SHRINK;
+      for (var i = 0;i < allElements.length;++i) {
+        if (lines[lines.length - 1].length > 0) {
+          runningSize += options.spacing[a.axis];
+        }
+        var idealElementSize = sizes[i][a.size];
+        runningSize += idealElementSize;
+        if (!allowOverrun && runningSize > availableSpace[a.axis] && lines[lines.length - 1].length !== 0) {
+          runningSize = idealElementSize;
+          lines.push([]);
+        }
+        lines[lines.length - 1].push(allElements[i]);
+        if (allowOverrun && runningSize > availableSpace[a.axis] && i !== allElements.length - 1) {
+          runningSize = 0;
+          lines.push([]);
+        }
+      }
+      return lines;
+    }
+    function reverseLinesIfRequired(lines) {
+      var reverseAxisA = options.orientation === pc.ORIENTATION_HORIZONTAL && options.reverseX || options.orientation === pc.ORIENTATION_VERTICAL && options.reverseY;
+      var reverseAxisB = options.orientation === pc.ORIENTATION_HORIZONTAL && options.reverseY || options.orientation === pc.ORIENTATION_VERTICAL && options.reverseX;
+      if (reverseAxisA) {
+        for (var lineIndex = 0;lineIndex < lines.length;++lineIndex) {
+          if (reverseAxisA) {
+            lines[lineIndex].reverse();
+          }
+        }
+      }
+      if (reverseAxisB) {
+        lines.reverse();
+      }
+      return lines;
+    }
+    function calculateSizesOnAxisA(lines) {
+      var sizesAllLines = [];
+      for (var lineIndex = 0;lineIndex < lines.length;++lineIndex) {
+        var line = lines[lineIndex];
+        var sizesThisLine = getElementSizeProperties(line);
+        var idealRequiredSpace = calculateTotalSpace(sizesThisLine, a);
+        var fittingAction = determineFittingAction(options[a.fitting], idealRequiredSpace, availableSpace[a.axis]);
+        if (fittingAction === FITTING_ACTION.APPLY_STRETCHING) {
+          stretchSizesToFitContainer(sizesThisLine, idealRequiredSpace, a);
+        } else {
+          if (fittingAction === FITTING_ACTION.APPLY_SHRINKING) {
+            shrinkSizesToFitContainer(sizesThisLine, idealRequiredSpace, a);
+          }
+        }
+        sizesAllLines.push(sizesThisLine);
+      }
+      return sizesAllLines;
+    }
+    function calculateSizesOnAxisB(lines, sizesAllLines) {
+      var largestElementsForEachLine = [];
+      var largestSizesForEachLine = [];
+      var elementIndex;
+      var lineIndex;
+      var line;
+      for (lineIndex = 0;lineIndex < lines.length;++lineIndex) {
+        line = lines[lineIndex];
+        line.largestElement = null;
+        line.largestSize = {width:Number.NEGATIVE_INFINITY, height:Number.NEGATIVE_INFINITY};
+        for (elementIndex = 0;elementIndex < line.length;++elementIndex) {
+          var sizesThisElement = sizesAllLines[lineIndex][elementIndex];
+          if (sizesThisElement[b.size] > line.largestSize[b.size]) {
+            line.largestElement = line[elementIndex];
+            line.largestSize = sizesThisElement;
+          }
+        }
+        largestElementsForEachLine.push(line.largestElement);
+        largestSizesForEachLine.push(line.largestSize);
+      }
+      var idealRequiredSpace = calculateTotalSpace(largestSizesForEachLine, b);
+      var fittingAction = determineFittingAction(options[b.fitting], idealRequiredSpace, availableSpace[b.axis]);
+      if (fittingAction === FITTING_ACTION.APPLY_STRETCHING) {
+        stretchSizesToFitContainer(largestSizesForEachLine, idealRequiredSpace, b);
+      } else {
+        if (fittingAction === FITTING_ACTION.APPLY_SHRINKING) {
+          shrinkSizesToFitContainer(largestSizesForEachLine, idealRequiredSpace, b);
+        }
+      }
+      for (lineIndex = 0;lineIndex < lines.length;++lineIndex) {
+        line = lines[lineIndex];
+        for (elementIndex = 0;elementIndex < line.length;++elementIndex) {
+          var sizesForThisElement = sizesAllLines[lineIndex][elementIndex];
+          var currentSize = sizesForThisElement[b.size];
+          var availableSize = lines.length === 1 ? availableSpace[b.axis] : line.largestSize[b.size];
+          var elementFittingAction = determineFittingAction(options[b.fitting], currentSize, availableSize);
+          if (elementFittingAction === FITTING_ACTION.APPLY_STRETCHING) {
+            sizesForThisElement[b.size] = Math.min(availableSize, sizesForThisElement[b.maxSize]);
+          } else {
+            if (elementFittingAction === FITTING_ACTION.APPLY_SHRINKING) {
+              sizesForThisElement[b.size] = Math.max(availableSize, sizesForThisElement[b.minSize]);
+            }
+          }
+        }
+      }
+      return sizesAllLines;
+    }
+    function determineFittingAction(fittingMode, currentSize, availableSize) {
+      switch(fittingMode) {
+        case pc.FITTING_NONE:
+          return FITTING_ACTION.NONE;
+        case pc.FITTING_STRETCH:
+          if (currentSize < availableSize) {
+            return FITTING_ACTION.APPLY_STRETCHING;
+          }
+          return FITTING_ACTION.NONE;
+        case pc.FITTING_SHRINK:
+          if (currentSize >= availableSize) {
+            return FITTING_ACTION.APPLY_SHRINKING;
+          }
+          return FITTING_ACTION.NONE;
+        case pc.FITTING_BOTH:
+          if (currentSize < availableSize) {
+            return FITTING_ACTION.APPLY_STRETCHING;
+          } else {
+            if (currentSize >= availableSize) {
+              return FITTING_ACTION.APPLY_SHRINKING;
+            }
+          }
+          return FITTING_ACTION.NONE;
+        default:
+          throw new Error("Unrecognized fitting mode: " + fittingMode);;
+      }
+    }
+    function calculateTotalSpace(sizes, axis) {
+      var totalSizes = sumValues(sizes, axis.size);
+      var totalSpacing = (sizes.length - 1) * options.spacing[axis.axis];
+      return totalSizes + totalSpacing;
+    }
+    function stretchSizesToFitContainer(sizesThisLine, idealRequiredSpace, axis) {
+      var ascendingMaxSizeOrder = getTraversalOrder(sizesThisLine, axis.maxSize);
+      var fittingProportions = getNormalizedValues(sizesThisLine, axis.fittingProportion);
+      var fittingProportionSums = createSumArray(fittingProportions, ascendingMaxSizeOrder);
+      var remainingUndershoot = availableSpace[axis.axis] - idealRequiredSpace;
+      for (var i = 0;i < sizesThisLine.length;++i) {
+        var index = ascendingMaxSizeOrder[i];
+        var targetIncrease = calculateAdjustment(index, remainingUndershoot, fittingProportions, fittingProportionSums);
+        var targetSize = sizesThisLine[index][axis.size] + targetIncrease;
+        var maxSize = sizesThisLine[index][axis.maxSize];
+        var actualSize = Math.min(targetSize, maxSize);
+        sizesThisLine[index][axis.size] = actualSize;
+        var actualIncrease = Math.max(targetSize - actualSize, 0);
+        var appliedIncrease = targetIncrease - actualIncrease;
+        remainingUndershoot -= appliedIncrease;
+      }
+    }
+    function shrinkSizesToFitContainer(sizesThisLine, idealRequiredSpace, axis) {
+      var descendingMinSizeOrder = getTraversalOrder(sizesThisLine, axis.minSize, true);
+      var fittingProportions = getNormalizedValues(sizesThisLine, axis.fittingProportion);
+      var inverseFittingProportions = invertNormalizedValues(fittingProportions);
+      var inverseFittingProportionSums = createSumArray(inverseFittingProportions, descendingMinSizeOrder);
+      var remainingOvershoot = idealRequiredSpace - availableSpace[axis.axis];
+      for (var i = 0;i < sizesThisLine.length;++i) {
+        var index = descendingMinSizeOrder[i];
+        var targetReduction = calculateAdjustment(index, remainingOvershoot, inverseFittingProportions, inverseFittingProportionSums);
+        var targetSize = sizesThisLine[index][axis.size] - targetReduction;
+        var minSize = sizesThisLine[index][axis.minSize];
+        var actualSize = Math.max(targetSize, minSize);
+        sizesThisLine[index][axis.size] = actualSize;
+        var actualReduction = Math.max(actualSize - targetSize, 0);
+        var appliedReduction = targetReduction - actualReduction;
+        remainingOvershoot -= appliedReduction;
+      }
+    }
+    function calculateAdjustment(index, remainingAdjustment, fittingProportions, fittingProportionSums) {
+      var proportion = fittingProportions[index];
+      var sumOfRemainingProportions = fittingProportionSums[index];
+      if (Math.abs(proportion) < 1E-5 && Math.abs(sumOfRemainingProportions) < 1E-5) {
+        return remainingAdjustment;
+      }
+      return remainingAdjustment * proportion / sumOfRemainingProportions;
+    }
+    function calculateBasePositions(lines, sizes) {
+      var cursor = {};
+      cursor[a.axis] = 0;
+      cursor[b.axis] = 0;
+      var positionsAllLines = [];
+      for (var lineIndex = 0;lineIndex < lines.length;++lineIndex) {
+        var line = lines[lineIndex];
+        if (line.length === 0) {
+          return;
+        }
+        var positionsThisLine = [];
+        var sizesThisLine = sizes[lineIndex];
+        for (var elementIndex = 0;elementIndex < line.length;++elementIndex) {
+          var element = line[elementIndex];
+          var sizesThisElement = sizesThisLine[elementIndex];
+          cursor[b.axis] -= minExtentB(element, sizesThisElement);
+          cursor[a.axis] -= minExtentA(element, sizesThisElement);
+          positionsThisLine[elementIndex] = {};
+          positionsThisLine[elementIndex][a.axis] = cursor[a.axis];
+          positionsThisLine[elementIndex][b.axis] = cursor[b.axis];
+          cursor[b.axis] += minExtentB(element, sizesThisElement);
+          cursor[a.axis] += maxExtentA(element, sizesThisElement) + options.spacing[a.axis];
+        }
+        line[a.size] = cursor[a.axis] - options.spacing[a.axis];
+        line[b.size] = line.largestSize[b.size];
+        cursor[a.axis] = 0;
+        cursor[b.axis] += line[b.size] + options.spacing[b.axis];
+        positionsAllLines.push(positionsThisLine);
+      }
+      lines[b.size] = cursor[b.axis] - options.spacing[b.axis];
+      return positionsAllLines;
+    }
+    function applyAlignmentAndPadding(lines, sizes, positions) {
+      var alignmentA = options.alignment[a.axis];
+      var alignmentB = options.alignment[b.axis];
+      var paddingA = options.padding[a.axis];
+      var paddingB = options.padding[b.axis];
+      for (var lineIndex = 0;lineIndex < lines.length;++lineIndex) {
+        var line = lines[lineIndex];
+        var sizesThisLine = sizes[lineIndex];
+        var positionsThisLine = positions[lineIndex];
+        var axisAOffset = (availableSpace[a.axis] - line[a.size]) * alignmentA + paddingA;
+        var axisBOffset = (availableSpace[b.axis] - lines[b.size]) * alignmentB + paddingB;
+        for (var elementIndex = 0;elementIndex < line.length;++elementIndex) {
+          var withinLineAxisBOffset = (line[b.size] - sizesThisLine[elementIndex][b.size]) * options.alignment[b.axis];
+          positionsThisLine[elementIndex][a.axis] += axisAOffset;
+          positionsThisLine[elementIndex][b.axis] += axisBOffset + withinLineAxisBOffset;
+        }
+      }
+    }
+    function applySizesAndPositions(lines, sizes, positions) {
+      for (var lineIndex = 0;lineIndex < lines.length;++lineIndex) {
+        var line = lines[lineIndex];
+        var sizesThisLine = sizes[lineIndex];
+        var positionsThisLine = positions[lineIndex];
+        for (var elementIndex = 0;elementIndex < line.length;++elementIndex) {
+          var element = line[elementIndex];
+          element[a.calculatedSize] = sizesThisLine[elementIndex][a.size];
+          element[b.calculatedSize] = sizesThisLine[elementIndex][b.size];
+          if (options.orientation === pc.ORIENTATION_HORIZONTAL) {
+            element.entity.setLocalPosition(positionsThisLine[elementIndex][a.axis], positionsThisLine[elementIndex][b.axis], element.entity.getLocalPosition().z);
+          } else {
+            element.entity.setLocalPosition(positionsThisLine[elementIndex][b.axis], positionsThisLine[elementIndex][a.axis], element.entity.getLocalPosition().z);
+          }
+        }
+      }
+    }
+    function getElementSizeProperties(elements) {
+      var sizeProperties = [];
+      for (var i = 0;i < elements.length;++i) {
+        var element = elements[i];
+        var minWidth = Math.max(getProperty(element, "minWidth"), 0);
+        var minHeight = Math.max(getProperty(element, "minHeight"), 0);
+        var maxWidth = Math.max(getProperty(element, "maxWidth"), minWidth);
+        var maxHeight = Math.max(getProperty(element, "maxHeight"), minHeight);
+        var width = clamp(getProperty(element, "width"), minWidth, maxWidth);
+        var height = clamp(getProperty(element, "height"), minHeight, maxHeight);
+        var fitWidthProportion = getProperty(element, "fitWidthProportion");
+        var fitHeightProportion = getProperty(element, "fitHeightProportion");
+        sizeProperties.push({minWidth:minWidth, minHeight:minHeight, maxWidth:maxWidth, maxHeight:maxHeight, width:width, height:height, fitWidthProportion:fitWidthProportion, fitHeightProportion:fitHeightProportion});
+      }
+      return sizeProperties;
+    }
+    function getProperties(elements, propertyName) {
+      var properties = [];
+      for (var i = 0;i < elements.length;++i) {
+        properties.push(getProperty(elements[i], propertyName));
+      }
+      return properties;
+    }
+    function getProperty(element, propertyName) {
+      var layoutChildComponent = element.entity.layoutchild;
+      if (layoutChildComponent && layoutChildComponent.enabled && layoutChildComponent[propertyName] !== undefined && layoutChildComponent[propertyName] !== null) {
+        return layoutChildComponent[propertyName];
+      } else {
+        if (element[propertyName] !== undefined) {
+          return element[propertyName];
+        }
+      }
+      return PROPERTY_DEFAULTS[propertyName];
+    }
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+    function sumValues(items, propertyName) {
+      return items.reduce(function(accumulator, current) {
+        return accumulator + current[propertyName];
+      }, 0);
+    }
+    function getNormalizedValues(items, propertyName) {
+      var sum = sumValues(items, propertyName);
+      var normalizedValues = [];
+      var numItems = items.length;
+      var i;
+      if (sum === 0) {
+        for (i = 0;i < numItems;++i) {
+          normalizedValues.push(1 / numItems);
+        }
+      } else {
+        for (i = 0;i < numItems;++i) {
+          normalizedValues.push(items[i][propertyName] / sum);
+        }
+      }
+      return normalizedValues;
+    }
+    function invertNormalizedValues(values) {
+      if (values.length === 1) {
+        return [1];
+      }
+      var invertedValues = [];
+      var numValues = values.length;
+      for (var i = 0;i < numValues;++i) {
+        invertedValues.push((1 - values[i]) / (numValues - 1));
+      }
+      return invertedValues;
+    }
+    function getTraversalOrder(items, orderBy, descending) {
+      items.forEach(assignIndex);
+      return items.slice().sort(function(itemA, itemB) {
+        return descending ? itemB[orderBy] - itemA[orderBy] : itemA[orderBy] - itemB[orderBy];
+      }).map(getIndex);
+    }
+    function assignIndex(item, index) {
+      item.index = index;
+    }
+    function getIndex(item) {
+      return item.index;
+    }
+    function createSumArray(values, order) {
+      var sumArray = [];
+      sumArray[order[values.length - 1]] = values[order[values.length - 1]];
+      for (var i = values.length - 2;i >= 0;--i) {
+        sumArray[order[i]] = sumArray[order[i + 1]] + values[order[i]];
+      }
+      return sumArray;
+    }
+    return calculateAll;
+  }
+  var CALCULATE_FNS = {};
+  CALCULATE_FNS[pc.ORIENTATION_HORIZONTAL] = createCalculator(pc.ORIENTATION_HORIZONTAL);
+  CALCULATE_FNS[pc.ORIENTATION_VERTICAL] = createCalculator(pc.ORIENTATION_VERTICAL);
+  LayoutCalculator.prototype = {calculateLayout:function(elements, options) {
+    var calculateFn = CALCULATE_FNS[options.orientation];
+    if (!calculateFn) {
+      throw new Error("Unrecognized orientation value: " + options.orientation);
+    } else {
+      calculateFn(elements, options);
+    }
+  }};
+  return {LayoutCalculator:LayoutCalculator};
+}());
+pc.extend(pc, function() {
+  var LayoutChildComponent = function LayoutChildComponent(system, entity) {
+    this._minWidth = 0;
+    this._minHeight = 0;
+    this._maxWidth = null;
+    this._maxHeight = null;
+    this._fitWidthProportion = 0;
+    this._fitHeightProportion = 0;
+  };
+  LayoutChildComponent = pc.inherits(LayoutChildComponent, pc.Component);
+  function defineResizeProperty(name) {
+    var _name = "_" + name;
+    Object.defineProperty(LayoutChildComponent.prototype, name, {get:function() {
+      return this[_name];
+    }, set:function(value) {
+      if (this[_name] !== value) {
+        this[_name] = value;
+        this.fire("resize");
+      }
+    }});
+  }
+  defineResizeProperty("minWidth");
+  defineResizeProperty("minHeight");
+  defineResizeProperty("maxWidth");
+  defineResizeProperty("maxHeight");
+  defineResizeProperty("fitWidthProportion");
+  defineResizeProperty("fitHeightProportion");
+  return {LayoutChildComponent:LayoutChildComponent};
+}());
+pc.extend(pc, function() {
+  var _schema = ["enabled"];
+  var LayoutChildComponentSystem = function LayoutChildComponentSystem(app) {
+    this.id = "layoutchild";
+    this.app = app;
+    app.systems.add(this.id, this);
+    this.ComponentType = pc.LayoutChildComponent;
+    this.DataType = pc.LayoutChildComponentData;
+    this.schema = _schema;
+  };
+  LayoutChildComponentSystem = pc.inherits(LayoutChildComponentSystem, pc.ComponentSystem);
+  pc.Component._buildAccessors(pc.LayoutChildComponent.prototype, _schema);
+  pc.extend(LayoutChildComponentSystem.prototype, {initializeComponentData:function(component, data, properties) {
+    if (data.enabled !== undefined) {
+      component.enabled = data.enabled;
+    }
+    if (data.minWidth !== undefined) {
+      component.minWidth = data.minWidth;
+    }
+    if (data.minHeight !== undefined) {
+      component.minHeight = data.minHeight;
+    }
+    if (data.maxWidth !== undefined) {
+      component.maxWidth = data.maxWidth;
+    }
+    if (data.maxHeight !== undefined) {
+      component.maxHeight = data.maxHeight;
+    }
+    if (data.fitWidthProportion !== undefined) {
+      component.fitWidthProportion = data.fitWidthProportion;
+    }
+    if (data.fitHeightProportion !== undefined) {
+      component.fitHeightProportion = data.fitHeightProportion;
+    }
+    LayoutChildComponentSystem._super.initializeComponentData.call(this, component, data, properties);
+  }, cloneComponent:function(entity, clone) {
+    var layoutChild = entity.layoutchild;
+    return this.addComponent(clone, {enabled:layoutChild.enabled, minWidth:layoutChild.minWidth, minHeight:layoutChild.minHeight, maxWidth:layoutChild.maxWidth, maxHeight:layoutChild.maxHeight, fitWidthProportion:layoutChild.fitWidthProportion, fitHeightProportion:layoutChild.fitHeightProportion});
+  }});
+  return {LayoutChildComponentSystem:LayoutChildComponentSystem};
+}());
+pc.extend(pc, function() {
+  var LayoutChildComponentData = function() {
+    this.enabled = true;
+  };
+  LayoutChildComponentData = pc.inherits(LayoutChildComponentData, pc.ComponentData);
+  return {LayoutChildComponentData:LayoutChildComponentData};
 }());
 pc.extend(pc, function() {
   pc.FONT_MSDF = "msdf";
@@ -29677,28 +33024,23 @@ pc.extend(pc, function() {
   Entity = pc.inherits(Entity, pc.GraphNode);
   Entity.prototype.addComponent = function(type, data) {
     var system = this._app.systems[type];
-    if (system) {
-      if (!this.c[type]) {
-        return system.addComponent(this, data);
-      } else {
-        logERROR(pc.string.format("Entity already has {0} Component", type));
-      }
-    } else {
-      logERROR(pc.string.format("System: '{0}' doesn't exist", type));
+    if (!system) {
       return null;
     }
+    if (this.c[type]) {
+      return null;
+    }
+    return system.addComponent(this, data);
   };
   Entity.prototype.removeComponent = function(type) {
     var system = this._app.systems[type];
-    if (system) {
-      if (this.c[type]) {
-        system.removeComponent(this);
-      } else {
-        logERROR(pc.string.format("Entity doesn't have {0} Component", type));
-      }
-    } else {
-      logERROR(pc.string.format("System: '{0}' doesn't exist", type));
+    if (!system) {
+      return;
     }
+    if (!this.c[type]) {
+      return;
+    }
+    system.removeComponent(this);
   };
   Entity.prototype.getGuid = function() {
     return this._guid;
@@ -29711,6 +33053,7 @@ pc.extend(pc, function() {
     if (node === this && this._app._enableList.length === 0) {
       enableFirst = true;
     }
+    node._beingEnabled = true;
     node._onHierarchyStateChanged(enabled);
     if (node._onHierarchyStatePostChanged) {
       this._app._enableList.push(node);
@@ -29722,6 +33065,7 @@ pc.extend(pc, function() {
         this._notifyHierarchyStateChanged(c[i], enabled);
       }
     }
+    node._beingEnabled = false;
     if (enableFirst) {
       for (i = 0, len = this._app._enableList.length;i < len;i++) {
         this._app._enableList[i]._onHierarchyStatePostChanged();
@@ -29775,7 +33119,6 @@ pc.extend(pc, function() {
     return null;
   };
   Entity.prototype.destroy = function() {
-    var childGuids;
     var name;
     for (name in this.c) {
       this.c[name].enabled = false;
@@ -29787,7 +33130,6 @@ pc.extend(pc, function() {
       this._parent.removeChild(this);
     }
     var children = this._children;
-    var length = children.length;
     var child = children.shift();
     while (child) {
       if (child instanceof pc.Entity) {
@@ -29910,7 +33252,7 @@ pc.extend(pc, function() {
       } else {
         callback(null, response);
       }
-    }.bind(this));
+    });
   }, open:function(url, data) {
     return this["_parseAnimationV" + data.animation.version](data);
   }, _parseAnimationV3:function(data) {
@@ -29989,9 +33331,8 @@ pc.extend(pc, function() {
     var ext = pc.path.getExtension(url);
     if (toMIME[ext]) {
       return true;
-    } else {
-      return false;
     }
+    return false;
   }, load:function(url, callback) {
     var success = function(resource) {
       callback(null, new pc.Sound(resource));
@@ -30091,7 +33432,6 @@ pc.extend(pc, function() {
             assets.fire("error", err, assetCubeMap);
             assets.fire("error:" + assetCubeMap.id, err, assetCubeMap);
             assetCubeMap.fire("error", err, assetCubeMap);
-            return;
           }
         });
       }
@@ -30164,10 +33504,6 @@ pc.extend(pc, function() {
       assetCubeMap._levelsEvents = [null, null, null, null, null, null];
     }
     assetCubeMap.data.textures.forEach(function(id, index) {
-      var assetAdded = function(asset) {
-        asset.ready(assetReady);
-        assets.load(asset);
-      };
       var assetReady = function(asset) {
         count++;
         sources[index] = asset && asset.resource.getSource() || null;
@@ -30190,6 +33526,10 @@ pc.extend(pc, function() {
           assets.fire("load:" + assetCubeMap.id, assetCubeMap);
           assetCubeMap.fire("load", assetCubeMap);
         }
+      };
+      var assetAdded = function(asset) {
+        asset.ready(assetReady);
+        assets.load(asset);
       };
       var asset = assets.get(id);
       if (asset) {
@@ -30225,11 +33565,12 @@ pc.extend(pc, function() {
   return {JsonHandler:JsonHandler};
 }());
 pc.extend(pc, function() {
-  var PARAMETER_TYPES = {ambient:"vec3", ambientTnumber:"boolean", aoMap:"texture", aoVertexColor:"boolean", aoVertexColorChannel:"string", aoMapChannel:"string", aoMapUv:"number", aoMapTiling:"vec2", aoMapOffset:"vec2", occludeSpecular:"boolean", diffuse:"vec3", diffuseMap:"texture", diffuseTint:"boolean", diffuseVertexColor:"boolean", diffuseVertexColorChannel:"string", diffuseMapChannel:"string", diffuseMapUv:"number", diffuseMapTiling:"vec2", diffuseMapOffset:"vec2", diffuseMapTnumber:"boolean",
-  specular:"vec3", specularVertexColor:"boolean", specularVertexColorChannel:"string", specularMapChannel:"string", specularMapUv:"number", specularMap:"texture", specularTint:"boolean", specularMapTiling:"vec2", specularMapOffset:"vec2", specularMapTnumber:"boolean", specularAntialias:"boolean", useMetalness:"boolean", metalnessMap:"texture", metalnessVertexColor:"boolean", metalnessVertexColorChannel:"string", metalnessMapChannel:"string", metalnessMapUv:"number", metalnessMapTiling:"vec2", metalnessMapOffset:"vec2",
-  metalnessMapTnumber:"boolean", metalness:"number", conserveEnergy:"boolean", shininess:"number", glossMap:"texture", glossVertexColor:"boolean", glossVertexColorChannel:"string", glossMapChannel:"string", glossMapUv:"number", glossMapTiling:"vec2", glossMapOffset:"vec2", fresnelModel:"number", fresnelFactor:"float", emissive:"vec3", emissiveMap:"texture", emissiveVertexColor:"boolean", emissiveVertexColorChannel:"string", emissiveMapChannel:"string", emissiveMapUv:"number", emissiveMapTiling:"vec2",
-  emissiveMapOffset:"vec2", emissiveTint:"boolean", emissiveIntensity:"number", normalMap:"texture", normalMapTiling:"vec2", normalMapOffset:"vec2", normalMapUv:"number", bumpMapFactor:"number", heightMap:"texture", heightMapChannel:"string", heightMapUv:"number", heightMapTiling:"vec2", heightMapOffset:"vec2", heightMapFactor:"number", alphaTest:"number", opacity:"number", opacityMap:"texture", opacityVertexColor:"boolean", opacityVertexColorChannel:"string", opacityMapChannel:"string", opacityMapUv:"number",
-  opacityMapTiling:"vec2", opacityMapOffset:"vec2", reflectivity:"number", refraction:"number", refractionIndex:"number", sphereMap:"texture", cubeMap:"cubemap", cubeMapProjection:"number", cubeMapProjectionBox:"boundingbox", lightMap:"texture", lightVertexColor:"boolean", lightVertexColorChannel:"string", lightMapChannel:"string", lightMapUv:"number", lightMapTiling:"vec2", lightMapOffset:"vec2", depthTest:"boolean", depthWrite:"boolean", cull:"number", blendType:"number", shadingModel:"number"};
+  var PARAMETER_TYPES = {ambient:"vec3", ambientTnumber:"boolean", aoMap:"texture", aoVertexColor:"boolean", aoVertexColorChannel:"string", aoMapChannel:"string", aoMapUv:"number", aoMapTiling:"vec2", aoMapOffset:"vec2", occludeSpecular:"boolean", diffuse:"vec3", diffuseMap:"texture", diffuseTint:"boolean", diffuseVertexColor:"boolean", diffuseVertexColorChannel:"string", diffuseMapChannel:"string", diffuseMapUv:"number", diffuseMapTiling:"vec2", diffuseMapOffset:"vec2", diffuseMapTnumber:"boolean", 
+  specular:"vec3", specularVertexColor:"boolean", specularVertexColorChannel:"string", specularMapChannel:"string", specularMapUv:"number", specularMap:"texture", specularTint:"boolean", specularMapTiling:"vec2", specularMapOffset:"vec2", specularMapTnumber:"boolean", specularAntialias:"boolean", useMetalness:"boolean", metalnessMap:"texture", metalnessVertexColor:"boolean", metalnessVertexColorChannel:"string", metalnessMapChannel:"string", metalnessMapUv:"number", metalnessMapTiling:"vec2", metalnessMapOffset:"vec2", 
+  metalnessMapTnumber:"boolean", metalness:"number", conserveEnergy:"boolean", shininess:"number", glossMap:"texture", glossVertexColor:"boolean", glossVertexColorChannel:"string", glossMapChannel:"string", glossMapUv:"number", glossMapTiling:"vec2", glossMapOffset:"vec2", fresnelModel:"number", fresnelFactor:"float", emissive:"vec3", emissiveMap:"texture", emissiveVertexColor:"boolean", emissiveVertexColorChannel:"string", emissiveMapChannel:"string", emissiveMapUv:"number", emissiveMapTiling:"vec2", 
+  emissiveMapOffset:"vec2", emissiveTint:"boolean", emissiveIntensity:"number", normalMap:"texture", normalMapTiling:"vec2", normalMapOffset:"vec2", normalMapUv:"number", bumpMapFactor:"number", heightMap:"texture", heightMapChannel:"string", heightMapUv:"number", heightMapTiling:"vec2", heightMapOffset:"vec2", heightMapFactor:"number", alphaTest:"number", opacity:"number", opacityMap:"texture", opacityVertexColor:"boolean", opacityVertexColorChannel:"string", opacityMapChannel:"string", opacityMapUv:"number", 
+  opacityMapTiling:"vec2", opacityMapOffset:"vec2", reflectivity:"number", refraction:"number", refractionIndex:"number", sphereMap:"texture", cubeMap:"cubemap", cubeMapProjection:"number", cubeMapProjectionBox:"boundingbox", lightMap:"texture", lightVertexColor:"boolean", lightVertexColorChannel:"string", lightMapChannel:"string", lightMapUv:"number", lightMapTiling:"vec2", lightMapOffset:"vec2", depthTest:"boolean", depthWrite:"boolean", depthBias:"number", slopeDepthBias:"number", cull:"number", 
+  blendType:"number", shadingModel:"number"};
   var placeholders = {};
   var placeholdersMapping = {aoMap:"white", diffuseMap:"gray", specularMap:"gray", metalnessMap:"black", glossMap:"gray", emissiveMap:"gray", normalMap:"normal", heightMap:"gray", opacityMap:"gray", sphereMap:"gray", lightMap:"white"};
   var onCubemapAssetLoad = function(asset, attribute, newValue, oldValue) {
@@ -30725,7 +34066,6 @@ pc.extend(pc, function() {
     if (!url) {
       return;
     }
-    var self = this;
     var texture;
     var ext = pc.path.getExtension(url).toLowerCase();
     var format = null;
@@ -31109,6 +34449,7 @@ pc.extend(pc, function() {
 pc.extend(pc, function() {
   var JSON_ADDRESS_MODE = {"repeat":pc.ADDRESS_REPEAT, "clamp":pc.ADDRESS_CLAMP_TO_EDGE, "mirror":pc.ADDRESS_MIRRORED_REPEAT};
   var JSON_FILTER_MODE = {"nearest":pc.FILTER_NEAREST, "linear":pc.FILTER_LINEAR, "nearest_mip_nearest":pc.FILTER_NEAREST_MIPMAP_NEAREST, "linear_mip_nearest":pc.FILTER_LINEAR_MIPMAP_NEAREST, "nearest_mip_linear":pc.FILTER_NEAREST_MIPMAP_LINEAR, "linear_mip_linear":pc.FILTER_LINEAR_MIPMAP_LINEAR};
+  var regexFrame = /^data\.frames\.(\d+)$/;
   var TextureAtlasHandler = function(loader) {
     this._loader = loader;
   };
@@ -31199,15 +34540,46 @@ pc.extend(pc, function() {
         texture.rgbm = rgbm;
       }
     }
-    asset.resource.frames = {};
+    asset.resource.texture = texture;
+    var frames = {};
     for (var key in asset.data.frames) {
-      asset.resource.frames[key] = {rect:new pc.Vec4(asset.data.frames[key].rect), pivot:new pc.Vec2(asset.data.frames[key].pivot)};
+      var frame = asset.data.frames[key];
+      frames[key] = {rect:new pc.Vec4(frame.rect), pivot:new pc.Vec2(frame.pivot), border:new pc.Vec4(frame.border)};
     }
-    asset.on("change", function(asset, attribute, value) {
-      if (attribute === "data") {
-        asset.resource.frames = value.frames;
+    asset.resource.frames = frames;
+    asset.off("change", this._onAssetChange, this);
+    asset.on("change", this._onAssetChange, this);
+  }, _onAssetChange:function(asset, attribute, value) {
+    var frame;
+    if (attribute === "data" || attribute === "data.frames") {
+      var frames = {};
+      for (var key in value.frames) {
+        frame = value.frames[key];
+        frames[key] = {rect:new pc.Vec4(frame.rect), pivot:new pc.Vec2(frame.pivot), border:new pc.Vec4(frame.border)};
       }
-    });
+      asset.resource.frames = frames;
+    } else {
+      var match = attribute.match(regexFrame);
+      if (match) {
+        var frameKey = match[1];
+        if (value) {
+          if (!asset.resource.frames[frameKey]) {
+            asset.resource.frames[frameKey] = {rect:new pc.Vec4(value.rect), pivot:new pc.Vec2(value.pivot), border:new pc.Vec4(value.border)};
+          } else {
+            frame = asset.resource.frames[frameKey];
+            frame.rect.set(value.rect[0], value.rect[1], value.rect[2], value.rect[3]);
+            frame.pivot.set(value.pivot[0], value.pivot[1]);
+            frame.border.set(value.border[0], value.border[1], value.border[2], value.border[3]);
+          }
+          asset.resource.fire("set:frame", frameKey, asset.resource.frames[frameKey]);
+        } else {
+          if (asset.resource.frames[frameKey]) {
+            delete asset.resource.frames[frameKey];
+            asset.resource.fire("remove:frame", frameKey);
+          }
+        }
+      }
+    }
   }};
   return {TextureAtlasHandler:TextureAtlasHandler};
 }());
@@ -31215,6 +34587,16 @@ pc.extend(pc, function() {
   var SpriteHandler = function(assets, device) {
     this._assets = assets;
     this._device = device;
+  };
+  var onTextureAtlasLoaded = function(atlasAsset) {
+    var spriteAsset = this;
+    if (spriteAsset.resource) {
+      spriteAsset.resource.atlas = atlasAsset.resource;
+    }
+  };
+  var onTextureAtlasAdded = function(atlasAsset) {
+    var spriteAsset = this;
+    spriteAsset.registry.load(atlasAsset);
   };
   SpriteHandler.prototype = {load:function(url, callback) {
     if (pc.path.getExtension(url) === ".json") {
@@ -31236,6 +34618,7 @@ pc.extend(pc, function() {
     var sprite = asset.resource;
     if (sprite.__data) {
       asset.data.pixelsPerUnit = sprite.__data.pixelsPerUnit;
+      asset.data.renderMode = sprite.__data.renderMode;
       asset.data.frameKeys = sprite.__data.frameKeys;
       var atlas = assets.getByUrl(sprite.__data.textureAtlasAsset);
       if (atlas) {
@@ -31243,31 +34626,38 @@ pc.extend(pc, function() {
       }
       delete sprite.__data;
     }
+    sprite.startUpdate();
+    sprite.renderMode = asset.data.renderMode;
     sprite.pixelsPerUnit = asset.data.pixelsPerUnit;
     sprite.frameKeys = asset.data.frameKeys;
     this._updateAtlas(asset);
-    asset.on("change", function(asset, attribute, value) {
-      if (attribute === "data") {
-        sprite.pixelsPerUnit = value.pixelsPerUnit;
-        sprite.frameKeys = value.frameKeys;
-        this._updateAtlas(asset);
-      }
-    }, this);
+    sprite.endUpdate();
+    asset.off("change", this._onAssetChange, this);
+    asset.on("change", this._onAssetChange, this);
   }, _updateAtlas:function(asset) {
     var sprite = asset.resource;
+    if (!asset.data.textureAtlasAsset) {
+      sprite.atlas = null;
+      return;
+    }
+    this._assets.off("load:" + asset.data.textureAtlasAsset, onTextureAtlasLoaded, asset);
+    this._assets.on("load:" + asset.data.textureAtlasAsset, onTextureAtlasLoaded, asset);
     var atlasAsset = this._assets.get(asset.data.textureAtlasAsset);
     if (atlasAsset && atlasAsset.resource) {
       sprite.atlas = atlasAsset.resource;
     } else {
-      this._assets.once("load:" + asset.data.textureAtlasAsset, function(atlasAsset) {
-        sprite.atlas = atlasAsset.resource;
-      }, this);
       if (!atlasAsset) {
-        this._assets.once("add:" + asset.data.textureAtlasAsset, function(atlasAsset) {
-          this._assets.load(atlasAsset);
-        }, this);
+        this._assets.off("add:" + asset.data.textureAtlasAsset, onTextureAtlasAdded, asset);
+        this._assets.on("add:" + asset.data.textureAtlasAsset, onTextureAtlasAdded, asset);
       } else {
         this._assets.load(atlasAsset);
+      }
+    }
+  }, _onAssetChange:function(asset, attribute, value, oldValue) {
+    if (attribute === "data") {
+      if (value && value.textureAtlasAsset && oldValue && value.textureAtlasAsset !== oldValue.textureAtlasAsset) {
+        this._assets.off("load:" + oldValue.textureAtlasAsset, onTextureAtlasLoaded, asset);
+        this._assets.off("add:" + oldValue.textureAtlasAsset, onTextureAtlasAdded, asset);
       }
     }
   }};
@@ -31339,7 +34729,7 @@ pc.extend(pc, function() {
       }
       var skin = new pc.Skin(this._device, inverseBindMatrices, skinData.boneNames);
       skins.push(skin);
-      var skinInstance = new pc.SkinInstance(skin, nodes[0]);
+      var skinInstance = new pc.SkinInstance(skin);
       var bones = [];
       for (j = 0;j < skin.boneNames.length;j++) {
         var boneName = skin.boneNames[j];
@@ -31354,7 +34744,7 @@ pc.extend(pc, function() {
     var modelData = data.model;
     var morphs = [];
     var morphInstances = [];
-    var i, j, k;
+    var i, j;
     var targets, morphTarget, morphTargetArray;
     if (modelData.morphs) {
       for (i = 0;i < modelData.morphs.length;i++) {
@@ -31388,13 +34778,11 @@ pc.extend(pc, function() {
     var t2x, t2y, t2z;
     var nx, ny, nz;
     var triangleCount;
-    var vertexCount;
     var i1, i2, i3;
     var x1, x2, y1, y2, z1, z2, s1, s2, t1, t2, r;
     var i, j;
     var area, ndott, mtIndexCount, len;
     triangleCount = indices.length / 3;
-    vertexCount = positions.length / 3;
     area = 0;
     for (i = 0;i < triangleCount;i++) {
       i1 = indices[i * 3];
@@ -31554,7 +34942,7 @@ pc.extend(pc, function() {
             if (!flagged || flagged.length < numVerts) {
               flagged = new Uint8Array(numVerts);
             } else {
-              for (l = 0;l > numVerts;l++) {
+              for (l = 0;l < numVerts;l++) {
                 flagged[l] = 0;
               }
             }
@@ -31642,7 +35030,7 @@ pc.extend(pc, function() {
     var i, j;
     for (i = 0;i < modelData.vertices.length;i++) {
       var vertexData = modelData.vertices[i];
-      if (vertexData.position && vertexData.normal && vertexData.texCoord0) {
+      if (!vertexData.tangent && vertexData.position && vertexData.normal && vertexData.texCoord0) {
         var indices = [];
         for (j = 0;j < modelData.meshes.length;j++) {
           if (modelData.meshes[j].vertices === i) {
@@ -31790,7 +35178,6 @@ pc.extend(pc, function() {
       }
     }
     for (id in data.entities) {
-      var entity = entities[id];
       var l = data.entities[id].children.length;
       for (i = 0;i < l;i++) {
         var resource_id = data.entities[id].children[i];
@@ -31835,7 +35222,7 @@ pc.extend(pc, function() {
         this._app.systems[systems[i].id].addComponent(entity, componentData);
       }
     }
-    var child, length = edata.children.length;
+    var length = edata.children.length;
     var children = entity._children;
     for (i = 0;i < length;i++) {
       children[i] = this._openComponentData(children[i], entities);
@@ -32041,7 +35428,6 @@ pc.extend(pc, function() {
       var fieldAsBool = !!this[field];
       var valueAsBool = !!value;
       if (fieldAsBool !== valueAsBool || this[field] && value && this[field].hash !== value.hash) {
-        var old = this[field];
         if (value) {
           this[field] = {url:value.url, filename:value.filename, size:value.size, hash:value.hash, opt:value.opt || 0};
         } else {
@@ -32204,7 +35590,6 @@ pc.extend(pc, function() {
           self.fire("error", err, asset);
           self.fire("error:" + asset.id, err, asset);
           asset.fire("error", err, asset);
-          return;
         }
       });
     }
@@ -32243,7 +35628,6 @@ pc.extend(pc, function() {
     var url = asset.getFileUrl();
     var dir = pc.path.getDirectory(url);
     var basename = pc.path.getBasename(url);
-    var name = basename.replace(".json", "");
     var ext = pc.path.getExtension(url);
     var _loadAsset = function(asset) {
       asset.once("load", function(asset) {
@@ -32344,21 +35728,18 @@ pc.extend(pc, function() {
   }, findAll:function(name, type) {
     var self = this;
     var idxs = this._names[name];
-    var assets;
     if (idxs) {
-      assets = idxs.map(function(idx) {
+      var assets = idxs.map(function(idx) {
         return self._assets[idx];
       });
       if (type) {
         return assets.filter(function(asset) {
           return asset.type === type;
         });
-      } else {
-        return assets;
       }
-    } else {
-      return [];
+      return assets;
     }
+    return [];
   }, _onTagAdd:function(tag, asset) {
     this._tags.add(tag, asset);
   }, _onTagRemove:function(tag, asset) {
@@ -32382,15 +35763,30 @@ pc.extend(pc, function() {
   }};
   return {AssetRegistry:AssetRegistry};
 }());
+Function.prototype.extendsFrom = function(Super) {
+  var Self, Func;
+  var Temp = function() {
+  };
+  Self = this;
+  Func = function() {
+    Super.apply(this, arguments);
+    Self.apply(this, arguments);
+    this.constructor = Self;
+  };
+  Func._super = Super.prototype;
+  Temp.prototype = Super.prototype;
+  Func.prototype = new Temp;
+  return Func;
+};
 pc.anim = {Animation:pc.Animation, Key:pc.Key, Node:pc.Node, Skeleton:pc.Skeleton};
 pc.asset = {ASSET_ANIMATION:"animation", ASSET_AUDIO:"audio", ASSET_IMAGE:"image", ASSET_JSON:"json", ASSET_MODEL:"model", ASSET_MATERIAL:"material", ASSET_TEXT:"text", ASSET_TEXTURE:"texture", ASSET_CUBEMAP:"cubemap", ASSET_SCRIPT:"script"};
 pc.audio = {AudioManager:pc.SoundManager, Channel:pc.Channel, Channel3d:pc.Channel3d, Listener:pc.Listener, Sound:pc.Sound};
 pc.fw = {Application:pc.Application, Component:pc.Component, ComponentData:pc.ComponentData, ComponentSystem:pc.ComponentSystem, Entity:pc.Entity, FillMode:{NONE:pc.FILLMODE_NONE, FILL_WINDOW:pc.FILLMODE_FILL_WINDOW, KEEP_ASPECT:pc.FILLMODE_KEEP_ASPECT}, ResolutionMode:{AUTO:pc.RESOLUTION_AUTO, FIXED:pc.RESOLUTION_FIXED}};
-pc.extend(pc.gfx, {drawQuadWithShader:pc.drawQuadWithShader, precalculatedTangents:pc.precalculatedTangents, programlib:pc.programlib, shaderChunks:pc.shaderChunks, ContextCreationError:pc.ContextCreationError, Device:pc.GraphicsDevice, IndexBuffer:pc.IndexBuffer, ProgramLibrary:pc.ProgramLibrary, RenderTarget:pc.RenderTarget, ScopeId:pc.ScopeId, Shader:pc.Shader, ShaderInput:pc.ShaderInput, Texture:pc.Texture, UnsupportedBrowserError:pc.UnsupportedBrowserError, VertexBuffer:pc.VertexBuffer, VertexFormat:pc.VertexFormat,
+pc.extend(pc.gfx, {drawQuadWithShader:pc.drawQuadWithShader, precalculatedTangents:pc.precalculatedTangents, programlib:pc.programlib, shaderChunks:pc.shaderChunks, ContextCreationError:pc.ContextCreationError, Device:pc.GraphicsDevice, IndexBuffer:pc.IndexBuffer, ProgramLibrary:pc.ProgramLibrary, RenderTarget:pc.RenderTarget, ScopeId:pc.ScopeId, Shader:pc.Shader, ShaderInput:pc.ShaderInput, Texture:pc.Texture, UnsupportedBrowserError:pc.UnsupportedBrowserError, VertexBuffer:pc.VertexBuffer, VertexFormat:pc.VertexFormat, 
 VertexIterator:pc.VertexIterator});
 pc.extend(pc.input, {getTouchTargetCoords:pc.getTouchTargetCoords, Controller:pc.Controller, GamePads:pc.GamePads, Keyboard:pc.Keyboard, KeyboardEvent:pc.KeyboardEvent, Mouse:pc.Mouse, MouseEvent:pc.MouseEvent, Touch:pc.Touch, TouchDevice:pc.TouchDevice, TouchEvent:pc.TouchEvent});
 pc.posteffect = {createFullscreenQuad:pc.createFullscreenQuad, drawFullscreenQuad:pc.drawFullscreenQuad, PostEffect:pc.PostEffect, PostEffectQueue:pc.PostEffectQueue};
-pc.extend(pc.scene, {partitionSkin:pc.partitionSkin, procedural:{calculateTangents:pc.calculateTangents, createMesh:pc.createMesh, createTorus:pc.createTorus, createCylinder:pc.createCylinder, createCapsule:pc.createCapsule, createCone:pc.createCone, createSphere:pc.createSphere, createPlane:pc.createPlane, createBox:pc.createBox}, BasicMaterial:pc.BasicMaterial, DepthMaterial:pc.DepthMaterial, ForwardRenderer:pc.ForwardRenderer, GraphNode:pc.GraphNode, Material:pc.Material, Command:pc.Command, Mesh:pc.Mesh,
+pc.extend(pc.scene, {partitionSkin:pc.partitionSkin, procedural:{calculateTangents:pc.calculateTangents, createMesh:pc.createMesh, createTorus:pc.createTorus, createCylinder:pc.createCylinder, createCapsule:pc.createCapsule, createCone:pc.createCone, createSphere:pc.createSphere, createPlane:pc.createPlane, createBox:pc.createBox}, BasicMaterial:pc.BasicMaterial, DepthMaterial:pc.DepthMaterial, ForwardRenderer:pc.ForwardRenderer, GraphNode:pc.GraphNode, Material:pc.Material, Command:pc.Command, Mesh:pc.Mesh, 
 MeshInstance:pc.MeshInstance, Model:pc.Model, ParticleEmitter:pc.ParticleEmitter, PhongMaterial:pc.StandardMaterial, Picker:pc.Picker, PickMaterial:pc.PickMaterial, Projection:{ORTHOGRAPHIC:pc.PROJECTION_ORTHOGRAPHIC, PERSPECTIVE:pc.PROJECTION_PERSPECTIVE}, Scene:pc.Scene, Skin:pc.Skin, SkinInstance:pc.SkinInstance});
 pc.shape = {Aabb:pc.BoundingBox, Sphere:pc.BoundingSphere, Plane:pc.Plane};
 pc.time = {now:pc.now, Timer:pc.Timer};
@@ -32403,15 +35799,36 @@ pc.ELEMENTTYPE_UINT16 = pc.TYPE_UINT16;
 pc.ELEMENTTYPE_INT32 = pc.TYPE_INT32;
 pc.ELEMENTTYPE_UINT32 = pc.TYPE_UINT32;
 pc.ELEMENTTYPE_FLOAT32 = pc.TYPE_FLOAT32;
+Object.defineProperty(pc.shaderChunks, "transformSkinnedVS", {get:function() {
+  return "#define SKIN\n" + pc.shaderChunks.transformVS;
+}});
 pc.extend(pc.Application.prototype, function() {
-  var lineVertexFormat = null;
-  var lineBatches = [];
-  var quadMesh = null;
-  var cubeLocalPos = null;
-  var cubeWorldPos = null;
   var tempGraphNode = new pc.GraphNode;
   var identityGraphNode = new pc.GraphNode;
-  var lineBatch = function() {
+  var meshInstanceArray = [];
+  var _deprecationWarning = false;
+  var ImmediateData = function(device) {
+    this.lineVertexFormat = new pc.VertexFormat(device, [{semantic:pc.SEMANTIC_POSITION, components:3, type:pc.TYPE_FLOAT32}, {semantic:pc.SEMANTIC_COLOR, components:4, type:pc.TYPE_UINT8, normalize:true}]);
+    this.lineBatches = [];
+    this.layers = [];
+    this.layerToBatch = {};
+    this.quadMesh = null;
+    this.cubeLocalPos = null;
+    this.cubeWorldPos = null;
+    this.identityGraphNode = new pc.GraphNode;
+  };
+  ImmediateData.prototype.addLayer = function(layer) {
+    if (this.layers.indexOf(layer) < 0) {
+      this.layers.push(layer);
+    }
+  };
+  ImmediateData.prototype.getLayerIdx = function(layer) {
+    return this.layerToBatch[layer.id];
+  };
+  ImmediateData.prototype.addLayerIdx = function(idx, layer) {
+    this.layerToBatch[layer.id] = idx;
+  };
+  var LineBatch = function() {
     this.numLinesAllocated = 128;
     this.vb = null;
     this.vbRam = null;
@@ -32419,8 +35836,9 @@ pc.extend(pc.Application.prototype, function() {
     this.linesUsed = 0;
     this.material = null;
     this.meshInstance = null;
+    this.layer = null;
   };
-  lineBatch.prototype = {init:function(device, linesToAdd) {
+  LineBatch.prototype = {init:function(device, vertexFormat, layer, linesToAdd) {
     if (!this.mesh) {
       this.mesh = new pc.Mesh;
       this.mesh.primitive[0].type = pc.PRIMITIVE_LINES;
@@ -32432,23 +35850,26 @@ pc.extend(pc.Application.prototype, function() {
       this.material.blendType = pc.BLEND_NORMAL;
       this.material.update();
     }
+    this.layer = layer;
     while (this.linesUsed + linesToAdd > this.numLinesAllocated) {
       this.vb = null;
       this.numLinesAllocated *= 2;
     }
+    this.vertexFormat = vertexFormat;
     if (!this.vb) {
-      this.vb = new pc.VertexBuffer(device, lineVertexFormat, this.numLinesAllocated * 2, pc.BUFFER_DYNAMIC);
+      this.vb = new pc.VertexBuffer(device, vertexFormat, this.numLinesAllocated * 2, pc.BUFFER_DYNAMIC);
       this.mesh.vertexBuffer = this.vb;
       this.vbRam = new DataView(this.vb.lock());
       if (!this.meshInstance) {
         identityGraphNode.worldTransform = pc.Mat4.IDENTITY;
         identityGraphNode._dirtyWorld = identityGraphNode._dirtyNormal = false;
         this.meshInstance = new pc.MeshInstance(identityGraphNode, this.mesh, this.material);
+        this.meshInstance.cull = false;
       }
     }
   }, addLines:function(position, color) {
     var multiColor = !!color.length;
-    var offset = this.linesUsed * 2 * lineVertexFormat.size;
+    var offset = this.linesUsed * 2 * this.vertexFormat.size;
     var clr;
     for (var i = 0;i < position.length;i++) {
       this.vbRam.setFloat32(offset, position[i].x, true);
@@ -32468,53 +35889,108 @@ pc.extend(pc.Application.prototype, function() {
       offset += 1;
     }
     this.linesUsed += position.length / 2;
-  }, finalize:function(drawCalls) {
+  }, finalize:function() {
     if (this.linesUsed > 0) {
       this.vb.setData(this.vbRam.buffer);
       this.mesh.primitive[0].count = this.linesUsed * 2;
-      drawCalls.push(this.meshInstance);
+      meshInstanceArray[0] = this.meshInstance;
+      this.layer.addMeshInstances(meshInstanceArray, true);
       this.linesUsed = 0;
     }
   }};
-  function _addLines(batchId, position, color) {
-    if (!lineVertexFormat) {
-      lineVertexFormat = new pc.VertexFormat(this.graphicsDevice, [{semantic:pc.SEMANTIC_POSITION, components:3, type:pc.TYPE_FLOAT32}, {semantic:pc.SEMANTIC_COLOR, components:4, type:pc.TYPE_UINT8, normalize:true}]);
+  function _initImmediate() {
+    if (!this._immediateData) {
+      this._immediateData = new ImmediateData(this.graphicsDevice);
       this.on("prerender", this._preRenderImmediate, this);
+      this.on("postrender", this._postRenderImmediate, this);
     }
-    if (!lineBatches[batchId]) {
-      lineBatches[batchId] = new lineBatch;
-      lineBatches[batchId].init(this.graphicsDevice, position.length / 2);
-      if (batchId === pc.LINEBATCH_OVERLAY) {
-        lineBatches[batchId].material.depthTest = false;
-        lineBatches[batchId].meshInstance.layer = pc.LAYER_GIZMO;
-      } else {
-        if (batchId === pc.LINEBATCH_GIZMO) {
-          lineBatches[batchId].meshInstance.layer = pc.LAYER_GIZMO;
+  }
+  function _addLines(position, color, options) {
+    if (options.layer === undefined) {
+      options.layer = this.scene.layers.getLayerById(pc.LAYERID_IMMEDIATE);
+    }
+    if (options.depthTest === undefined) {
+      options.depthTest = true;
+    }
+    this._initImmediate();
+    var layer = options.layer;
+    this._immediateData.addLayer(layer);
+    var idx = this._immediateData.getLayerIdx(layer);
+    if (idx === undefined) {
+      var batch = new LineBatch;
+      batch.init(this.graphicsDevice, this._immediateData.lineVertexFormat, layer, position.length / 2);
+      batch.material.depthTest = options.depthTest;
+      if (options.mask) {
+        batch.meshInstance.mask = options.mask;
+      }
+      idx = this._immediateData.lineBatches.push(batch) - 1;
+      this._immediateData.addLayerIdx(idx, layer);
+    } else {
+      this._immediateData.lineBatches[idx].init(this.graphicsDevice, this._immediateData.lineVertexFormat, layer, position.length / 2);
+      this._immediateData.lineBatches[idx].material.depthTest = options.depthTest;
+      if (options.mask) {
+        this._immediateData.lineBatches[idx].meshInstance.mask = options.mask;
+      }
+    }
+    this._immediateData.lineBatches[idx].addLines(position, color);
+  }
+  function renderLine(start, end, color) {
+    var endColor = color;
+    var options;
+    var arg3 = arguments[3];
+    var arg4 = arguments[4];
+    if (arg3 instanceof pc.Color) {
+      endColor = arg3;
+      if (typeof arg4 === "number") {
+        if (!_deprecationWarning) {
+          console.warn("lineBatch argument is deprecated for renderLine. Use options.layer instead");
+          _deprecationWarning = true;
         }
+        if (arg4 === pc.LINEBATCH_OVERLAY) {
+          options = {layer:this.scene.layers.getLayerById(pc.LAYERID_IMMEDIATE), depthTest:false};
+        } else {
+          options = {layer:this.scene.layers.getLayerById(pc.LAYERID_IMMEDIATE), depthTest:true};
+        }
+      } else {
+        options = arg4;
       }
     } else {
-      lineBatches[batchId].init(this.graphicsDevice, position.length / 2);
-    }
-    lineBatches[batchId].addLines(position, color);
-  }
-  function renderLine(start, end, color, arg3, arg4) {
-    var endColor = color;
-    var lineType = pc.LINEBATCH_WORLD;
-    if (arg3) {
       if (typeof arg3 === "number") {
-        lineType = arg3;
+        if (!_deprecationWarning) {
+          console.warn("lineBatch argument is deprecated for renderLine. Use options.layer instead");
+          _deprecationWarning = true;
+        }
+        endColor = color;
+        if (arg3 === pc.LINEBATCH_OVERLAY) {
+          options = {layer:this.scene.layers.getLayerById(pc.LAYERID_IMMEDIATE), depthTest:false};
+        } else {
+          options = {layer:this.scene.layers.getLayerById(pc.LAYERID_IMMEDIATE), depthTest:true};
+        }
       } else {
-        endColor = arg3;
-        if (arg4) {
-          lineType = arg4;
+        if (arg3) {
+          options = arg3;
+        } else {
+          options = {layer:this.scene.layers.getLayerById(pc.LAYERID_IMMEDIATE), depthTest:true};
         }
       }
     }
-    this._addLines(lineType, [start, end], [color, endColor]);
+    this._addLines([start, end], [color, endColor], options);
   }
-  function renderLines(position, color, lineType) {
-    if (lineType === undefined) {
-      lineType = pc.LINEBATCH_WORLD;
+  function renderLines(position, color, options) {
+    if (!options) {
+      options = {layer:this.scene.layers.getLayerById(pc.LAYERID_IMMEDIATE), depthTest:true};
+    } else {
+      if (typeof options === "number") {
+        if (!_deprecationWarning) {
+          console.warn("lineBatch argument is deprecated for renderLine. Use options.layer instead");
+          _deprecationWarning = true;
+        }
+        if (options === pc.LINEBATCH_OVERLAY) {
+          options = {layer:this.scene.layers.getLayerById(pc.LAYERID_IMMEDIATE), depthTest:false};
+        } else {
+          options = {layer:this.scene.layers.getLayerById(pc.LAYERID_IMMEDIATE), depthTest:true};
+        }
+      }
     }
     var multiColor = !!color.length;
     if (multiColor) {
@@ -32527,41 +36003,67 @@ pc.extend(pc.Application.prototype, function() {
       pc.log.error("renderLines: array length is not divisible by 2");
       return;
     }
-    this._addLines(lineType, position, color);
+    this._addLines(position, color, options);
   }
-  function renderWireCube(matrix, color, lineType) {
-    if (lineType === undefined) {
-      lineType = pc.LINEBATCH_WORLD;
-    }
+  function renderWireCube(matrix, color, options) {
     var i;
-    if (!cubeLocalPos) {
+    this._initImmediate();
+    if (!this._immediateData.cubeLocalPos) {
       var x = .5;
-      cubeLocalPos = [new pc.Vec3(-x, -x, -x), new pc.Vec3(-x, x, -x), new pc.Vec3(x, x, -x), new pc.Vec3(x, -x, -x), new pc.Vec3(-x, -x, x), new pc.Vec3(-x, x, x), new pc.Vec3(x, x, x), new pc.Vec3(x, -x, x)];
-      cubeWorldPos = [new pc.Vec3, new pc.Vec3, new pc.Vec3, new pc.Vec3, new pc.Vec3, new pc.Vec3, new pc.Vec3, new pc.Vec3];
+      this._immediateData.cubeLocalPos = [new pc.Vec3(-x, -x, -x), new pc.Vec3(-x, x, -x), new pc.Vec3(x, x, -x), new pc.Vec3(x, -x, -x), new pc.Vec3(-x, -x, x), new pc.Vec3(-x, x, x), new pc.Vec3(x, x, x), new pc.Vec3(x, -x, x)];
+      this._immediateData.cubeWorldPos = [new pc.Vec3, new pc.Vec3, new pc.Vec3, new pc.Vec3, new pc.Vec3, new pc.Vec3, new pc.Vec3, new pc.Vec3];
     }
+    var cubeLocalPos = this._immediateData.cubeLocalPos;
+    var cubeWorldPos = this._immediateData.cubeWorldPos;
     for (i = 0;i < 8;i++) {
       matrix.transformPoint(cubeLocalPos[i], cubeWorldPos[i]);
     }
-    this.renderLines([cubeWorldPos[0], cubeWorldPos[1], cubeWorldPos[1], cubeWorldPos[2], cubeWorldPos[2], cubeWorldPos[3], cubeWorldPos[3], cubeWorldPos[0], cubeWorldPos[4], cubeWorldPos[5], cubeWorldPos[5], cubeWorldPos[6], cubeWorldPos[6], cubeWorldPos[7], cubeWorldPos[7], cubeWorldPos[4], cubeWorldPos[0], cubeWorldPos[4], cubeWorldPos[1], cubeWorldPos[5], cubeWorldPos[2], cubeWorldPos[6], cubeWorldPos[3], cubeWorldPos[7]], color, lineType);
+    this.renderLines([cubeWorldPos[0], cubeWorldPos[1], cubeWorldPos[1], cubeWorldPos[2], cubeWorldPos[2], cubeWorldPos[3], cubeWorldPos[3], cubeWorldPos[0], cubeWorldPos[4], cubeWorldPos[5], cubeWorldPos[5], cubeWorldPos[6], cubeWorldPos[6], cubeWorldPos[7], cubeWorldPos[7], cubeWorldPos[4], cubeWorldPos[0], cubeWorldPos[4], cubeWorldPos[1], cubeWorldPos[5], cubeWorldPos[2], cubeWorldPos[6], cubeWorldPos[3], cubeWorldPos[7]], color, options);
   }
   function _preRenderImmediate() {
-    for (var i = 0;i < 3;i++) {
-      if (lineBatches[i]) {
-        lineBatches[i].finalize(this.scene.immediateDrawCalls);
+    for (var i = 0;i < this._immediateData.lineBatches.length;i++) {
+      if (this._immediateData.lineBatches[i]) {
+        this._immediateData.lineBatches[i].finalize();
       }
     }
   }
-  function renderMeshInstance(meshInstance) {
-    this.scene.immediateDrawCalls.push(meshInstance);
+  function _postRenderImmediate() {
+    for (var i = 0;i < this._immediateData.layers.length;i++) {
+      this._immediateData.layers[i].clearMeshInstances(true);
+    }
+    this._immediateData.layers.length = 0;
   }
-  function renderMesh(mesh, material, matrix) {
+  function renderMeshInstance(meshInstance, options) {
+    if (!options) {
+      options = {layer:this.scene.layers.getLayerById(pc.LAYERID_IMMEDIATE)};
+    }
+    this._initImmediate();
+    this._immediateData.addLayer(options.layer);
+    meshInstanceArray[0] = meshInstance;
+    options.layer.addMeshInstances(meshInstanceArray, true);
+  }
+  function renderMesh(mesh, material, matrix, options) {
+    if (!options) {
+      options = {layer:this.scene.layers.getLayerById(pc.LAYERID_IMMEDIATE)};
+    }
+    this._initImmediate();
     tempGraphNode.worldTransform = matrix;
     tempGraphNode._dirtyWorld = tempGraphNode._dirtyNormal = false;
     var instance = new pc.MeshInstance(tempGraphNode, mesh, material);
-    this.scene.immediateDrawCalls.push(instance);
+    instance.cull = false;
+    if (options.mask) {
+      instance.mask = options.mask;
+    }
+    this._immediateData.addLayer(options.layer);
+    meshInstanceArray[0] = instance;
+    options.layer.addMeshInstances(meshInstanceArray, true);
   }
-  function renderQuad(matrix, material, layer) {
-    if (!quadMesh) {
+  function renderQuad(matrix, material, options) {
+    if (!options) {
+      options = {layer:this.scene.layers.getLayerById(pc.LAYERID_IMMEDIATE)};
+    }
+    this._initImmediate();
+    if (!this._immediateData.quadMesh) {
       var format = new pc.VertexFormat(this.graphicsDevice, [{semantic:pc.SEMANTIC_POSITION, components:3, type:pc.TYPE_FLOAT32}]);
       var quadVb = new pc.VertexBuffer(this.graphicsDevice, format, 4);
       var iterator = new pc.VertexIterator(quadVb);
@@ -32573,26 +36075,25 @@ pc.extend(pc.Application.prototype, function() {
       iterator.next();
       iterator.element[pc.SEMANTIC_POSITION].set(.5, .5, 0);
       iterator.end();
-      quadMesh = new pc.Mesh;
-      quadMesh.vertexBuffer = quadVb;
-      quadMesh.primitive[0].type = pc.PRIMITIVE_TRISTRIP;
-      quadMesh.primitive[0].base = 0;
-      quadMesh.primitive[0].count = 4;
-      quadMesh.primitive[0].indexed = false;
+      this._immediateData.quadMesh = new pc.Mesh;
+      this._immediateData.quadMesh.vertexBuffer = quadVb;
+      this._immediateData.quadMesh.primitive[0].type = pc.PRIMITIVE_TRISTRIP;
+      this._immediateData.quadMesh.primitive[0].base = 0;
+      this._immediateData.quadMesh.primitive[0].count = 4;
+      this._immediateData.quadMesh.primitive[0].indexed = false;
     }
     tempGraphNode.worldTransform = matrix;
     tempGraphNode._dirtyWorld = tempGraphNode._dirtyNormal = false;
-    var quad = new pc.MeshInstance(tempGraphNode, quadMesh, material);
-    if (layer) {
-      quad.layer = layer;
-    }
-    this.scene.immediateDrawCalls.push(quad);
+    var quad = new pc.MeshInstance(tempGraphNode, this._immediateData.quadMesh, material);
+    quad.cull = false;
+    meshInstanceArray[0] = quad;
+    this._immediateData.addLayer(options.layer);
+    options.layer.addMeshInstances(meshInstanceArray, true);
   }
-  return {renderMeshInstance:renderMeshInstance, renderMesh:renderMesh, renderLine:renderLine, renderLines:renderLines, renderQuad:renderQuad, renderWireCube:renderWireCube, _addLines:_addLines, _preRenderImmediate:_preRenderImmediate};
+  return {renderMeshInstance:renderMeshInstance, renderMesh:renderMesh, renderLine:renderLine, renderLines:renderLines, renderQuad:renderQuad, renderWireCube:renderWireCube, _addLines:_addLines, _initImmediate:_initImmediate, _preRenderImmediate:_preRenderImmediate, _postRenderImmediate:_postRenderImmediate};
 }());
 pc.extend(pc, function() {
   var maxSize = 2048;
-  var maskDynamic = 1;
   var maskBaked = 2;
   var maskLightmap = 4;
   var sceneLightmaps = [];
@@ -32763,7 +36264,6 @@ pc.extend(pc, function() {
     var texPool = {};
     var size;
     var tex;
-    var instances;
     var blackTex = new pc.Texture(this.device, {width:4, height:4, format:pc.PIXELFORMAT_R8_G8_B8_A8, rgbm:true});
     for (i = 0;i < nodes.length;i++) {
       size = this.calculateLightmapSize(nodes[i]);
@@ -32778,11 +36278,13 @@ pc.extend(pc, function() {
         texPool[size] = targ2;
       }
     }
+    var activeComp = scene.layers;
+    activeComp._update();
     var lights = [];
     var origMask = [];
     var origShadowMode = [];
     var origEnabled = [];
-    var sceneLights = scene._lights;
+    var sceneLights = activeComp._lights;
     var mask;
     for (i = 0;i < sceneLights.length;i++) {
       if (sceneLights[i]._enabled) {
@@ -32800,7 +36302,7 @@ pc.extend(pc, function() {
       sceneLights[i].enabled = false;
     }
     var chunks = pc.shaderChunks;
-    var xformUv1 = chunks.transformUv1VS;
+    var xformUv1 = "#define UV1LAYOUT\n" + chunks.transformVS;
     var bakeLmEnd = chunks.bakeLmEndPS;
     var dilate = chunks.dilatePS;
     var dilateShader = chunks.createShaderFromCode(device, chunks.fullscreenQuadVS, dilate, "lmDilate");
@@ -32808,8 +36310,7 @@ pc.extend(pc, function() {
     var constantPixelOffset = device.scope.resolve("pixelOffset");
     var constantBakeDir = device.scope.resolve("bakeDir");
     var pixelOffset = new pc.Vec2;
-    var lms = {};
-    var drawCalls = scene.drawCalls;
+    var drawCalls = activeComp._meshInstances;
     for (i = 0;i < drawCalls.length;i++) {
       if (drawCalls[i].node) {
         drawCalls[i].node.getWorldTransform();
@@ -32819,7 +36320,6 @@ pc.extend(pc, function() {
     var origAmbientR = scene.ambientLight.data[0];
     var origAmbientG = scene.ambientLight.data[1];
     var origAmbientB = scene.ambientLight.data[2];
-    var origDrawCalls = scene.drawCalls;
     scene.fog = pc.FOG_NONE;
     scene.ambientLight.data[0] = 0;
     scene.ambientLight.data[1] = 0;
@@ -32837,7 +36337,7 @@ pc.extend(pc, function() {
       lmCamera.frustumCulling = false;
     }
     var node;
-    var lm, rcv, mat, m;
+    var lm, rcv, m;
     var origShaderDefs = [];
     origShaderDefs.length = sceneLightmapsNode.length;
     var shaderDefs;
@@ -32856,25 +36356,21 @@ pc.extend(pc, function() {
       }
     }
     var origCastShadows = [];
-    var origCasters2 = scene.shadowCasters.slice();
+    var casters = [];
+    var meshes;
     for (node = 0;node < allNodes.length;node++) {
       origCastShadows[node] = allNodes[node].model.castShadows;
       allNodes[node].model.castShadows = allNodes[node].model.data.castShadowsLightmap;
-    }
-    var origCasters = scene.shadowCasters;
-    var casters = [];
-    var instanceClone, prop;
-    for (i = 0;i < origCasters.length;i++) {
-      m = origCasters[i];
-      instanceClone = new pc.MeshInstance(m.node, m.mesh, m.material);
-      for (prop in m) {
-        if (m.hasOwnProperty(prop)) {
-          instanceClone[prop] = m[prop];
+      if (allNodes[node].model.data.castShadowsLightmap) {
+        meshes = allNodes[node].model.meshInstances;
+        for (i = 0;i < meshes.length;i++) {
+          meshes[i].visibleThisFrame = true;
+          casters.push(meshes[i]);
         }
       }
-      casters.push(instanceClone);
     }
-    scene.shadowCasters = casters;
+    this.renderer.updateCpuSkinMatrices(casters);
+    this.renderer.gpuUpdate(casters);
     var origMat = [];
     var nodeBounds = [];
     var nodeTarg = [[], []];
@@ -32882,14 +36378,6 @@ pc.extend(pc, function() {
     var light, shadowCam;
     var nodeLightCount = [];
     nodeLightCount.length = nodes.length;
-    scene.updateShadersFunc(device);
-    for (node = 0;node < nodes.length;node++) {
-      rcv = nodesMeshInstances[node];
-      for (i = 0;i < rcv.length;i++) {
-        mat = rcv[i].material;
-        origMat.push(mat);
-      }
-    }
     var lmMaterial;
     for (pass = 0;pass < passCount;pass++) {
       if (!passMaterial[pass]) {
@@ -32915,7 +36403,6 @@ pc.extend(pc, function() {
         passMaterial[pass] = lmMaterial;
       }
     }
-    var cntr = 0;
     for (node = 0;node < nodes.length;node++) {
       rcv = nodesMeshInstances[node];
       nodeLightCount[node] = 0;
@@ -32935,9 +36422,8 @@ pc.extend(pc, function() {
         m.mask = maskLightmap;
         m.deleteParameter("texture_lightMap");
         m.deleteParameter("texture_dirLightMap");
-        m.setParameter("texture_lightMap", origMat[cntr].lightMap ? origMat[cntr].lightMap : blackTex);
+        m.setParameter("texture_lightMap", m.material.lightMap ? m.material.lightMap : blackTex);
         m.setParameter("texture_dirLightMap", blackTex);
-        cntr++;
       }
       for (pass = 0;pass < passCount;pass++) {
         lm = lmaps[pass][node];
@@ -32948,9 +36434,12 @@ pc.extend(pc, function() {
     for (j = 0;j < lights.length;j++) {
       lights[j].enabled = false;
     }
+    var lightArray = [[], [], []];
     var shadersUpdatedOn1stPass = false;
+    var shadowMapRendered;
     for (i = 0;i < lights.length;i++) {
       lights[i].enabled = true;
+      shadowMapRendered = false;
       lights[i]._cacheShadowMap = true;
       if (lights[i]._type !== pc.LIGHTTYPE_DIRECTIONAL) {
         lights[i]._node.getWorldTransform();
@@ -32973,14 +36462,12 @@ pc.extend(pc, function() {
         shadowCam.fov = light._outerConeAngle * 2;
         this.renderer.updateCameraFrustum(shadowCam);
       }
+      if (nodesMeshInstances.length > 0) {
+        this.renderer.updateShaders(nodesMeshInstances[0]);
+      }
       for (node = 0;node < nodes.length;node++) {
         rcv = nodesMeshInstances[node];
         bounds = nodeBounds[node];
-        scene.drawCalls = [];
-        for (j = 0;j < rcv.length;j++) {
-          scene.drawCalls.push(rcv[j]);
-        }
-        scene.updateShaders = true;
         if (lights[i]._type === pc.LIGHTTYPE_DIRECTIONAL) {
           tempVec.copy(bounds.center);
           tempVec.y += bounds.halfExtents.y;
@@ -33009,6 +36496,38 @@ pc.extend(pc, function() {
             continue;
           }
         }
+        if (lights[i]._type === pc.LIGHTTYPE_DIRECTIONAL) {
+          lightArray[pc.LIGHTTYPE_DIRECTIONAL][0] = lights[i];
+          lightArray[pc.LIGHTTYPE_POINT].length = 0;
+          lightArray[pc.LIGHTTYPE_SPOT].length = 0;
+          if (!shadowMapRendered && lights[i].castShadows) {
+            this.renderer.cullDirectionalShadowmap(lights[i], casters, lmCamera, 0);
+            this.renderer.renderShadows(lightArray[pc.LIGHTTYPE_DIRECTIONAL], 0);
+            shadowMapRendered = true;
+          }
+        } else {
+          lightArray[pc.LIGHTTYPE_DIRECTIONAL].length = 0;
+          if (lights[i]._type === pc.LIGHTTYPE_POINT) {
+            lightArray[pc.LIGHTTYPE_POINT][0] = lights[i];
+            lightArray[pc.LIGHTTYPE_SPOT].length = 0;
+            if (!shadowMapRendered && lights[i].castShadows) {
+              this.renderer.cullLocalShadowmap(lights[i], casters);
+              this.renderer.renderShadows(lightArray[pc.LIGHTTYPE_POINT]);
+              shadowMapRendered = true;
+            }
+          } else {
+            lightArray[pc.LIGHTTYPE_POINT].length = 0;
+            lightArray[pc.LIGHTTYPE_SPOT][0] = lights[i];
+            if (!shadowMapRendered && lights[i].castShadows) {
+              this.renderer.cullLocalShadowmap(lights[i], casters);
+              this.renderer.renderShadows(lightArray[pc.LIGHTTYPE_SPOT]);
+              shadowMapRendered = true;
+            }
+          }
+        }
+        for (j = 0;j < rcv.length;j++) {
+          origMat[j] = rcv[j].material;
+        }
         for (pass = 0;pass < passCount;pass++) {
           lm = lmaps[pass][node];
           targ = nodeTarg[pass][node];
@@ -33024,13 +36543,16 @@ pc.extend(pc, function() {
           for (j = 0;j < rcv.length;j++) {
             rcv[j].material = passMaterial[pass];
           }
-          lmCamera.renderTarget = targTmp;
+          if (passCount > 1) {
+            this.renderer.updateShaders(rcv);
+          }
+          this.renderer.setCamera(lmCamera, targTmp, true);
           if (pass === PASS_DIR) {
             constantBakeDir.setValue(lights[i].bakeDir ? 1 : 0);
           }
           this.renderer._forwardTime = 0;
           this.renderer._shadowMapTime = 0;
-          this.renderer.render(scene, lmCamera);
+          this.renderer.renderForward(lmCamera, rcv, rcv.length, lightArray, pc.SHADER_FORWARDHDR);
           lmaps[pass][node] = texTmp;
           nodeTarg[pass][node] = targTmp;
           texPool[lm.width] = targ;
@@ -33041,6 +36563,9 @@ pc.extend(pc, function() {
           }
         }
         nodeLightCount[node]++;
+        for (j = 0;j < rcv.length;j++) {
+          rcv[j].material = origMat[j];
+        }
       }
       lights[i].enabled = false;
       lights[i]._cacheShadowMap = false;
@@ -33048,7 +36573,6 @@ pc.extend(pc, function() {
         lights[i]._destroyShadowMap();
       }
     }
-    var id = 0;
     var sceneLmaps;
     for (node = 0;node < nodes.length;node++) {
       rcv = nodesMeshInstances[node];
@@ -33069,11 +36593,7 @@ pc.extend(pc, function() {
         }
         for (i = 0;i < rcv.length;i++) {
           m = rcv[i];
-          if (pass === 0) {
-            m.mask = maskBaked;
-            rcv[i].material = origMat[id];
-            id++;
-          }
+          m.mask = maskBaked;
           rcv[i].setParameter(passTexName[pass], lm);
           if (pass === PASS_DIR) {
             rcv[i]._shaderDefs |= pc.SHADERDEF_DIRLM;
@@ -33103,7 +36623,6 @@ pc.extend(pc, function() {
     for (node = 0;node < allNodes.length;node++) {
       allNodes[node].model.castShadows = origCastShadows[node];
     }
-    scene.shadowCasters = origCasters2;
     for (i = 0;i < origShaderDefs.length;i++) {
       if (origShaderDefs[i]) {
         rcv = sceneLightmapsNode[i].model.model.meshInstances;
@@ -33119,7 +36638,6 @@ pc.extend(pc, function() {
     for (i = 0;i < sceneLights.length;i++) {
       sceneLights[i].enabled = origEnabled[i];
     }
-    scene.drawCalls = origDrawCalls;
     scene.fog = origFog;
     scene.ambientLight.data[0] = origAmbientR;
     scene.ambientLight.data[1] = origAmbientG;
@@ -33128,7 +36646,7 @@ pc.extend(pc, function() {
       scene._needsStaticPrepare = true;
     }
   }};
-  return {Lightmapper:Lightmapper, MASK_DYNAMIC:maskDynamic, MASK_BAKED:maskBaked, MASK_LIGHTMAP:maskLightmap};
+  return {Lightmapper:Lightmapper};
 }());
 pc.extend(pc, function() {
   var Batch = function(meshInstances, dynamic, batchGroupId) {
@@ -33139,11 +36657,12 @@ pc.extend(pc, function() {
     this.dynamic = dynamic;
     this.batchGroupId = batchGroupId;
   };
-  var BatchGroup = function(id, name, dynamic, maxAabbSize) {
+  var BatchGroup = function(id, name, dynamic, maxAabbSize, layers) {
     this.dynamic = dynamic;
     this.maxAabbSize = maxAabbSize;
     this.id = id;
     this.name = name;
+    this.layers = layers === undefined ? [pc.LAYERID_WORLD] : layers;
   };
   var SkinBatchInstance = function(device, nodes, rootNode) {
     this.device = device;
@@ -33212,7 +36731,7 @@ pc.extend(pc, function() {
     this._batchList = [];
     this._dirtyGroups = [];
   };
-  BatchManager.prototype.addGroup = function(name, dynamic, maxAabbSize, id) {
+  BatchManager.prototype.addGroup = function(name, dynamic, maxAabbSize, id, layers) {
     if (id === undefined) {
       id = this._batchGroupCounter;
       this._batchGroupCounter++;
@@ -33221,7 +36740,7 @@ pc.extend(pc, function() {
       return;
     }
     var group;
-    this._batchGroups[id] = group = new pc.BatchGroup(id, name, dynamic, maxAabbSize);
+    this._batchGroups[id] = group = new pc.BatchGroup(id, name, dynamic, maxAabbSize, layers);
     return group;
   };
   BatchManager.prototype.removeGroup = function(id) {
@@ -33262,10 +36781,10 @@ pc.extend(pc, function() {
     if (!node.enabled) {
       return;
     }
-    var i;
+    var i, arr;
     if (node.model && node.model.batchGroupId >= 0 && node.model.model && node.model.enabled) {
       if (!groupIds || groupIds && groupIds.indexOf(node.model.batchGroupId) >= 0) {
-        var arr = groupMeshInstances[node.model.batchGroupId];
+        arr = groupMeshInstances[node.model.batchGroupId];
         if (!arr) {
           arr = groupMeshInstances[node.model.batchGroupId] = [];
         }
@@ -33289,24 +36808,24 @@ pc.extend(pc, function() {
         } else {
           groupMeshInstances[node.model.batchGroupId] = arr.concat(node.model.meshInstances);
         }
-        this.scene.removeModel(node.model.model);
+        node.model.removeModelFromLayers(node.model.model);
       }
     }
     if (node.element && node.element.batchGroupId >= 0 && node.element.enabled) {
       if (!groupIds || groupIds && groupIds.indexOf(node.element.batchGroupId) >= 0) {
-        var arr = groupMeshInstances[node.element.batchGroupId];
+        arr = groupMeshInstances[node.element.batchGroupId];
         if (!arr) {
           arr = groupMeshInstances[node.element.batchGroupId] = [];
         }
         var valid = false;
         if (node.element._text) {
           groupMeshInstances[node.element.batchGroupId].push(node.element._text._model.meshInstances[0]);
-          this.scene.removeModel(node.element._text._model);
+          node.element.removeModelFromLayers(node.element._text._model);
           valid = true;
         } else {
           if (node.element._image) {
             groupMeshInstances[node.element.batchGroupId].push(node.element._image._model.meshInstances[0]);
-            this.scene.removeModel(node.element._image._model);
+            node.element.removeModelFromLayers(node.element._image._model);
             valid = true;
           }
         }
@@ -33314,7 +36833,7 @@ pc.extend(pc, function() {
     }
     if (node.sprite && node.sprite.batchGroupId >= 0 && node.sprite.enabled) {
       if (!groupIds || groupIds && groupIds.indexOf(node.sprite.batchGroupId) >= 0) {
-        var arr = groupMeshInstances[node.sprite.batchGroupId];
+        arr = groupMeshInstances[node.sprite.batchGroupId];
         if (!arr) {
           arr = groupMeshInstances[node.sprite.batchGroupId] = [];
         }
@@ -33350,7 +36869,7 @@ pc.extend(pc, function() {
     this.register(batch, ents);
   };
   BatchManager.prototype.generate = function(groupIds) {
-    var i;
+    var i, j;
     var groupMeshInstances = {};
     if (!groupIds) {
       for (i = 0;i < this._batchList.length;i++) {
@@ -33376,7 +36895,6 @@ pc.extend(pc, function() {
         this._dirtyGroups.length = 0;
       } else {
         var newDirtyGroups = [];
-        var j;
         for (i = 0;i < this._dirtyGroups.length;i++) {
           if (groupIds.indexOf(this._dirtyGroups[i]) < 0) {
             newDirtyGroups.push(this._dirtyGroups[i]);
@@ -33398,7 +36916,9 @@ pc.extend(pc, function() {
       lists = this.prepare(group, groupData.dynamic, groupData.maxAabbSize);
       for (i = 0;i < lists.length;i++) {
         batch = this.create(lists[i], groupData.dynamic, parseInt(groupId));
-        this.scene.addModel(batch.model);
+        for (j = 0;j < groupData.layers.length;j++) {
+          this.scene.layers.getLayerById(groupData.layers[j]).addMeshInstances(batch.model.meshInstances);
+        }
         this._registerEntities(batch, lists[i]);
       }
     }
@@ -33563,8 +37083,7 @@ pc.extend(pc, function() {
   BatchManager.prototype.create = function(meshInstances, dynamic, batchGroupId) {
     if (!this._init) {
       var boneLimit = "#define BONE_LIMIT " + this.device.getBoneLimit() + "\n";
-      this.transformVS = boneLimit + pc.shaderChunks.transformBatchSkinnedVS;
-      this.transformElementVS = boneLimit + pc.shaderChunks.transformScreenSpaceBatchSkinnedVS;
+      this.transformVS = boneLimit + "#define DYNAMICBATCH\n" + pc.shaderChunks.transformVS;
       this.skinTexVS = pc.shaderChunks.skinBatchTexVS;
       this.skinConstVS = pc.shaderChunks.skinBatchConstVS;
       this.vertexFormats = {};
@@ -33574,8 +37093,8 @@ pc.extend(pc, function() {
     var batch = new pc.Batch(meshInstances, dynamic, batchGroupId);
     this._batchList.push(batch);
     var material = null;
-    var mesh, elems, numVerts, vertSize, index;
-    var hasPos, hasNormal, hasUv, hasUv2, hasTangent;
+    var mesh, elems, numVerts, vertSize;
+    var hasPos, hasNormal, hasUv, hasUv2, hasTangent, hasColor;
     var batchNumVerts = 0;
     var batchNumIndices = 0;
     for (i = 0;i < meshInstances.length;i++) {
@@ -33605,6 +37124,10 @@ pc.extend(pc, function() {
               } else {
                 if (elems[j].name === pc.SEMANTIC_TANGENT) {
                   hasTangent = true;
+                } else {
+                  if (elems[j].name === pc.SEMANTIC_COLOR) {
+                    hasColor = true;
+                  }
                 }
               }
             }
@@ -33617,22 +37140,24 @@ pc.extend(pc, function() {
       return;
     }
     var entityIndexSizeF = dynamic ? 1 : 0;
-    var batchVertSizeF = 3 + (hasNormal ? 3 : 0) + (hasUv ? 2 : 0) + (hasUv2 ? 2 : 0) + (hasTangent ? 4 : 0) + entityIndexSizeF;
+    var batchVertSizeF = 3 + (hasNormal ? 3 : 0) + (hasUv ? 2 : 0) + (hasUv2 ? 2 : 0) + (hasTangent ? 4 : 0) + (hasColor ? 1 : 0) + entityIndexSizeF;
     var batchOffsetNF = 3;
     var batchOffsetUF = hasNormal ? 3 * 2 : 3;
     var batchOffsetU2F = (hasNormal ? 3 * 2 : 3) + (hasUv ? 2 : 0);
     var batchOffsetTF = (hasNormal ? 3 * 2 : 3) + (hasUv ? 2 : 0) + (hasUv2 ? 2 : 0);
-    var batchOffsetEF = (hasNormal ? 3 * 2 : 3) + (hasUv ? 2 : 0) + (hasUv2 ? 2 : 0) + (hasTangent ? 4 : 0);
-    var batchData = new Float32Array(new ArrayBuffer(batchNumVerts * batchVertSizeF * 4));
+    var batchOffsetCF = (hasNormal ? 3 * 2 : 3) + (hasUv ? 2 : 0) + (hasUv2 ? 2 : 0) + (hasTangent ? 4 : 0);
+    var batchOffsetEF = (hasNormal ? 3 * 2 : 3) + (hasUv ? 2 : 0) + (hasUv2 ? 2 : 0) + (hasTangent ? 4 : 0) + (hasColor ? 1 : 0);
+    var arrayBuffer = new ArrayBuffer(batchNumVerts * batchVertSizeF * 4);
+    var batchData = new Float32Array(arrayBuffer);
+    var batchData8 = new Uint8Array(arrayBuffer);
     var indexBuffer = new pc.IndexBuffer(this.device, pc.INDEXFORMAT_UINT16, batchNumIndices, pc.BUFFER_STATIC);
     var batchIndexData = new Uint16Array(indexBuffer.lock());
-    var matrices = new Float32Array(meshInstances.length * 16);
     var vertSizeF;
-    var data, indexBase, numIndices, indexData, mtx;
+    var data, data8, indexBase, numIndices, indexData;
     var verticesOffset = 0;
     var indexOffset = 0;
     var vbOffset = 0;
-    var offsetPF, offsetNF, offsetUF, offsetU2F, offsetTF;
+    var offsetPF, offsetNF, offsetUF, offsetU2F, offsetTF, offsetCF;
     var transform, vec, vecData;
     if (!dynamic) {
       vec = new pc.Vec3;
@@ -33659,6 +37184,10 @@ pc.extend(pc, function() {
               } else {
                 if (elems[j].name === pc.SEMANTIC_TANGENT) {
                   offsetTF = elems[j].offset / 4;
+                } else {
+                  if (elems[j].name === pc.SEMANTIC_COLOR) {
+                    offsetCF = elems[j].offset / 4;
+                  }
                 }
               }
             }
@@ -33666,6 +37195,7 @@ pc.extend(pc, function() {
         }
       }
       data = new Float32Array(mesh.vertexBuffer.storage);
+      data8 = new Uint8Array(mesh.vertexBuffer.storage);
       if (dynamic) {
         for (j = 0;j < numVerts;j++) {
           batchData[j * batchVertSizeF + vbOffset] = data[j * vertSizeF + offsetPF];
@@ -33689,6 +37219,12 @@ pc.extend(pc, function() {
             batchData[j * batchVertSizeF + vbOffset + batchOffsetTF + 1] = data[j * vertSizeF + offsetTF + 1];
             batchData[j * batchVertSizeF + vbOffset + batchOffsetTF + 2] = data[j * vertSizeF + offsetTF + 2];
             batchData[j * batchVertSizeF + vbOffset + batchOffsetTF + 3] = data[j * vertSizeF + offsetTF + 3];
+          }
+          if (hasColor) {
+            batchData8[j * batchVertSizeF * 4 + vbOffset * 4 + batchOffsetCF * 4] = data8[j * vertSizeF * 4 + offsetCF * 4];
+            batchData8[j * batchVertSizeF * 4 + vbOffset * 4 + batchOffsetCF * 4 + 1] = data8[j * vertSizeF * 4 + offsetCF * 4 + 1];
+            batchData8[j * batchVertSizeF * 4 + vbOffset * 4 + batchOffsetCF * 4 + 2] = data8[j * vertSizeF * 4 + offsetCF * 4 + 2];
+            batchData8[j * batchVertSizeF * 4 + vbOffset * 4 + batchOffsetCF * 4 + 3] = data8[j * vertSizeF * 4 + offsetCF * 4 + 3];
           }
           batchData[j * batchVertSizeF + batchOffsetEF + vbOffset] = i;
         }
@@ -33723,6 +37259,12 @@ pc.extend(pc, function() {
             batchData[j * batchVertSizeF + vbOffset + batchOffsetTF + 2] = vecData[2];
             batchData[j * batchVertSizeF + vbOffset + batchOffsetTF + 3] = data[j * vertSizeF + offsetTF + 3];
           }
+          if (hasColor) {
+            batchData8[j * batchVertSizeF * 4 + vbOffset * 4 + batchOffsetCF * 4] = data8[j * vertSizeF * 4 + offsetCF * 4];
+            batchData8[j * batchVertSizeF * 4 + vbOffset * 4 + batchOffsetCF * 4 + 1] = data8[j * vertSizeF * 4 + offsetCF * 4 + 1];
+            batchData8[j * batchVertSizeF * 4 + vbOffset * 4 + batchOffsetCF * 4 + 2] = data8[j * vertSizeF * 4 + offsetCF * 4 + 2];
+            batchData8[j * batchVertSizeF * 4 + vbOffset * 4 + batchOffsetCF * 4 + 3] = data8[j * vertSizeF * 4 + offsetCF * 4 + 3];
+          }
         }
       }
       indexBase = mesh.primitive[0].base;
@@ -33748,8 +37290,11 @@ pc.extend(pc, function() {
     if (hasTangent) {
       vertexFormatId |= 1 << 4;
     }
-    if (dynamic) {
+    if (hasColor) {
       vertexFormatId |= 1 << 5;
+    }
+    if (dynamic) {
+      vertexFormatId |= 1 << 6;
     }
     var vertexFormat = this.vertexFormats[vertexFormatId];
     if (!vertexFormat) {
@@ -33766,6 +37311,9 @@ pc.extend(pc, function() {
       }
       if (hasTangent) {
         formatDesc.push({semantic:pc.SEMANTIC_TANGENT, components:4, type:pc.ELEMENTTYPE_FLOAT32, normalize:false});
+      }
+      if (hasColor) {
+        formatDesc.push({semantic:pc.SEMANTIC_COLOR, components:4, type:pc.ELEMENTTYPE_UINT8, normalize:true});
       }
       if (dynamic) {
         formatDesc.push({semantic:pc.SEMANTIC_BLENDINDICES, components:1, type:pc.ELEMENTTYPE_FLOAT32, normalize:false});
@@ -33784,7 +37332,7 @@ pc.extend(pc, function() {
     mesh.cull = false;
     if (dynamic) {
       material = material.clone();
-      material.chunks.transformSkinnedVS = batch.origMeshInstances[0]._shaderDefs & pc.SHADERDEF_SCREENSPACE ? this.transformElementVS : this.transformVS;
+      material.chunks.transformVS = this.transformVS;
       material.chunks.skinTexVS = this.skinTexVS;
       material.chunks.skinConstVS = this.skinConstVS;
       material.update();
@@ -33793,7 +37341,10 @@ pc.extend(pc, function() {
     meshInstance.castShadow = batch.origMeshInstances[0].castShadow;
     meshInstance.parameters = batch.origMeshInstances[0].parameters;
     meshInstance.isStatic = batch.origMeshInstances[0].isStatic;
+    meshInstance.cull = batch.origMeshInstances[0].cull;
+    meshInstance.layer = batch.origMeshInstances[0].layer;
     meshInstance._staticLightList = batch.origMeshInstances[0]._staticLightList;
+    meshInstance._shaderDefs = batch.origMeshInstances[0]._shaderDefs;
     if (dynamic) {
       var nodes = [];
       for (i = 0;i < batch.origMeshInstances.length;i++) {
@@ -33843,6 +37394,8 @@ pc.extend(pc, function() {
     batch2.meshInstance._updateAabb = false;
     batch2.meshInstance.parameters = clonedMeshInstances[0].parameters;
     batch2.meshInstance.isStatic = clonedMeshInstances[0].isStatic;
+    batch2.meshInstance.cull = clonedMeshInstances[0].cull;
+    batch2.meshInstance.layer = clonedMeshInstances[0].layer;
     batch2.meshInstance._staticLightList = clonedMeshInstances[0]._staticLightList;
     if (batch.dynamic) {
       batch2.meshInstance.skinInstance = new SkinBatchInstance(this.device, nodes, this.rootNode);
@@ -33858,7 +37411,10 @@ pc.extend(pc, function() {
   BatchManager.prototype.destroy = function(batch) {
     batch.refCounter--;
     if (batch.refCounter === 0) {
-      this.scene.removeModel(batch.model);
+      var layers = this._batchGroups[batch.batchGroupId].layers;
+      for (var i = 0;i < layers.length;i++) {
+        this.scene.layers.getLayerById(layers[i]).removeMeshInstances(batch.model.meshInstances);
+      }
       batch.model.destroy();
     }
   };
@@ -33874,3 +37430,7 @@ pc.extend(pc, function() {
   };
   return {Batch:Batch, BatchGroup:BatchGroup, BatchManager:BatchManager};
 }());
+
+  return pc;
+}));
+
