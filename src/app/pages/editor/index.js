@@ -129,18 +129,26 @@ export default {
         initEvents() {
             this._event = {};
             this.app.mouse.on(pc.EVENT_MOUSEDOWN, this.onMouseDown, this);
-            this.app.mouse.on(pc.EVENT_MOUSEUP, this.onMouseDown, this);
+            this.app.mouse.on(pc.EVENT_MOUSEUP, this.onMouseUp, this);
             // $('#canvas-3d')
             //     .on('mousedown', )
+
+            var canvas = $('#canvas-3d');
+            this.picker = new pc.Picker(this.app, canvas.width(), canvas.height());
         },
 
         onMouseDown(e) {
             if (e.button == pc.MOUSEBUTTON_LEFT) {
-                this.raycaster.update();
-                this.raycaster.ray.origin.copy(this.activeCamera.getPosition());
-                this.raycaster.ray.direction.copy(this.activeCamera.forward);
-                let res = this.raycaster.castAll();
-                console.log('MD', e, e.button, res);
+                // this.raycaster.update();
+                // this.raycaster.ray.origin.copy(this.activeCamera.getPosition());
+                // this.raycaster.ray.direction.copy(this.activeCamera.forward);
+                // let res = this.raycaster.castAll();
+
+                console.log('MD', e, e.button);
+                this.picker.prepare(this.activeCamera, this.app.scene);
+                let res = this.picker.getSelection(e.x, e.y)
+                console.log('MD2', e, e.button, res);
+
             }
         },
 

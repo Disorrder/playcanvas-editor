@@ -14,6 +14,7 @@ export default {
     computed: {
         projects() { return this.$store.state.projects; },
         sortedProjects() {
+            if (!this.projects) return [];
             // сначала недавно открытые
             return this.projects.sort((a, b) => {
                 return b.lastOpened - a.lastOpened;
