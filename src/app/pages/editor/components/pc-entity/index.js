@@ -19,7 +19,9 @@ Vue.component('pc-entity', {
         }
     },
     computed: {
-        isFolder() { return this.entity.children && this.entity.children.length; },
+        // only instanceof pc.Entity has _guid
+        children() { return this.entity.children && this.entity.children.filter((v) => v._guid); },
+        isFolder() { return this.children && this.children.length; },
     },
     methods: {
         toggle() {

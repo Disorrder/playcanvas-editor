@@ -72,14 +72,16 @@ export default {
             console.log(data, this.app.root);
 
             this.activeCamera = this.app.root.findByPath('Editor Root/Perspective');
-
-            this.raycaster = new pc.Raycaster();
         },
 
         initScene_test() {
             var app = this.app;
             this.app.root.name = 'Root';
 
+            // clean up
+            this.app.root.children.forEach((v) => v.destroy());
+
+            // init service editor nodes
             var editorRoot = new pc.Entity('Editor Root');
             app.root.addChild(editorRoot);
             var sceneRoot = new pc.Entity('Root');
@@ -101,17 +103,22 @@ export default {
 
             var cube = new pc.Entity('cube');
             cube.addComponent('model', {type: 'box'});
+            cube.rotate(30, 30, 30);
             sceneRoot.addChild(cube);
 
-            // write to file
-            var data = serializeScene(this.app);
-            this.writeSceneFile(data);
+            // init
+            this.activeCamera = this.app.root.findByPath('Editor Root/Perspective');
         },
+
         readSceneFile() {
             return fs.readFileSync(this.sceneFilePath, 'utf8');
         },
         writeSceneFile(data) {
             return fs.writeFileSync(this.sceneFilePath, JSON.stringify(data, null, 2), 'utf8');
+        },
+        saveScene() {
+            var data = serializeScene(this.app);
+            this.writeSceneFile(data);
         },
 
         // left col
@@ -122,6 +129,16 @@ export default {
             } else {
                 this.$store.commit('editor/selectOne', entity);
             }
+            this.$refs.rightDock.opened = !!this.selected.length;
+        },
+
+        deselectEntity(entity) {
+            this.$store.commit('editor/deselectOne', entity);
+            this.$refs.rightDock.opened = !!this.selected.length;
+        },
+
+        deselectAll() {
+            this.$store.commit('editor/deselectAll');
             this.$refs.rightDock.opened = !!this.selected.length;
         },
 
@@ -137,25 +154,36 @@ export default {
             this.picker = new pc.Picker(this.app, canvas.width(), canvas.height());
         },
 
+        onResize() {
+
+        },
+
         onMouseDown(e) {
+            if (e.element.id !== "canvas-3d") return;
             if (e.button == pc.MOUSEBUTTON_LEFT) {
-                // this.raycaster.update();
-                // this.raycaster.ray.origin.copy(this.activeCamera.getPosition());
-                // this.raycaster.ray.direction.copy(this.activeCamera.forward);
-                // let res = this.raycaster.castAll();
-
                 console.log('MD', e, e.button);
-                this.picker.prepare(this.activeCamera, this.app.scene);
-                let res = this.picker.getSelection(e.x, e.y)
-                console.log('MD2', e, e.button, res);
-
+                this.pickEntity(e.x, e.y);
             }
         },
 
         onMouseUp(e) {
+            if (e.element.id !== "canvas-3d") return;
             if (e.button == pc.MOUSEBUTTON_LEFT) {
                 console.log('MU', e, e.button);
-                this.raycaster.castAll();
+                // this.raycaster.castAll();
+            }
+        },
+
+        pickEntity(...selection) {
+            this.picker.prepare(this.activeCamera.camera, this.app.scene);
+            let res = this.picker.getSelection(...selection);
+            if (res.length) {
+                let entity = res[0].node;
+                while (!entity._guid) entity = entity.parent; // entity instanceof pc.GraphNode
+                console.log('Pick', selection, entity);
+                if (!this.selected.includes(entity)) this.selectEntity(entity);
+            } else {
+                this.deselectAll();
             }
         },
     },

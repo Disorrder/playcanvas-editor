@@ -7,6 +7,7 @@ export function serializeScene(app) {
 
     data.entities[app.root._guid] = serializeEntity(app.root);
     app.root.find((v) => {
+        if (!v._guid) return;
         data.entities[v._guid] = serializeEntity(v);
     });
 
@@ -24,7 +25,7 @@ export function serializeEntity(entity) {
         scale: entity.getLocalScale().toArray(),
 
         tags: entity.tags._list,
-        children: entity.children.map((v) => v._guid),
+        children: entity.children.map((v) => v._guid).filter((v) => v),
         parent: null,
         components: {}
     };

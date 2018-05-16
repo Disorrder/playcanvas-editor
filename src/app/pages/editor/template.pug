@@ -1,6 +1,7 @@
 #editor.theme--dark
     v-toolbar(app clipped-left height="36")
         v-btn(:to="{name: 'projects'}" exact) Home
+        v-btn(@click="saveScene") Save
 
     ui-dock.ui-dock-left(ref="leftDock" :aria-opened="true")
         div.text-center.px-4.mb-2 {{project.name}}

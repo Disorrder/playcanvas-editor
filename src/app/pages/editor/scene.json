@@ -22,14 +22,14 @@
       ],
       "tags": [],
       "children": [
-        "37773e8d-5215-4b04-9d2f-8247cc054f14",
-        "baad2c9d-0258-459d-b9f9-88e3d77b1dc9"
+        "43814f4c-9757-415d-9727-1597afcd1ee0",
+        "6ce65412-32bc-43f4-b0f5-41f174bfbad5"
       ],
       "parent": null,
       "components": {}
     },
-    "37773e8d-5215-4b04-9d2f-8247cc054f14": {
-      "resource_id": "37773e8d-5215-4b04-9d2f-8247cc054f14",
+    "43814f4c-9757-415d-9727-1597afcd1ee0": {
+      "resource_id": "43814f4c-9757-415d-9727-1597afcd1ee0",
       "enabled": true,
       "name": "Editor Root",
       "position": [
@@ -49,13 +49,13 @@
       ],
       "tags": [],
       "children": [
-        "1a3c7ed1-cf75-418b-a608-2a7abb13eafd"
+        "0b40de29-e029-45d8-a106-3ba74bcf360c"
       ],
       "parent": "10718b15-8232-4af5-bb58-b609c90d4c1f",
       "components": {}
     },
-    "1a3c7ed1-cf75-418b-a608-2a7abb13eafd": {
-      "resource_id": "1a3c7ed1-cf75-418b-a608-2a7abb13eafd",
+    "0b40de29-e029-45d8-a106-3ba74bcf360c": {
+      "resource_id": "0b40de29-e029-45d8-a106-3ba74bcf360c",
       "enabled": true,
       "name": "Perspective",
       "position": [
@@ -75,7 +75,7 @@
       ],
       "tags": [],
       "children": [],
-      "parent": "37773e8d-5215-4b04-9d2f-8247cc054f14",
+      "parent": "43814f4c-9757-415d-9727-1597afcd1ee0",
       "components": {
         "camera": {
           "clearColorBuffer": true,
@@ -91,7 +91,8 @@
           "frustumCulling": false,
           "cullFaces": true,
           "flipFaces": false,
-          "aspectRatio": 1.1570576540755466,
+          "aspectRatio": 1.1130776794493609,
+          "aspectRatioMode": 0,
           "isRendering": false,
           "clearColor": [
             0.10000000149011612,
@@ -108,8 +109,8 @@
         }
       }
     },
-    "baad2c9d-0258-459d-b9f9-88e3d77b1dc9": {
-      "resource_id": "baad2c9d-0258-459d-b9f9-88e3d77b1dc9",
+    "6ce65412-32bc-43f4-b0f5-41f174bfbad5": {
+      "resource_id": "6ce65412-32bc-43f4-b0f5-41f174bfbad5",
       "enabled": true,
       "name": "Root",
       "position": [
@@ -129,14 +130,14 @@
       ],
       "tags": [],
       "children": [
-        "da0e99c6-0f6c-4789-ab0d-a611b3fe5622",
-        "6679736e-5438-4c3d-9104-7901a71a467c"
+        "645f0248-48a3-4347-92c8-eab867f6161f",
+        "8bf824ca-0325-435c-ac5d-0d487dd55013"
       ],
       "parent": "10718b15-8232-4af5-bb58-b609c90d4c1f",
       "components": {}
     },
-    "da0e99c6-0f6c-4789-ab0d-a611b3fe5622": {
-      "resource_id": "da0e99c6-0f6c-4789-ab0d-a611b3fe5622",
+    "645f0248-48a3-4347-92c8-eab867f6161f": {
+      "resource_id": "645f0248-48a3-4347-92c8-eab867f6161f",
       "enabled": true,
       "name": "light",
       "position": [
@@ -156,7 +157,7 @@
       ],
       "tags": [],
       "children": [],
-      "parent": "baad2c9d-0258-459d-b9f9-88e3d77b1dc9",
+      "parent": "6ce65412-32bc-43f4-b0f5-41f174bfbad5",
       "components": {
         "light": {
           "enabled": true,
@@ -189,8 +190,8 @@
         }
       }
     },
-    "6679736e-5438-4c3d-9104-7901a71a467c": {
-      "resource_id": "6679736e-5438-4c3d-9104-7901a71a467c",
+    "8bf824ca-0325-435c-ac5d-0d487dd55013": {
+      "resource_id": "8bf824ca-0325-435c-ac5d-0d487dd55013",
       "enabled": true,
       "name": "cube",
       "position": [
@@ -199,8 +200,8 @@
         0
       ],
       "rotation": [
-        20,
-        -20,
+        30,
+        30,
         30
       ],
       "scale": [
@@ -209,10 +210,8 @@
         1
       ],
       "tags": [],
-      "children": [
-        null
-      ],
-      "parent": "baad2c9d-0258-459d-b9f9-88e3d77b1dc9",
+      "children": [],
+      "parent": "6ce65412-32bc-43f4-b0f5-41f174bfbad5",
       "components": {
         "model": {
           "enabled": true,
@@ -227,29 +226,6 @@
           "material": 0
         }
       }
-    },
-    "undefined": {
-      "enabled": true,
-      "name": "Untitled",
-      "position": [
-        0,
-        0,
-        0
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ],
-      "tags": [],
-      "children": [],
-      "parent": "6679736e-5438-4c3d-9104-7901a71a467c",
-      "components": {}
     }
   },
   "settings": {}
