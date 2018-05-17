@@ -1,0 +1,11 @@
+div.ctx-menu.ctx-entity.animated(:class="{opened: opened}")
+    ul
+        //- li.ctx-menu-item(v-for="item in items")
+        li.ctx-menu-item(v-if="containsDisabled" @click="enableItems") Enable
+        li.ctx-menu-item(v-if="containsEnabled" @click="disableItems") Disable
+        li.ctx-menu-item(@click="deleteItems"
+            @mouseenter="delete_hover(true)"
+            @mouseleave="delete_hover(false)"
+        ) Delete
+    
+        

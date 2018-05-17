@@ -21,7 +21,8 @@ var editor = {
             if (~i) state.selected.splice(i, 1);
         },
         deselectAll(state) {
-            state.selected.length = 0;
+            state.selected = [];
+            // state.selected.length = 0; // reactive watch is not triggering
         },
         toggleOne(state, entity) {
             var i = state.selected.indexOf(entity);

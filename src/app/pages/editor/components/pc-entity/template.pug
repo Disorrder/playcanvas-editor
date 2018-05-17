@@ -1,5 +1,5 @@
-div.pc-entity(:class="{opened: opened}" :data-name="entity.name" :data-guid="entity._guid")
-    div.pc-entity-item(@dblclick="toggle")
+div.pc-entity(:class="{opened: opened, disabled: !entity.enabled, deleting: entity.__deleting}" :data-name="entity.name" :data-guid="entity._guid")
+    div.pc-entity-item(:class="{selected: isSelected}" @dblclick="toggle")
         div.pc-entity-toggle(@click.stop="toggle")
             v-icon(v-if="isFolder && !opened") keyboard_arrow_right
             v-icon(v-if="isFolder && opened") keyboard_arrow_down

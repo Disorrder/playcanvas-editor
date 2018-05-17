@@ -22,6 +22,7 @@ Vue.component('pc-entity', {
         // only instanceof pc.Entity has _guid
         children() { return this.entity.children && this.entity.children.filter((v) => v._guid); },
         isFolder() { return this.children && this.children.length; },
+        isSelected() { return this.$store.state.editor.selected.includes(this.entity); },
     },
     methods: {
         toggle() {

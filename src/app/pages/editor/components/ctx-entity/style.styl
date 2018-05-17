@@ -1,0 +1,24 @@
+// .ctx-entity
+
+.ctx-menu
+    position absolute
+    width 170px
+    top 0
+    left 0
+
+    display none
+    opacity 0
+    z-index 100
+
+    background #777
+
+    &.opened
+        display block
+        opacity 1
+
+    .ctx-menu-item
+        cursor pointer
+        line-height 20px
+
+        &:hover
+            background rgba(#fff, 0.2)

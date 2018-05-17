@@ -3,11 +3,14 @@
         display flex
         line-height 1.8em
         cursor pointer
+        color #ccc
 
         &:hover
-            background rgba(#fff, 0.2)
+            background rgba(#000, 0.2)
+            color #fff
         &.selected
-            background rgba(#fff, 0.5)
+            background rgba(#000, 0.5)
+            color #fff
 
     .pc-entity-toggle
         width 2rem
@@ -21,3 +24,11 @@
 
     .pc-entity-name
         flex 1 1 auto
+
+    &.disabled
+        color #999
+        opacity 0.5
+
+    &.deleting
+        background rgba(red, 0.3)
+        opacity 0.8
