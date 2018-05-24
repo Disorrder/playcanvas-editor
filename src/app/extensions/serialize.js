@@ -52,6 +52,7 @@ function serializeComponents(entity) {
             let val = component.data[name];
             let t = typeof val;
             if (t === 'boolean' || t === 'number' || t === 'string') cData[name] = val;
+            if (['layers'].includes(name)) cData[name] = val;
         }
 
         if (name === 'camera') {
@@ -62,7 +63,7 @@ function serializeComponents(entity) {
         }
         if (name === 'model') {
             Object.assign(cData, {
-                material: component.material.id
+                material: component.material.id,
             });
         }
         if (name === 'light') {

@@ -5,6 +5,7 @@ const fs = window.require('fs');
 const path = window.require('path');
 
 import {serializeScene, deserializeScene} from 'app/extensions/serialize';
+import GizmoTranslate from 'app/extensions/GizmoTranslate';
 
 export default {
     template: require('./template.pug')(),
@@ -110,6 +111,16 @@ export default {
             this.activeCamera = this.app.root.findByPath('Editor Root/Perspective');
         },
 
+        initGizmos() {
+            var editorRoot = this.app.root.findByName('Editor Root');
+
+            var translate = new GizmoTranslate();
+            editorRoot.addChild(translate.entity);
+            translate.entity.setLocalPosition(0, 0, -11);
+            console.log(translate, translate.entity);
+
+        },
+
         readSceneFile() {
             return fs.readFileSync(this.sceneFilePath, 'utf8');
         },
@@ -198,6 +209,7 @@ export default {
         this.initApp();
         this.initScene();
         // this.initScene_test();
+        this.initGizmos();
         this.initEvents();
 
         console.log('ref rd', this.$refs.rightDock);
