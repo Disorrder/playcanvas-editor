@@ -5,7 +5,7 @@ const fs = window.require('fs');
 const path = window.require('path');
 
 import {serializeScene, deserializeScene} from 'app/extensions/serialize';
-import GizmoTranslate from 'app/extensions/GizmoTranslate';
+import GizmoTranslate from './modules/GizmoTranslate';
 
 export default {
     template: require('./template.pug')(),
@@ -22,6 +22,9 @@ export default {
             // scene
             activeCamera: null,
             _event: {},
+
+            // viewport
+            viewportNeedUpdate: false,
         }
     },
     computed: {
@@ -37,12 +40,14 @@ export default {
         sceneFilePath() {
             return path.join(this.project.path, this.scene.path);
         },
-        rootNode() {
-            return this.app.root;
-        },
+
+        rootNode() { return this.app.root; },
+        editorRoot() { return this.app.root.findByPath('Editor Root'); },
+        sceneRoot() { return this.app.root.findByPath('Root'); },
+
         selected() {
             return this.$store.state.editor.selected;
-        }
+        },
     },
     methods: {
         initApp() {
@@ -54,6 +59,7 @@ export default {
                 keyboard: new pc.Keyboard(window),
             });
             this.app = app;
+            app._editor = this;
 
             app.start();
             // app.setCanvasFillMode(pc.FILLMODE_FILL_WINDOW);
@@ -68,11 +74,11 @@ export default {
 
             var data = this.readSceneFile();
             data = JSON.parse(data);
-            // this.app.applySceneSettings(data.settings);
+            // this.app.applySceneSettings(data.settings); // TODO
             this.app.root = deserializeScene(this.app, data);
             console.log(data, this.app.root);
 
-            this.activeCamera = this.app.root.findByPath('Editor Root/Perspective');
+            this.activeCamera = this.editorRoot.findByPath('Perspective');
         },
 
         initScene_test() {
@@ -112,11 +118,9 @@ export default {
         },
 
         initGizmos() {
-            var editorRoot = this.app.root.findByName('Editor Root');
-
-            var translate = new GizmoTranslate();
-            editorRoot.addChild(translate.entity);
-            translate.entity.setLocalPosition(0, 0, -11);
+            var translate = new GizmoTranslate(this.app);
+            this.editorRoot.addChild(translate.entity);
+            // translate.entity.setLocalPosition(0, 0, -11);
             console.log(translate, translate.entity);
 
         },
