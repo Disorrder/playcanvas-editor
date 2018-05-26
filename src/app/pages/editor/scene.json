@@ -1,114 +1,6 @@
 {
   "name": "Untitled",
   "entities": {
-    "10718b15-8232-4af5-bb58-b609c90d4c1f": {
-      "resource_id": "10718b15-8232-4af5-bb58-b609c90d4c1f",
-      "enabled": true,
-      "name": "Root",
-      "position": [
-        0,
-        0,
-        0
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ],
-      "tags": [],
-      "children": [
-        "43814f4c-9757-415d-9727-1597afcd1ee0",
-        "6ce65412-32bc-43f4-b0f5-41f174bfbad5"
-      ],
-      "parent": null,
-      "components": {}
-    },
-    "43814f4c-9757-415d-9727-1597afcd1ee0": {
-      "resource_id": "43814f4c-9757-415d-9727-1597afcd1ee0",
-      "enabled": true,
-      "name": "Editor Root",
-      "position": [
-        0,
-        0,
-        0
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ],
-      "tags": [],
-      "children": [
-        "0b40de29-e029-45d8-a106-3ba74bcf360c"
-      ],
-      "parent": "10718b15-8232-4af5-bb58-b609c90d4c1f",
-      "components": {}
-    },
-    "0b40de29-e029-45d8-a106-3ba74bcf360c": {
-      "resource_id": "0b40de29-e029-45d8-a106-3ba74bcf360c",
-      "enabled": true,
-      "name": "Perspective",
-      "position": [
-        0,
-        0,
-        3
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ],
-      "tags": [],
-      "children": [],
-      "parent": "43814f4c-9757-415d-9727-1597afcd1ee0",
-      "components": {
-        "camera": {
-          "clearColorBuffer": true,
-          "clearDepthBuffer": true,
-          "clearStencilBuffer": true,
-          "nearClip": 0.1,
-          "farClip": 1000,
-          "fov": 45,
-          "orthoHeight": 100,
-          "projection": 0,
-          "priority": 0,
-          "enabled": true,
-          "frustumCulling": false,
-          "cullFaces": true,
-          "flipFaces": false,
-          "aspectRatio": 1.1130776794493609,
-          "aspectRatioMode": 0,
-          "isRendering": false,
-          "clearColor": [
-            0.10000000149011612,
-            0.10000000149011612,
-            0.10000000149011612,
-            1
-          ],
-          "rect": [
-            0,
-            0,
-            1,
-            1
-          ]
-        }
-      }
-    },
     "6ce65412-32bc-43f4-b0f5-41f174bfbad5": {
       "resource_id": "6ce65412-32bc-43f4-b0f5-41f174bfbad5",
       "enabled": true,
@@ -133,7 +25,6 @@
         "645f0248-48a3-4347-92c8-eab867f6161f",
         "8bf824ca-0325-435c-ac5d-0d487dd55013"
       ],
-      "parent": "10718b15-8232-4af5-bb58-b609c90d4c1f",
       "components": {}
     },
     "645f0248-48a3-4347-92c8-eab867f6161f": {

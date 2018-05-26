@@ -79,7 +79,10 @@ function serializeComponents(entity) {
 
 export function deserializeScene(app, data) {
     var parser = new pc.SceneParser(app);
-    var parent = parser.parse(data);
+    try {
+        var parent = parser.parse(data);
+    } catch(e) {}
+    if (!parent) parent = new pc.Entity('Root');
     return parent;
 }
 
