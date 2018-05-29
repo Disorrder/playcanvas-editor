@@ -5,6 +5,7 @@ const fs = window.require('fs');
 const path = window.require('path');
 
 import {serializeScene, deserializeScene} from 'app/extensions/serialize';
+import Picker from './modules/Picker';
 import GizmoTranslate from './modules/GizmoTranslate';
 
 export default {
@@ -142,6 +143,10 @@ export default {
             this.activeCamera = this.cameras.perspective;
         },
 
+        initPicker() {
+            this.picker = new Picker(this.app);
+        },
+
         initGizmos() {
             let gizmo = new GizmoTranslate(this.app);
             this.editorRoot.addChild(gizmo.entity);
@@ -161,17 +166,15 @@ export default {
         },
 
         // Events
-        initEvents() {
-            this.app.on('update', this.update, this);
-
-            this.app.mouse.on(pc.EVENT_MOUSEDOWN, this.onMouseDown, this);
-            this.app.mouse.on(pc.EVENT_MOUSEUP, this.onMouseUp, this);
-            // $('#canvas-3d')
-            //     .on('mousedown', )
-
-            var canvas = $('#canvas-3d');
-            this.picker = new pc.Picker(this.app, canvas.width(), canvas.height());
-        },
+        // initEvents() {
+        //     this.app.on('update', this.update, this);
+        //
+        //     this.app.mouse.on(pc.EVENT_MOUSEDOWN, this.onMouseDown, this);
+        //     this.app.mouse.on(pc.EVENT_MOUSEUP, this.onMouseUp, this);
+        //     // $('#canvas-3d')
+        //     //     .on('mousedown', )
+        //
+        // },
 
         onResize() {
 
@@ -214,8 +217,9 @@ export default {
         this.initApp();
         this.initEditorNodes();
         this.initScene();
+        this.initPicker();
         this.initGizmos();
-        this.initEvents();
+        // this.initEvents();
 
         console.log('ref rd', this.$refs.rightDock);
         $(this.$refs.leftDock.$el).on('click', '.pc-entity-item', (e) => {
