@@ -7,6 +7,7 @@ const path = window.require('path');
 import {serializeScene, deserializeScene} from 'app/extensions/serialize';
 import Picker from './modules/Picker';
 import GizmoTranslate from './modules/GizmoTranslate';
+import Camera from './modules/Camera';
 
 export default {
     template: require('./template.pug')(),
@@ -131,12 +132,13 @@ export default {
             this.app.root.addChild(new pc.Entity('Editor Root'));
 
             // cameras
-            let camera = new pc.Entity('Perspective');
-            camera.addComponent('camera', {
-                clearColor: new pc.Color(0.1, 0.1, 0.1)
-            });
-            camera.setPosition(0, 0, 3);
-            this.editorRoot.addChild(camera);
+            // let camera = new pc.Entity('Perspective');
+            // camera.addComponent('camera', {
+            //     clearColor: new pc.Color(0.1, 0.1, 0.1)
+            // });
+            // camera.setPosition(0, 0, 3);
+            var camera = new Camera(this.app);
+            this.editorRoot.addChild(camera.entity);
             this.cameras.perspective = camera;
 
             // set active

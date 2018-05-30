@@ -10,18 +10,10 @@ export default class Picker {
     }
 
     attachEvents() {
-        this.app.mouse.on(pc.EVENT_MOUSEDOWN, this.onMouseDown, this);
-        this.app.mouse.on(pc.EVENT_MOUSEUP, this.onMouseUp, this);
         this.app.mouse.on(pc.EVENT_MOUSEMOVE, this.onMouseMove, this);
-        this.app.mouse.on(pc.EVENT_MOUSEWHEEL, this.onMouseWheel, this);
-    }
-
-    onMouseDown() {
-
-    }
-
-    onMouseUp() {
-
+        // this.app.mouse.on(pc.EVENT_MOUSEDOWN, this.onMouseDown, this);
+        // this.app.mouse.on(pc.EVENT_MOUSEUP, this.onMouseUp, this);
+        // this.app.mouse.on(pc.EVENT_MOUSEWHEEL, this.onMouseWheel, this);
     }
 
     onMouseMove(e) {
@@ -32,7 +24,7 @@ export default class Picker {
             if (entity === this.target) return;
 
             this.app.emit('picker:leave', this.target);
-            console.log('pickel:leave', this.target, this.target.name);
+            console.log('pickel:leave', this.target, this.target?this.target.name:'');
             if (!entity) {
                 this.state = 'ready';
             }
@@ -43,6 +35,14 @@ export default class Picker {
             }
             this.target = entity;
         };
+
+    }
+
+    onMouseDown() {
+
+    }
+
+    onMouseUp() {
 
     }
 
