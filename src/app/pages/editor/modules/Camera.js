@@ -1,4 +1,5 @@
 var vec3 = new pc.Vec3();
+var vec3A = new pc.Vec3();
 
 export default class Camera {
     constructor(app) {
@@ -8,6 +9,7 @@ export default class Camera {
 
         this.moving = false;
         this.sensitivity = 0.2;
+        this.orbitRadius = 1;
     }
 
     createEntity() {
@@ -91,16 +93,26 @@ export default class Camera {
     }
 
     lookOrbit(dx, dy) {
-
+        vec3.copy(this.entity.forward).scale(this.orbitRadius); // pivot vector
+        this.entity.translate(vec3);
+        this.lookAround(dx, dy);
+        vec3.copy(this.entity.forward).scale(-this.orbitRadius);
+        this.entity.translate(vec3);
     }
 
     zoom(wheel) {
-        vec3.copy(this.entity.forward).scale(wheel*this.sensitivity);
+        this.orbitRadius -= wheel * this.sensitivity;
+        this.orbitRadius = Math.max(1, this.orbitRadius);
+        vec3.copy(this.entity.forward).scale(wheel * this.sensitivity);
         this.entity.translate(vec3);
     }
 
     translate(dx, dy) {
-        console.log('translate', dx, dy);
+        // console.log('translate', dx, dy);
+        vec3.copy(this.entity.up).scale(-dy * this.sensitivity * 0.1);
+        vec3A.copy(this.entity.right).scale(dx * this.sensitivity * 0.1);
+        vec3.add(vec3A);
+        this.entity.translate(vec3);
     }
 
     // update() {

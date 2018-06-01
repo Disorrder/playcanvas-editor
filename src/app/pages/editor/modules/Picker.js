@@ -12,26 +12,25 @@ export default class Picker {
     attachEvents() {
         this.app.mouse.on(pc.EVENT_MOUSEMOVE, this.onMouseMove, this);
         // this.app.mouse.on(pc.EVENT_MOUSEDOWN, this.onMouseDown, this);
-        // this.app.mouse.on(pc.EVENT_MOUSEUP, this.onMouseUp, this);
+        this.app.mouse.on(pc.EVENT_MOUSEUP, this.onMouseUp, this);
         // this.app.mouse.on(pc.EVENT_MOUSEWHEEL, this.onMouseWheel, this);
     }
 
     onMouseMove(e) {
         if (e.element.id !== "canvas-3d") return;
-        console.log('P: MM', e);
         if (this.state === 'ready' || this.state === 'hover') {
             let entity = this.pickEntity(e.x, e.y);
             if (entity === this.target) return;
 
             this.app.emit('picker:leave', this.target);
-            console.log('pickel:leave', this.target, this.target?this.target.name:'');
+            console.log('picker:leave', this.target, this.target?this.target.name:'');
             if (!entity) {
                 this.state = 'ready';
             }
             if (entity) {
                 this.state = 'hover';
                 this.app.emit('picker:hover', entity);
-                console.log('pickel:hover', entity, entity.name);
+                console.log('picker:hover', entity, entity.name);
             }
             this.target = entity;
         };
@@ -43,11 +42,12 @@ export default class Picker {
     }
 
     onMouseUp() {
-
-    }
-
-    onMouseWheel() {
-
+        // console.log('P: MU');
+        if (!this.target) return;
+        var isEditorNode = this.target.findParents((v) => v.name === 'Editor Root');
+        if (isEditorNode) return;
+        this.app.emit('picker:select', this.target);
+        console.log('picker:select', this.target.name, this.target);
     }
 
     onResize() {

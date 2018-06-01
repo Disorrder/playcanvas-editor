@@ -88,18 +88,18 @@ export default {
         },
 
         // --- 3D ---
-        pickEntity(...selection) {
-            this.picker.prepare(this.activeCamera.camera, this.app.scene);
-            let res = this.picker.getSelection(...selection);
-            if (res.length) {
-                let entity = res[0].node;
-                while (!entity._guid) entity = entity.parent; // entity instanceof pc.GraphNode
-                console.log('Pick', selection, entity);
-                if (!this.selected.includes(entity)) this.selectEntity(entity);
-            } else {
-                this.deselectAll();
-            }
-        },
+        // pickEntity(...selection) {
+        //     this.picker.prepare(this.activeCamera.camera, this.app.scene);
+        //     let res = this.picker.getSelection(...selection);
+        //     if (res.length) {
+        //         let entity = res[0].node;
+        //         while (!entity._guid) entity = entity.parent; // entity instanceof pc.GraphNode
+        //         console.log('Pick', selection, entity);
+        //         if (!this.selected.includes(entity)) this.selectEntity(entity);
+        //     } else {
+        //         this.deselectAll();
+        //     }
+        // },
 
         // --- initialization ---
         initApp() {
@@ -168,35 +168,13 @@ export default {
         },
 
         // Events
-        // initEvents() {
-        //     this.app.on('update', this.update, this);
-        //
-        //     this.app.mouse.on(pc.EVENT_MOUSEDOWN, this.onMouseDown, this);
-        //     this.app.mouse.on(pc.EVENT_MOUSEUP, this.onMouseUp, this);
-        //     // $('#canvas-3d')
-        //     //     .on('mousedown', )
-        //
-        // },
+        attachEvents() {
+            this.app.on('update', this.update, this);
+            this.app.on('picker:select', this.selectEntity, this);
+        },
 
         onResize() {
 
-        },
-
-        // mouse
-        onMouseDown(e) {
-            if (e.element.id !== "canvas-3d") return;
-            if (e.button == pc.MOUSEBUTTON_LEFT) {
-                console.log('MD', e, e.button);
-                this.pickEntity(e.x, e.y);
-            }
-        },
-
-        onMouseUp(e) {
-            if (e.element.id !== "canvas-3d") return;
-            if (e.button == pc.MOUSEBUTTON_LEFT) {
-                console.log('MU', e, e.button);
-                // this.raycaster.castAll();
-            }
         },
 
         // render loop
@@ -221,7 +199,7 @@ export default {
         this.initScene();
         this.initPicker();
         this.initGizmos();
-        // this.initEvents();
+        this.attachEvents();
 
         console.log('ref rd', this.$refs.rightDock);
         $(this.$refs.leftDock.$el).on('click', '.pc-entity-item', (e) => {
