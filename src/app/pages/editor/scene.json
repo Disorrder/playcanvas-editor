@@ -1,5 +1,40 @@
 {
   "name": "Untitled",
+  "settings": {
+      "priority_scripts": [],
+      "physics": {
+        "gravity": [
+          0,
+          -9.8,
+          0
+        ]
+      },
+      "render": {
+        "fog_end": 1000,
+        "fog_start": 500,
+        "skyboxIntensity": 0.991,
+        "global_ambient": [
+          0.3176470588235294,
+          0.3176470588235294,
+          0.3176470588235294
+        ],
+        "tonemapping": 3,
+        "fog_color": [
+          1,
+          0.5647058823529412,
+          0.13725490196078433
+        ],
+        "lightmapMode": 0,
+        "skyboxMip": 0,
+        "fog": "exp",
+        "lightmapMaxResolution": 2048,
+        "__skybox": 10872566,
+        "fog_density": 0,
+        "gamma_correction": 1,
+        "lightmapSizeMultiplier": 16,
+        "exposure": 0.7
+      }
+  },
   "entities": {
     "6ce65412-32bc-43f4-b0f5-41f174bfbad5": {
       "resource_id": "6ce65412-32bc-43f4-b0f5-41f174bfbad5",
@@ -118,6 +153,5 @@
         }
       }
     }
-  },
-  "settings": {}
+  }
 }

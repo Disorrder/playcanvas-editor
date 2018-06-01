@@ -13,6 +13,10 @@ String.prototype.hashCode = function() {
 	return hash;
 }
 
+String.prototype.capitalize = function() {
+	return this.charAt(0).toUpperCase() + this.slice(1);
+}
+
 // Array
 Array.prototype.delete = function(v) {
 	var i = this.indexOf(v);

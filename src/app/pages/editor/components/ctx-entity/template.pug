@@ -1,6 +1,17 @@
 div.ctx-menu.ctx-entity.animated(:class="{opened: opened}")
-    ul
+    ul.ctx-menu-list
         //- li.ctx-menu-item(v-for="item in items")
+        li.ctx-menu-item.has-sublist(v-if="items.length === 1" @click.stop="createEntity()")
+            span Create
+            ul.ctx-menu-list
+                li.ctx-menu-item(@click.stop="createModel('plane')") Plane
+                li.ctx-menu-item(@click.stop="createModel('box')") Box
+                li.ctx-menu-item(@click.stop="createModel('sphere')") Sphere
+                li.ctx-menu-item(@click.stop="createLight('point')") Point Light
+                li.ctx-menu-item(@click.stop="createLight('spot')") Spot Light
+                li.ctx-menu-item(@click.stop="createLight('directional')") Directional Light
+
+                
         li.ctx-menu-item(v-if="containsDisabled" @click="enableItems") Enable
         li.ctx-menu-item(v-if="containsEnabled" @click="disableItems") Disable
         li.ctx-menu-item(@click="deleteItems"

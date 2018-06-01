@@ -62,6 +62,38 @@ Vue.component('ctx-entity', {
             return target.__vue__.entity;
         },
 
+        // actions
+        createEntity() {
+            var entity = new pc.Entity();
+            entity.name = 'New Entity';
+            this.items[0].addChild(entity);
+            console.log('create entity!', this.items[0]);
+            return entity;
+        },
+        createModel(type) {
+            var entity = this.createEntity();
+            if (type) {
+                entity.addComponent('model', {type});
+                entity.name = type.capitalize();
+            }
+        },
+        createLight(type) {
+            var entity = this.createEntity();
+            if (type) {
+                entity.addComponent('light', {type});
+                entity.name = type.capitalize() + ' Light';
+            }
+            if (type === 'directional') {
+                entity.setLocalEulerAngles(60, 30, 0);
+            }
+        },
+
+        addComponent(name, data) {
+            this.items.forEach((entity) => {
+                entity.addComponent(name, data);
+            });
+        },
+
         enableItems() {
             this.items.forEach((v) => {
                 v.enabled = true;
@@ -93,6 +125,8 @@ Vue.component('ctx-entity', {
             .on(`contextmenu.ctx-entity`, `.pc-entity-item`, this.onContextmenu.bind(this))
             .on(`click.ctx-entity`, this.onClick.bind(this))
         ;
+
+        // this.simpleMat = new pc.Material();
 
     },
     beforeDestroy() {

@@ -88,19 +88,6 @@ export default {
         },
 
         // --- 3D ---
-        // pickEntity(...selection) {
-        //     this.picker.prepare(this.activeCamera.camera, this.app.scene);
-        //     let res = this.picker.getSelection(...selection);
-        //     if (res.length) {
-        //         let entity = res[0].node;
-        //         while (!entity._guid) entity = entity.parent; // entity instanceof pc.GraphNode
-        //         console.log('Pick', selection, entity);
-        //         if (!this.selected.includes(entity)) this.selectEntity(entity);
-        //     } else {
-        //         this.deselectAll();
-        //     }
-        // },
-
         // --- initialization ---
         initApp() {
             var canvas = document.getElementById('canvas-3d');
@@ -161,10 +148,23 @@ export default {
         initScene() {
             var data = this.readSceneFile();
             data = JSON.parse(data);
-            // this.app.applySceneSettings(data.settings); // TODO
+
+            if (!data.settings || Object.keys(data.settings).length === 0) {
+                data.settings = {
+                    "physics": {
+                        "gravity": [0, -9.8, 0]
+                    },
+                    "render": {
+                        "global_ambient": [0.3, 0.3, 0.3],
+                        "fog_color": [0.6, 0.6, 0.8]
+                    }
+                };
+            }
+            this.app.applySceneSettings(data.settings);
+
             var sceneRoot = deserializeScene(this.app, data);
             this.app.root.addChild(sceneRoot);
-            console.log(data, sceneRoot);
+            console.log('initScene', data, sceneRoot);
         },
 
         // Events
