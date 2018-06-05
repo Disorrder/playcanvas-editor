@@ -1,14 +1,14 @@
 // copied from official editor
 /* editor/gizmo/gizmo-translate.js */
 
-import Gizmo from './Gizmo';
+import GizmoBase from './GizmoBase';
 
 const GIZMO_MASK = 8;
 const arrowRadius = .4;
 
 var vecA = new pc.Vec3();
 
-export default class GizmoTranslate extends Gizmo {
+export default class GizmoTranslate extends GizmoBase {
     constructor(app) {
         super(app);
         this.entities = this.createEntity();

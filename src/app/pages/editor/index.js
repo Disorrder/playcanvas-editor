@@ -6,7 +6,7 @@ const path = window.require('path');
 
 import {serializeScene, deserializeScene} from 'app/extensions/serialize';
 import Picker from './modules/Picker';
-import GizmoTranslate from './modules/GizmoTranslate';
+import Gizmo from './modules/Gizmo';
 import Camera from './modules/Camera';
 
 export default {
@@ -23,10 +23,11 @@ export default {
 
             // scene
             needUpdate: false,
-            activeCamera: null,
 
+            activeCamera: null,
             cameras: {},
-            gizmos: {},
+
+            gizmo: null,
         }
     },
     computed: {
@@ -75,16 +76,19 @@ export default {
                 this.$store.commit('editor/selectOne', entity);
             }
             this.$refs.rightDock.opened = !!this.selected.length;
+            this.updateGizmo();
         },
 
         deselectEntity(entity) {
             this.$store.commit('editor/deselectOne', entity);
             this.$refs.rightDock.opened = !!this.selected.length;
+            this.updateGizmo();
         },
 
         deselectAll() {
             this.$store.commit('editor/deselectAll');
             this.$refs.rightDock.opened = !!this.selected.length;
+            this.updateGizmo();
         },
 
         // --- 3D ---
@@ -136,13 +140,22 @@ export default {
             this.picker = new Picker(this.app);
         },
 
-        initGizmos() {
-            let gizmo = new GizmoTranslate(this.app);
+        initGizmo() {
+            let gizmo = new Gizmo(this.app);
+            gizmo.activate('translate');
             this.editorRoot.addChild(gizmo.entity);
-            // gizmo.entity.setLocalPosition(0, 0, -11);
-            console.log(gizmo, gizmo.entity);
-            this.gizmos.translate = gizmo;
-
+            this.gizmo = gizmo;
+            this.updateGizmo();
+        },
+        updateGizmo() {
+            if (this.selected.length) {
+                let entity = this.selected[0];
+                this.gizmo.setPosition(entity.getPosition());
+                this.gizmo.setRotation(entity.getEulerAngles());
+                this.gizmo.show();
+            } else {
+                this.gizmo.hide();
+            }
         },
 
         initScene() {
@@ -199,7 +212,7 @@ export default {
         this.initEditorNodes();
         this.initScene();
         this.initPicker();
-        this.initGizmos();
+        this.initGizmo();
         this.attachEvents();
 
         console.log('ref rd', this.$refs.rightDock);
