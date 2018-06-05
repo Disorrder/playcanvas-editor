@@ -1,7 +1,7 @@
 export default class Picker {
     constructor(app) {
         this.app = app;
-        this.state = 'ready'; // one of 'hover', 'click', 'drag'
+        this.state = 'ready'; // one of 'hover', 'click', 'drag', 'hold'
         this.target = null; // entity or smth like that
 
         var canvas = $('#canvas-3d');
@@ -10,9 +10,9 @@ export default class Picker {
     }
 
     attachEvents() {
-        this.app.mouse.on(pc.EVENT_MOUSEMOVE, this.onMouseMove, this);
-        // this.app.mouse.on(pc.EVENT_MOUSEDOWN, this.onMouseDown, this);
+        this.app.mouse.on(pc.EVENT_MOUSEDOWN, this.onMouseDown, this);
         this.app.mouse.on(pc.EVENT_MOUSEUP, this.onMouseUp, this);
+        this.app.mouse.on(pc.EVENT_MOUSEMOVE, this.onMouseMove, this);
         // this.app.mouse.on(pc.EVENT_MOUSEWHEEL, this.onMouseWheel, this);
     }
 
@@ -33,21 +33,33 @@ export default class Picker {
                 console.log('picker:hover', entity, entity.name);
             }
             this.target = entity;
-        };
-
+        }
+        if (this.state === 'hold') {
+            this.state = 'drag';
+        }
     }
 
-    onMouseDown() {
-
+    onMouseDown(e) {
+        if (e.element.id !== "canvas-3d") return;
+        if (this.state === 'ready' || this.state === 'hover') {
+            this.state = 'hold';
+        }
     }
 
-    onMouseUp() {
-        // console.log('P: MU');
-        if (!this.target) return;
-        var isEditorNode = this.target.findParents((v) => v.name === 'Editor Root');
-        if (isEditorNode) return;
-        this.app.emit('picker:select', this.target);
-        console.log('picker:select', this.target.name, this.target);
+    onMouseUp(e) {
+        if (e.element.id !== "canvas-3d") return;
+        if (this.state === 'hold') {
+            this.state = 'ready'; // set state before action. May be strange?
+            if (!this.target) {
+                this.app.emit('picker:deselectAll');
+                return;
+            }
+            var isEditorNode = this.target.findParents((v) => v.name === 'Editor Root');
+            if (isEditorNode) return;
+            this.app.emit('picker:select', this.target);
+            console.log('picker:select', this.target.name, this.target);
+        }
+        this.state = 'ready';
     }
 
     onResize() {

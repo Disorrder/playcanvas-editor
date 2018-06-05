@@ -46,6 +46,7 @@ export default class GizmoTranslate extends Gizmo {
         // root entity
         var entity = obj.root = new pc.Entity();
         entity.name = 'Translate Gizmo';
+        entity.enabled = false;
 
         // var gizmoLayer = pc.LAYERID_UI;
         var gizmoLayer = pc.LAYERID_IMMEDIATE;

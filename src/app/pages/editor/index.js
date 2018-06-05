@@ -171,6 +171,7 @@ export default {
         attachEvents() {
             this.app.on('update', this.update, this);
             this.app.on('picker:select', this.selectEntity, this);
+            this.app.on('picker:deselectAll', this.deselectAll, this);
         },
 
         onResize() {
