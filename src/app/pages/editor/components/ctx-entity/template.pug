@@ -2,21 +2,42 @@ div.ctx-menu.ctx-entity.animated(:class="{opened: opened}")
     ul.ctx-menu-list
         //- li.ctx-menu-item(v-for="item in items")
         li.ctx-menu-item.has-sublist(v-if="items.length === 1" @click.stop="createEntity()")
+            v-icon add
             span Create
             ul.ctx-menu-list
-                li.ctx-menu-item(@click.stop="createModel('plane')") Plane
-                li.ctx-menu-item(@click.stop="createModel('box')") Box
-                li.ctx-menu-item(@click.stop="createModel('sphere')") Sphere
-                li.ctx-menu-item(@click.stop="createLight('point')") Point Light
-                li.ctx-menu-item(@click.stop="createLight('spot')") Spot Light
-                li.ctx-menu-item(@click.stop="createLight('directional')") Directional Light
-
+                li.ctx-menu-item(@click.stop="createModel()")
+                    v-icon pc-add
+                    span Entity
+                li.ctx-menu-item(@click.stop="createModel('plane')")
+                    v-icon pc-box-filled
+                    span Plane
+                li.ctx-menu-item(@click.stop="createModel('box')")
+                    v-icon pc-box-filled
+                    span Box
+                li.ctx-menu-item(@click.stop="createModel('sphere')")
+                    v-icon pc-box-filled
+                    span Sphere
+                li.ctx-menu-item(@click.stop="createLight('point')")
+                    v-icon pc-lamp-down
+                    span Point Light
+                li.ctx-menu-item(@click.stop="createLight('spot')")
+                    v-icon pc-lamp-down
+                    span Spot Light
+                li.ctx-menu-item(@click.stop="createLight('directional')")
+                    v-icon pc-sun
+                    span Directional Light
                 
-        li.ctx-menu-item(v-if="containsDisabled" @click="enableItems") Enable
-        li.ctx-menu-item(v-if="containsEnabled" @click="disableItems") Disable
+        li.ctx-menu-item(v-if="containsDisabled" @click="enableItems")
+            v-icon pc-enable
+            span Enable
+        li.ctx-menu-item(v-if="containsEnabled" @click="disableItems")
+            v-icon pc-disable
+            span Disable
         li.ctx-menu-item(@click="deleteItems"
             @mouseenter="delete_hover(true)"
             @mouseleave="delete_hover(false)"
-        ) Delete
+        )
+            v-icon delete
+            span Delete
     
         
