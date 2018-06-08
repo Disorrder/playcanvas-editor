@@ -1,13 +1,16 @@
 export default class Picker {
     constructor(app) {
         this.app = app;
-        this.state = 'ready'; // one of 'hover', 'click', 'drag', 'hold'
+        this.state = 'ready'; // one of 'ready', 'hover', 'click', 'drag', 'hold'
         this.target = null; // entity or smth like that
+        this.busy = null;
 
         var canvas = $('#canvas-3d');
         this.picker = new pc.Picker(this.app, canvas.width(), canvas.height());
         this.attachEvents();
     }
+
+    get ready() { return this.state === 'ready' || this.state === 'hover'; }
 
     attachEvents() {
         this.app.mouse.on(pc.EVENT_MOUSEDOWN, this.onMouseDown, this);
@@ -18,7 +21,7 @@ export default class Picker {
 
     onMouseMove(e) {
         if (e.element.id !== "canvas-3d") return;
-        if (this.state === 'ready' || this.state === 'hover') {
+        if (this.ready) {
             let entity = this.pickEntity(e.x, e.y);
             if (entity === this.target) return;
 
@@ -41,7 +44,7 @@ export default class Picker {
 
     onMouseDown(e) {
         if (e.element.id !== "canvas-3d") return;
-        if (this.state === 'ready' || this.state === 'hover') {
+        if (this.ready) {
             this.state = 'hold';
         }
     }

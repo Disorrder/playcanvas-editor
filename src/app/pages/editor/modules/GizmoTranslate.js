@@ -15,6 +15,74 @@ export default class GizmoTranslate extends GizmoBase {
         this.entity = this.entities.root;
     }
 
+    attachEvents() {
+        super.attachEvents();
+        this.app.on('picker:leave', this.onLeave, this);
+        this.app.on('picker:hover', this.onHover, this);
+        this.app.mouse.on(pc.EVENT_MOUSEDOWN, this.onMouseDown, this);
+        this.app.mouse.on(pc.EVENT_MOUSEUP, this.onMouseUp, this);
+    }
+
+    onLeave(entity) {
+        if (this.moving) return;
+        if (!this.entities.hoverable.includes(entity)) return;
+        this.hovered = null;
+        if (entity.plane) {
+            entity.model.material = entity.mat;
+        } else {
+            let line = this.entities.line[entity.axis];
+            let arrow = this.entities.arrow[entity.axis];
+            arrow.model.material = arrow.mat;
+        }
+    }
+
+    onHover(entity) {
+        if (this.moving) return;
+        if (!this.entities.hoverable.includes(entity)) return;
+        this.hovered = entity;
+        if (entity.plane) {
+            entity.model.material = this.entities.matActiveTransparent;
+        } else {
+            let line = this.entities.line[entity.axis];
+            let arrow = this.entities.arrow[entity.axis];
+            arrow.model.material = this.entities.matActive;
+        }
+    }
+
+    onMouseDown(e) {
+        if (this.picker.busy || this.moving) return;
+        if (!this.hovered) return;
+        this.moving = true;
+        console.log('Giz: MD', e);
+        this._startEvent = e;
+        $(document).on('mousemove.gizmo', this.onMouseMove.bind(this));
+    }
+
+    onMouseUp(e) {
+        if (!this.moving) return;
+        this.moving = false;
+        console.log('Giz: MU', e);
+        $(document).off('mousemove.gizmo');
+    }
+
+    onMouseMove(e) {
+        if (!this._prevEvent) {
+            this._prevEvent = e;
+            return;
+        };
+        let dx = e.clientX - this._prevEvent.clientX;
+        let dy = e.clientY - this._prevEvent.clientY;
+        this._prevEvent = e;
+
+        let [LMB, MMB, RMB] = this.app.mouse._buttons;
+        if (!LMB) {
+            this.onMouseUp(e);
+            return;
+        };
+
+        console.log('Giz: MM', dx, dy);
+    }
+
     createEntity() {
         var obj = {
             root: null,

@@ -7,9 +7,16 @@ export default class Camera {
         this.entity = this.createEntity();
         this.attachEvents();
 
-        this.moving = false;
+        this.picker = app._editor.picker;
+        // this.moving = false;
         this.sensitivity = 0.2;
         this.orbitRadius = 1;
+    }
+
+    get moving() { return this._moving; }
+    set moving(val) {
+        this._moving = val;
+        this.picker.busy = val ? 'camera' : null;
     }
 
     createEntity() {
@@ -37,27 +44,28 @@ export default class Camera {
     }
 
     onMouseDown(e) {
-        // console.log('MD', e);
-        if (this.moving) return;
-        // if (this.moving) {
-        //     $(document).off('mousemove.camera');
-        // };
+        if (e.element.id !== "canvas-3d") return;
+        if (this.picker.busy || this.moving) return;
+        // console.log('Cam: MD', e);
+
         this.moving = true;
         this._startEvent = e;
         $(document).on('mousemove.camera', this.onMouseMove.bind(this));
     }
 
     onMouseUp(e) {
-        // console.log('MU', e);
+        if (e.element.id !== "canvas-3d") return;
         if (!this.moving) return;
+        // console.log('Cam: MU', e);
         this.moving = false;
+
         this._startEvent = null;
         this._prevEvent = null;
         $(document).off('mousemove.camera');
     }
 
     onMouseMove(e) {
-        console.log('MM', e);
+        // console.log('MM', e);
         if (!this._prevEvent) {
             this._prevEvent = e;
             return;
@@ -77,7 +85,6 @@ export default class Camera {
         if (RMB) { // this.app.mouse.isPressed(pc.MOUSEBUTTON_RIGHT)
             return this.lookOrbit(dx, dy);
         }
-
     }
 
     onMouseWheel(e) {

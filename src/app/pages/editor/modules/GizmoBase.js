@@ -8,13 +8,22 @@ export default class GizmoBase {
         this.entities = this.createEntity();
         this.entity = this.entities.root;
 
+        this.picker = app._editor.picker;
+        this.hovered = null;
+
         this.attachEvents();
         this.app._editor.needUpdate = true;
     }
 
+    get moving() { return this._moving; }
+    set moving(val) {
+        this._moving = val;
+        this.picker.busy = val ? 'gizmo' : null;
+    }
+
     attachEvents() {
         // this.app.on('editor:postUpdate', this._render = this.render.bind(this));
-        this.app.on('editor:postUpdate', this.render, this);
+        // this.app.on('editor:postUpdate', this.render, this);
     }
     detachEvents() {
         // this.app.off('editor:postUpdate', this._render);
@@ -33,22 +42,7 @@ export default class GizmoBase {
     }
 
     render() {
-        if (!this.entity.enabled) return;
-
-        var pos = this.entity.getPosition();
-        var camera = this.app._editor.activeCamera;
-        var cameraPos = camera.getPosition();
-
-        // scale to screen space
-        let scale = 1;
-        if (camera.camera.projection === pc.PROJECTION_PERSPECTIVE) {
-            let dot = vecA.copy(pos).sub(cameraPos).dot(camera.forward);
-            let denom = 1280 / (2 * Math.tan(camera.camera.fov * pc.math.DEG_TO_RAD / 2));
-            scale = Math.max(0.0001, (dot / denom) * 150) * gizmoSize;
-        } else {
-            scale = camera.camera.orthoHeight / 3 * gizmoSize;
-        }
-        this.entity.setLocalScale(scale, scale, scale);
+        // editor:postUpdate
     }
 
     show() {

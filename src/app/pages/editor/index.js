@@ -122,22 +122,9 @@ export default {
             // init service editor nodes
             this.app.root.addChild(new pc.Entity('Editor Root'));
 
-            // cameras
-            // let camera = new pc.Entity('Perspective');
-            // camera.addComponent('camera', {
-            //     clearColor: new pc.Color(0.1, 0.1, 0.1)
-            // });
-            // camera.setPosition(0, 0, 3);
-            var camera = new Camera(this.app);
-            this.editorRoot.addChild(camera.entity);
-            this.cameras.perspective = camera;
-
-            // set active
-            this.activeCamera = this.cameras.perspective;
-        },
-
-        initPicker() {
-            this.picker = new Picker(this.app);
+            this.initPicker();
+            this.initGizmo();
+            this.initCamera();
         },
 
         initGizmo() {
@@ -156,6 +143,19 @@ export default {
             } else {
                 this.gizmo.hide();
             }
+        },
+
+        initCamera() {
+            var camera = new Camera(this.app);
+            this.editorRoot.addChild(camera.entity);
+            this.cameras.perspective = camera;
+
+            // set active
+            this.activeCamera = this.cameras.perspective;
+        },
+
+        initPicker() {
+            this.picker = new Picker(this.app);
         },
 
         initScene() {
@@ -211,8 +211,6 @@ export default {
         this.initApp();
         this.initEditorNodes();
         this.initScene();
-        this.initPicker();
-        this.initGizmo();
         this.attachEvents();
 
         console.log('ref rd', this.$refs.rightDock);
