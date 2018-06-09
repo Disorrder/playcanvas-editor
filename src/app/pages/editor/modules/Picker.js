@@ -50,7 +50,7 @@ export default class Picker {
     }
 
     onMouseUp(e) {
-        if (e.element.id !== "canvas-3d") return;
+        // if (e.element.id !== "canvas-3d") return;
         if (this.state === 'hold') {
             this.state = 'ready'; // set state before action. May be strange?
             if (!this.target) {

@@ -128,9 +128,9 @@ export default {
         },
 
         initGizmo() {
-            let gizmo = new Gizmo(this.app);
+            let gizmo = new Gizmo();
             gizmo.activate('translate');
-            this.editorRoot.addChild(gizmo.entity);
+            this.editorRoot.addChild(gizmo);
             this.gizmo = gizmo;
             this.updateGizmo();
         },
@@ -138,16 +138,17 @@ export default {
             if (this.selected.length) {
                 let entity = this.selected[0];
                 this.gizmo.setPosition(entity.getPosition());
-                this.gizmo.setRotation(entity.getEulerAngles());
-                this.gizmo.show();
+                this.gizmo.setEulerAngles(entity.getEulerAngles());
+                this.gizmo.enabled = true;
             } else {
-                this.gizmo.hide();
+                this.gizmo.enabled = false;
             }
         },
 
         initCamera() {
             var camera = new Camera(this.app);
-            this.editorRoot.addChild(camera.entity);
+            camera.setPosition(0, 0, 3); // TODO: read pos and rot from LS
+            this.editorRoot.addChild(camera);
             this.cameras.perspective = camera;
 
             // set active

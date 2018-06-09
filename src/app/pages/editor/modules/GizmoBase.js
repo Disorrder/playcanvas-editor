@@ -2,18 +2,18 @@ const gizmoSize = .4;
 
 var vecA = new pc.Vec3();
 
-export default class GizmoBase {
-    constructor(app) {
-        this.app = app;
-        this.entities = this.createEntity();
-        this.entity = this.entities.root;
+export default class GizmoBase extends pc.Entity {
+    constructor(name, app) {
+        super(name, app)
 
-        this.picker = app._editor.picker;
+        this.picker = this.editor.picker;
         this.hovered = null;
 
         this.attachEvents();
-        this.app._editor.needUpdate = true;
+        this.editor.needUpdate = true;
     }
+
+    get editor() { return this._app._editor; }
 
     get moving() { return this._moving; }
     set moving(val) {
@@ -21,48 +21,6 @@ export default class GizmoBase {
         this.picker.busy = val ? 'gizmo' : null;
     }
 
-    attachEvents() {
-        // this.app.on('editor:postUpdate', this._render = this.render.bind(this));
-        // this.app.on('editor:postUpdate', this.render, this);
-    }
-    detachEvents() {
-        // this.app.off('editor:postUpdate', this._render);
-    }
-
-    setPosition(...vec) {
-        this.entity.setLocalPosition(...vec);
-        this.render(); // or set needUpdate
-    }
-    setRotation(...vec) {
-
-    }
-
-    update() {
-
-    }
-
-    render() {
-        // editor:postUpdate
-    }
-
-    show() {
-        this.entity.enabled = true;
-    }
-    hide() {
-        this.entity.enabled = false;
-    }
-
-    createEntity() {
-        var obj = {
-            root: null,
-        };
-
-        // root entity
-        var entity = obj.root = new pc.Entity();
-        entity.name = 'Gizmo';
-
-        return obj;
-    }
 
     createMaterial(color) {
         var mat = new pc.BasicMaterial();

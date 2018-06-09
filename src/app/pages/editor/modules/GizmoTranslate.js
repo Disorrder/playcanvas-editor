@@ -9,18 +9,18 @@ const arrowRadius = .4;
 var vecA = new pc.Vec3();
 
 export default class GizmoTranslate extends GizmoBase {
-    constructor(app) {
-        super(app);
+    constructor() {
+        super('Gizmo Translate');
         this.entities = this.createEntity();
         this.entity = this.entities.root;
     }
 
     attachEvents() {
-        super.attachEvents();
-        this.app.on('picker:leave', this.onLeave, this);
-        this.app.on('picker:hover', this.onHover, this);
-        this.app.mouse.on(pc.EVENT_MOUSEDOWN, this.onMouseDown, this);
-        this.app.mouse.on(pc.EVENT_MOUSEUP, this.onMouseUp, this);
+        // super.attachEvents();
+        this._app.on('picker:leave', this.onLeave, this);
+        this._app.on('picker:hover', this.onHover, this);
+        this._app.mouse.on(pc.EVENT_MOUSEDOWN, this.onMouseDown, this);
+        this._app.mouse.on(pc.EVENT_MOUSEUP, this.onMouseUp, this);
     }
 
     onLeave(entity) {
@@ -50,6 +50,7 @@ export default class GizmoTranslate extends GizmoBase {
     }
 
     onMouseDown(e) {
+        if (e.element.id !== "canvas-3d") return;
         if (this.picker.busy || this.moving) return;
         if (!this.hovered) return;
         this.moving = true;
@@ -74,18 +75,19 @@ export default class GizmoTranslate extends GizmoBase {
         let dy = e.clientY - this._prevEvent.clientY;
         this._prevEvent = e;
 
-        let [LMB, MMB, RMB] = this.app.mouse._buttons;
+        let [LMB, MMB, RMB] = this._app.mouse._buttons;
         if (!LMB) {
             this.onMouseUp(e);
             return;
         };
 
         console.log('Giz: MM', dx, dy);
+
     }
 
     createEntity() {
         var obj = {
-            root: null,
+            root: this,
             plane: {
                 x: null,
                 y: null,
@@ -107,14 +109,12 @@ export default class GizmoTranslate extends GizmoBase {
         };
 
         // active mat
-        obj.matActive = createMaterial(new pc.Color(1, 1, 1, 1));
-        obj.matActiveTransparent = createMaterial(new pc.Color(1, 1, 1, .25));
+        obj.matActive = this.createMaterial(new pc.Color(1, 1, 1, 1));
+        obj.matActiveTransparent = this.createMaterial(new pc.Color(1, 1, 1, .25));
         obj.matActiveTransparent.cull = pc.CULLFACE_NONE;
 
         // root entity
-        var entity = obj.root = new pc.Entity();
-        entity.name = 'Translate Gizmo';
-        entity.enabled = false;
+        var entity = this;
 
         // var gizmoLayer = pc.LAYERID_UI;
         var gizmoLayer = pc.LAYERID_IMMEDIATE;
@@ -137,7 +137,7 @@ export default class GizmoTranslate extends GizmoBase {
         planeX.setLocalEulerAngles(90, -90, 0);
         planeX.setLocalScale(.8, .8, .8);
         planeX.setLocalPosition(0, .4, .4);
-        planeX.mat = planeX.model.material = createMaterial(new pc.Color(1, 0, 0, .25));
+        planeX.mat = planeX.model.material = this.createMaterial(new pc.Color(1, 0, 0, .25));
         planeX.mat.cull = pc.CULLFACE_NONE;
 
         // plane y
@@ -158,7 +158,7 @@ export default class GizmoTranslate extends GizmoBase {
         planeY.setLocalEulerAngles(0, 0, 0);
         planeY.setLocalScale(.8, .8, .8);
         planeY.setLocalPosition(-.4, 0, .4);
-        planeY.mat = planeY.model.material = createMaterial(new pc.Color(0, 1, 0, .25));
+        planeY.mat = planeY.model.material = this.createMaterial(new pc.Color(0, 1, 0, .25));
         planeY.mat.cull = pc.CULLFACE_NONE;
 
         // plane z
@@ -179,7 +179,7 @@ export default class GizmoTranslate extends GizmoBase {
         planeZ.setLocalEulerAngles(90, 0, 0);
         planeZ.setLocalScale(.8, .8, .8);
         planeZ.setLocalPosition(-.4, .4, 0);
-        planeZ.mat = planeZ.model.material = createMaterial(new pc.Color(0, 0, 1, .25));
+        planeZ.mat = planeZ.model.material = this.createMaterial(new pc.Color(0, 0, 1, .25));
         planeZ.mat.cull = pc.CULLFACE_NONE;
 
         // line x
@@ -199,7 +199,7 @@ export default class GizmoTranslate extends GizmoBase {
         lineX.setLocalEulerAngles(90, 90, 0);
         lineX.setLocalPosition(1.6, 0, 0);
         lineX.setLocalScale(arrowRadius, .8, arrowRadius);
-        lineX.mat = lineX.model.material = createMaterial(new pc.Color(1, 0, 0, 0));
+        lineX.mat = lineX.model.material = this.createMaterial(new pc.Color(1, 0, 0, 0));
 
         // line y
         var lineY = obj.line.y = new pc.Entity();
@@ -218,7 +218,7 @@ export default class GizmoTranslate extends GizmoBase {
         lineY.setLocalEulerAngles(0, 0, 0);
         lineY.setLocalPosition(0, 1.6, 0);
         lineY.setLocalScale(arrowRadius, .8, arrowRadius);
-        lineY.mat = lineY.model.material = createMaterial(new pc.Color(0, 1, 0, 0));
+        lineY.mat = lineY.model.material = this.createMaterial(new pc.Color(0, 1, 0, 0));
 
         // line z
         var lineZ = obj.line.z = new pc.Entity();
@@ -237,7 +237,7 @@ export default class GizmoTranslate extends GizmoBase {
         lineZ.setLocalEulerAngles(90, 0, 0);
         lineZ.setLocalPosition(0, 0, 1.6);
         lineZ.setLocalScale(arrowRadius, .8, arrowRadius);
-        lineZ.mat = lineZ.model.material = createMaterial(new pc.Color(0, 0, 1, 0));
+        lineZ.mat = lineZ.model.material = this.createMaterial(new pc.Color(0, 0, 1, 0));
 
         // arrow x
         var arrowX = obj.arrow.x = new pc.Entity();
@@ -256,7 +256,7 @@ export default class GizmoTranslate extends GizmoBase {
         arrowX.setLocalEulerAngles(90, 90, 0);
         arrowX.setLocalPosition(2.3, 0, 0);
         arrowX.setLocalScale(arrowRadius, .6, arrowRadius);
-        arrowX.mat = arrowX.model.material = createMaterial(new pc.Color(1, 0, 0, 1));
+        arrowX.mat = arrowX.model.material = this.createMaterial(new pc.Color(1, 0, 0, 1));
 
         // arrow y
         var arrowY = obj.arrow.y = new pc.Entity();
@@ -275,7 +275,7 @@ export default class GizmoTranslate extends GizmoBase {
         arrowY.setLocalEulerAngles(0, 0, 0);
         arrowY.setLocalPosition(0, 2.3, 0);
         arrowY.setLocalScale(arrowRadius, .6, arrowRadius);
-        arrowY.mat = arrowY.model.material = createMaterial(new pc.Color(0, 1, 0, 1));
+        arrowY.mat = arrowY.model.material = this.createMaterial(new pc.Color(0, 1, 0, 1));
 
         // arrow z
         var arrowZ = obj.arrow.z = new pc.Entity();
@@ -294,21 +294,8 @@ export default class GizmoTranslate extends GizmoBase {
         arrowZ.setLocalEulerAngles(90, 0, 0);
         arrowZ.setLocalPosition(0, 0, 2.3);
         arrowZ.setLocalScale(arrowRadius, .6, arrowRadius);
-        arrowZ.mat = arrowZ.model.material = createMaterial(new pc.Color(0, 0, 1, 1));
+        arrowZ.mat = arrowZ.model.material = this.createMaterial(new pc.Color(0, 0, 1, 1));
 
         return obj;
     }
-}
-
-function createMaterial(color) {
-    var mat = new pc.BasicMaterial();
-    mat.color = color;
-    mat.depthTest = false;
-    if (color.a !== 1) {
-        mat.blend = true;
-        mat.blendSrc = pc.BLENDMODE_SRC_ALPHA;
-        mat.blendDst = pc.BLENDMODE_ONE_MINUS_SRC_ALPHA;
-    }
-    mat.update();
-    return mat;
 }
