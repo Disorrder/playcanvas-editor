@@ -5,6 +5,7 @@ const fs = window.require('fs');
 const path = window.require('path');
 
 import {serializeScene, deserializeScene} from 'app/extensions/serialize';
+import MouseController from './modules/MouseController';
 import Picker from './modules/Picker';
 import Gizmo from './modules/Gizmo';
 import Camera from './modules/Camera';
@@ -122,9 +123,9 @@ export default {
             // init service editor nodes
             this.app.root.addChild(new pc.Entity('Editor Root'));
 
-            this.initPicker();
             this.initGizmo();
             this.initCamera();
+            this.initPicker();
         },
 
         initGizmo() {
@@ -156,7 +157,8 @@ export default {
         },
 
         initPicker() {
-            this.picker = new Picker(this.app);
+            this.picker = new MouseController(this.activeCamera);
+            // this.picker = new Picker(this.app);
         },
 
         initScene() {

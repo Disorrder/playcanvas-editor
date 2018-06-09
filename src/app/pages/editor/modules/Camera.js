@@ -110,8 +110,8 @@ export default class Camera extends pc.Entity {
 
     translate(dx, dy) {
         // console.log('translate', dx, dy);
-        vec3.copy(this.up).scale(-dy * this.sensitivity * 0.1);
-        vec3A.copy(this.right).scale(dx * this.sensitivity * 0.1);
+        vec3.copy(this.up).scale(dy * this.sensitivity * 0.1);
+        vec3A.copy(this.right).scale(-dx * this.sensitivity * 0.1);
         vec3.add(vec3A);
         super.translate(vec3);
     }

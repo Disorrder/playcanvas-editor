@@ -54,6 +54,8 @@ export default class GizmoTranslate extends GizmoBase {
         if (this.picker.busy || this.moving) return;
         if (!this.hovered) return;
         this.moving = true;
+        this.movingAxis = this.hovered.axis;
+        if (this.hovered.plane) this.movingAxis = "xyz".replace(this.movingAxis, '');
         console.log('Giz: MD', e);
         this._startEvent = e;
         $(document).on('mousemove.gizmo', this.onMouseMove.bind(this));
@@ -81,7 +83,7 @@ export default class GizmoTranslate extends GizmoBase {
             return;
         };
 
-        console.log('Giz: MM', dx, dy);
+        console.log('Giz: MM', dx, dy, this.movingAxis);
 
     }
 
