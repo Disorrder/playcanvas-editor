@@ -36,10 +36,12 @@ export default class MouseController {
         e.onCanvas = e.target === this.canvas;
         e.x = e.clientX;
         e.y = e.clientY;
-        e.pointNear = this.camera.camera.screenToWorld(e.x, e.y, 1);
-        let fwFar = this.camera.forward.clone().scale(100);
-        e.pointFar = e.pointNear.clone().add(fwFar);
+        e.pointNear = this.camera.camera.screenToWorld(e.x, e.y, 0.1);
+        // let fwFar = this.camera.forward.clone().scale(100);
+        // e.pointFar = e.pointNear.clone().add(fwFar);
         e.mouseCtrl = this;
+
+        this.point = e.pointNear;
     }
 
     onMouseDown(e) {
@@ -51,7 +53,7 @@ export default class MouseController {
     }
 
     onMouseUp(e) {
-        if (e.target !== this.canvas) return;
+        // if (e.target !== this.canvas) return;
         this.mapEvent(e);
         if (this.state === 'hold') {
             this.state = 'ready'; // set state before action. May be strange?
@@ -68,7 +70,7 @@ export default class MouseController {
     }
 
     onMouseMove(e) {
-        if (e.target !== this.canvas) return;
+        // if (e.target !== this.canvas) return;
         this.mapEvent(e);
         // console.log('mm', e);
         // this.point = this.camera.camera.screenToWorld()

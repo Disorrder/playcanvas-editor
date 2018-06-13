@@ -6,6 +6,7 @@ import GizmoBase from './GizmoBase';
 const GIZMO_MASK = 8;
 const arrowRadius = .4;
 
+var dv = new pc.Vec3(); // delta vector
 var vecA = new pc.Vec3();
 
 export default class GizmoTranslate extends GizmoBase {
@@ -60,24 +61,29 @@ export default class GizmoTranslate extends GizmoBase {
         if (this.hovered.plane) this.movingAxis = "xyz".replace(this.movingAxis, '');
         console.log('Giz: MD', e);
         this._startEvent = e;
+
+        let point = this.getMousePosition(e.x, e.y);
+        this._startDelta = new pc.Vec3().sub2(point, this.editor.selectedCenter);
         $(document).on('mousemove.gizmo', this.onMouseMove.bind(this));
     }
 
     onMouseUp(e) {
         if (!this.moving) return;
         this.moving = false;
+        this._prevEvent = this._startEvent = null;
         console.log('Giz: MU', e);
         $(document).off('mousemove.gizmo');
     }
 
     onMouseMove(e) {
-        if (!this._prevEvent) {
-            this._prevEvent = e;
-            return;
-        };
-        let dx = e.clientX - this._prevEvent.clientX;
-        let dy = e.clientY - this._prevEvent.clientY;
-        this._prevEvent = e;
+        // if (!this._prevEvent) this._prevEvent = this._startEvent;
+        
+        // let dx = e.clientX - this._prevEvent.clientX;
+        // let dy = e.clientY - this._prevEvent.clientY;
+        // this._prevEvent = e;
+
+        let point = this.getMousePosition(e.x, e.y).sub(this._startDelta);
+        dv.sub2(point, this.editor.selectedCenter);
 
         let [LMB, MMB, RMB] = this._app.mouse._buttons;
         if (!LMB) {
@@ -85,8 +91,22 @@ export default class GizmoTranslate extends GizmoBase {
             return;
         };
 
-        console.log('Giz: MM', dx, dy, this.movingAxis);
+        if (!~this.movingAxis.indexOf('x')) dv.x = 0;
+        if (!~this.movingAxis.indexOf('y')) dv.y = 0;
+        if (!~this.movingAxis.indexOf('z')) dv.z = 0;
 
+        this.parent.translate(dv);
+        this.editor.selected.forEach((v) => {
+            v.translate(dv);
+        });
+
+        // console.log('Giz: MM', dv.data, e._point.data, this.movingAxis);
+    }
+
+    getMousePosition(x, y) {
+        vecA.copy(this.editor.selectedCenter).sub( this.editor.activeCamera.getPosition() );
+        let dot = vecA.dot(this.editor.activeCamera.forward);
+        return this.editor.activeCamera.camera.screenToWorld(x, y, dot);
     }
 
     createEntity() {

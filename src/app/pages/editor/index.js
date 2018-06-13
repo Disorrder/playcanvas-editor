@@ -6,7 +6,6 @@ const path = window.require('path');
 
 import {serializeScene, deserializeScene} from 'app/extensions/serialize';
 import MouseController from './modules/MouseController';
-import Picker from './modules/Picker';
 import Gizmo from './modules/Gizmo';
 import Camera from './modules/Camera';
 
@@ -27,7 +26,6 @@ export default {
 
             activeCamera: null,
             cameras: {},
-
             gizmo: null,
         }
     },
@@ -54,6 +52,12 @@ export default {
         selected() {
             return this.$store.state.editor.selected;
         },
+        selectedCenter() {
+            if (!this.selected.length) return null;
+            if (!this._selectedCenter) this._selectedCenter = new pc.Vec3();
+            this._selectedCenter.copy( this.selected[0].getPosition() );
+            return this._selectedCenter;
+        }
     },
     methods: {
         // --- UI ---
