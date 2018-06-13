@@ -31,14 +31,16 @@ export default class Camera extends pc.Entity {
 
     attachEvents() {
         // this._app.on('update', this.update, this);
-        this._app.mouse.on(pc.EVENT_MOUSEDOWN, this.onMouseDown, this);
-        this._app.mouse.on(pc.EVENT_MOUSEUP, this.onMouseUp, this);
-        // this._app.mouse.on(pc.EVENT_MOUSEMOVE, this.onMouseMove, this);
+        // this._app.mouse.on(pc.EVENT_MOUSEDOWN, this.onMouseDown, this);
+        // this._app.mouse.on(pc.EVENT_MOUSEUP, this.onMouseUp, this);
+        $(document).on('mousedown.camera', this.onMouseDown.bind(this));
+        $(document).on('mouseup.camera', this.onMouseUp.bind(this));
+
         this._app.mouse.on(pc.EVENT_MOUSEWHEEL, this.onMouseWheel, this);
     }
 
     onMouseDown(e) {
-        if (e.element.id !== "canvas-3d") return;
+        if (!e.onCanvas) return;
         if (this.picker.busy || this.moving) return;
         // console.log('Cam: MD', e);
 
@@ -48,7 +50,6 @@ export default class Camera extends pc.Entity {
     }
 
     onMouseUp(e) {
-        // if (e.element.id !== "canvas-3d") return;
         if (!this.moving) return;
         // console.log('Cam: MU', e);
         this.moving = false;

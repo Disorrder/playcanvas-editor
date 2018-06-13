@@ -19,8 +19,10 @@ export default class GizmoTranslate extends GizmoBase {
         // super.attachEvents();
         this._app.on('picker:leave', this.onLeave, this);
         this._app.on('picker:hover', this.onHover, this);
-        this._app.mouse.on(pc.EVENT_MOUSEDOWN, this.onMouseDown, this);
-        this._app.mouse.on(pc.EVENT_MOUSEUP, this.onMouseUp, this);
+        // this._app.mouse.on(pc.EVENT_MOUSEDOWN, this.onMouseDown, this);
+        // this._app.mouse.on(pc.EVENT_MOUSEUP, this.onMouseUp, this);
+        $(document).on('mousedown.gizmo', this.onMouseDown.bind(this));
+        $(document).on('mouseup.gizmo', this.onMouseUp.bind(this));
     }
 
     onLeave(entity) {
@@ -50,7 +52,7 @@ export default class GizmoTranslate extends GizmoBase {
     }
 
     onMouseDown(e) {
-        if (e.element.id !== "canvas-3d") return;
+        if (!e.onCanvas) return;
         if (this.picker.busy || this.moving) return;
         if (!this.hovered) return;
         this.moving = true;

@@ -123,9 +123,9 @@ export default {
             // init service editor nodes
             this.app.root.addChild(new pc.Entity('Editor Root'));
 
+            this.initPicker();
             this.initGizmo();
             this.initCamera();
-            this.initPicker();
         },
 
         initGizmo() {
@@ -154,10 +154,11 @@ export default {
 
             // set active
             this.activeCamera = this.cameras.perspective;
+            this.picker.camera = this.activeCamera; // потом при переключении камеры нужно устанавливать её в пикер
         },
 
         initPicker() {
-            this.picker = new MouseController(this.activeCamera);
+            this.picker = new MouseController();
             // this.picker = new Picker(this.app);
         },
 
