@@ -55,21 +55,19 @@ function serializeComponents(entity) {
             if (['layers'].includes(name)) cData[name] = val;
         }
 
-        if (name === 'camera') {
-            Object.assign(cData, {
-                clearColor: component.clearColor.toArray(),
-                rect: component.rect.toArray(),
-            });
-        }
-        if (name === 'model') {
-            Object.assign(cData, {
-                material: component.material.id,
-            });
-        }
-        if (name === 'light') {
-            Object.assign(cData, {
-                // material: component.material.id
-            });
+        switch (name) {
+            case 'camera':
+                Object.assign(cData, {
+                    clearColor: component.clearColor.toArray(),
+                    rect: component.rect.toArray(),
+                });
+                break;
+        
+            case 'model':
+                Object.assign(cData, {
+                    material: component.material.id,
+                });
+                break;
         }
     }
 

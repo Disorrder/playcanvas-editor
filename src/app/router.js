@@ -13,6 +13,7 @@ export default new VueRouter({
             ]
         },
         // editor section
-        {name: 'editor', path: '/editor/:projectId/:sceneId', component: require('app/pages/editor').default}
+        {name: 'editor', path: '/editor/:projectId/:sceneId', component: require('app/pages/editor').default},
+        {name: 'player', path: '/play/:projectId/:sceneId', component: require('app/pages/player').default},
     ]
 });

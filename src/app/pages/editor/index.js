@@ -71,6 +71,11 @@ export default {
             var data = serializeScene(this.app);
             this.writeSceneFile(data);
         },
+        playScene() {
+            var projectId = this.project.id;
+            var sceneId = this.scene.id;
+            this.$router.push({name: 'player', projectId, sceneId})
+        },
 
         // left col
         selectEntity(entity) {
