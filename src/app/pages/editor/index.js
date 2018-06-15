@@ -68,7 +68,12 @@ export default {
             return fs.writeFileSync(this.sceneFilePath, JSON.stringify(data, null, 2), 'utf8');
         },
         saveScene() {
-            var data = serializeScene(this.app);
+            var data = serializeScene(this.app, this.sceneRoot);
+            // temp
+            data.name = this.sceneJson.name;
+            data.settings = this.sceneJson.settings;
+            // console.log(data);
+            // end temp
             this.writeSceneFile(data);
         },
         playScene() {
@@ -172,8 +177,8 @@ export default {
         },
 
         initScene() {
-            var data = this.readSceneFile();
-            data = JSON.parse(data);
+            var data = window.require(this.sceneFilePath);
+            this.sceneJson = data;
 
             if (!data.settings || Object.keys(data.settings).length === 0) {
                 data.settings = {

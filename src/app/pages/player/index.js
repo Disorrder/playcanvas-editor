@@ -60,7 +60,6 @@ export default {
 
         initScene() {
             var data = window.require(this.sceneFilePath);
-            // data = JSON.parse(data);
 
             if (!data.settings || Object.keys(data.settings).length === 0) {
                 data.settings = {

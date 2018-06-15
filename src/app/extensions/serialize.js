@@ -1,12 +1,14 @@
-export function serializeScene(app) {
+export function serializeScene(app, rootEntity) {
     var data = {
         name: 'Untitled',
+        settings: {},
         entities: {},
-        settings: {}
     };
 
-    data.entities[app.root._guid] = serializeEntity(app.root);
-    app.root.find((v) => {
+    if (!rootEntity) rootEntity = app.root;
+    data.entities[rootEntity._guid] = serializeEntity(rootEntity);
+    data.entities[rootEntity._guid].parent = null;
+    rootEntity.find((v) => {
         if (!v._guid) return;
         data.entities[v._guid] = serializeEntity(v);
     });

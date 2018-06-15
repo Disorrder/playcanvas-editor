@@ -87,6 +87,13 @@ Vue.component('ctx-entity', {
                 entity.setLocalEulerAngles(60, 30, 0);
             }
         },
+        createCamera(type) {
+            var entity = this.createEntity();
+            if (type) {
+                entity.addComponent('camera', {type});
+                entity.name = type.capitalize() + ' Camera';
+            }
+        },
 
         addComponent(name, data) {
             this.items.forEach((entity) => {

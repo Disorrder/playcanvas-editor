@@ -26,6 +26,9 @@ div.ctx-menu.ctx-entity.animated(:class="{opened: opened}")
                 li.ctx-menu-item(@click.stop="createLight('directional')")
                     v-icon pc-sun
                     span Directional Light
+                li.ctx-menu-item(@click.stop="createCamera('perspective')")
+                    v-icon videocam
+                    span Perspective Camera
                 
         li.ctx-menu-item(v-if="containsDisabled" @click="enableItems")
             v-icon pc-enable
