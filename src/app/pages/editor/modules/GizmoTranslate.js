@@ -7,6 +7,7 @@ const GIZMO_MASK = 8;
 const arrowRadius = .4;
 
 var dv = new pc.Vec3(); // delta vector
+var projection = new pc.Vec3();
 var vecA = new pc.Vec3();
 
 export default class GizmoTranslate extends GizmoBase {
@@ -58,7 +59,10 @@ export default class GizmoTranslate extends GizmoBase {
         if (!this.hovered) return;
         this.moving = true;
         this.movingAxis = this.hovered.axis;
-        if (this.hovered.plane) this.movingAxis = "xyz".replace(this.movingAxis, '');
+        if (this.hovered.plane) {
+            this.movingNorm = this.movingAxis;
+            this.movingAxis = "xyz".replace(this.movingAxis, '');
+        }
         console.log('Giz: MD', e);
         this._startEvent = e;
 
@@ -91,19 +95,29 @@ export default class GizmoTranslate extends GizmoBase {
             return;
         };
 
-        if (!~this.movingAxis.indexOf('x')) dv.x = 0;
-        if (!~this.movingAxis.indexOf('y')) dv.y = 0;
-        if (!~this.movingAxis.indexOf('z')) dv.z = 0;
+        // Проекция вектора на плоскость есть сумма проекций вектора на 2 прямые, лежащие в этой плоскости
+        // В данном случае 2 прямые - координатные оси локального пространства объекта
+        projection.set(0, 0, 0);
+        this.movingAxis.split('').forEach((axis) => {
+            if (axis === 'x') axis = this.parent.right;
+            if (axis === 'y') axis = this.parent.up;
+            if (axis === 'z') axis = this.parent.forward;
+            vecA.copy(axis);
+            let dot = dv.dot(vecA);
+            projection.add( vecA.scale(dot) );
+        });
 
-        this.parent.translate(dv);
+        this.parent.translate(projection);
         this.editor.selected.forEach((v) => {
-            v.translate(dv);
+            v.translate(projection);
         });
 
         // console.log('Giz: MM', dv.data, e._point.data, this.movingAxis);
     }
 
     getMousePosition(x, y) {
+        // поскольку координаты мыши не совпадают с центром гизмо, вычисляем глубину клика
+        // как проекцию расстояния от камеры до гизмо на направление взгляда камеры.
         vecA.copy(this.editor.selectedCenter).sub( this.editor.activeCamera.getPosition() );
         let dot = vecA.dot(this.editor.activeCamera.forward);
         return this.editor.activeCamera.camera.screenToWorld(x, y, dot);
