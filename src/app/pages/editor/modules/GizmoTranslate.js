@@ -26,6 +26,9 @@ export default class GizmoTranslate extends GizmoBase {
         $(document).on('mousedown.gizmo', this.onMouseDown.bind(this));
         $(document).on('mouseup.gizmo', this.onMouseUp.bind(this));
     }
+    detachEvents() {
+        $(document).off('.gizmo');
+    }
 
     onLeave(entity) {
         if (this.moving) return;

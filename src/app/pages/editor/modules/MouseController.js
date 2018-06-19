@@ -30,6 +30,9 @@ export default class MouseController {
         $(document).on('mouseup.editor', this.onMouseUp.bind(this));
         $(document).on('mousemove.editor', this.onMouseMove.bind(this));
     }
+    detachEvents() {
+        $(document).off('.editor');
+    }
 
     mapEvent(e) {
         // console.log('map', e);

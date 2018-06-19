@@ -26,6 +26,9 @@ export default class Gizmo extends pc.Entity {
     }
     detachEvents() { //?
         // this._app.off('editor:postUpdate', this._render);
+        Object.values(this.gizmos).forEach((v) => {
+            if (v.detachEvents) v.detachEvents();
+        });
     }
 
     setPosition(...vec) {

@@ -39,6 +39,9 @@ export default class Camera extends pc.Entity {
 
         this._app.mouse.on(pc.EVENT_MOUSEWHEEL, this.onMouseWheel, this);
     }
+    detachEvents() {
+        $(document).off('.camera');
+    }
 
     onMouseDown(e) {
         if (!e.onCanvas) return;

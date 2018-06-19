@@ -83,7 +83,7 @@ export default {
         },
 
         // left col
-        selectEntity(entity) {
+        selectEntity(entity) {            
             var i = this.selected.indexOf(entity);
             if (~i) {
                 this.$store.commit('editor/deselectOne', entity);
@@ -173,7 +173,6 @@ export default {
 
         initPicker() {
             this.picker = new MouseController();
-            // this.picker = new Picker(this.app);
         },
 
         initScene() {
@@ -224,6 +223,10 @@ export default {
     },
     beforeDestroy() {
         this.$root.theme = 'light';
+        this.app.destroy();
+        [].concat(Object.values(this.cameras), this.gizmo, this.picker).forEach((v) => {
+            if (v.detachEvents) v.detachEvents();
+        });
     },
     mounted() {
         this.initApp();
