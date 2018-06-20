@@ -9,7 +9,7 @@ export default {
     data() {
         return {
             app: {},
-
+            scripts: [],
         }
     },
     computed: {
@@ -36,6 +36,17 @@ export default {
             var projectId = this.project.id;
             var sceneId = this.scene.id;
             this.$router.push({name: 'editor', projectId, sceneId});
+        },
+
+        mapScripts(items) {
+            return items.map((v) => {
+                return path.join(this.project.path, v);
+                // return {
+                //     path: v,
+                //     fullPath: path.join(this.project.path, v),
+                //     // fileName: path
+                // };
+            });
         },
 
         // --- 3D ---
@@ -72,6 +83,14 @@ export default {
                     }
                 };
             }
+            if (data.settings.priority_scripts) {
+                this.scripts = this.mapScripts(data.settings.priority_scripts);
+                console.log('PRIOR', data.settings.priority_scripts, this.scripts);
+                this.scripts.forEach((v) => {
+                    $('.scripts').append(`<script src="${v}"></script>`);
+                });
+            }
+
             this.app.applySceneSettings(data.settings);
 
             var sceneRoot = deserializeScene(this.app, data);
