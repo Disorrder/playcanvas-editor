@@ -1,0 +1,15 @@
+{
+    "name": "1",
+    "frames": [
+        {
+            "delay": 1000,
+            "duration": 3000,
+            "animate": [
+                {
+                    "target": "position",
+                    "by": {"x": 2}
+                }
+            ]
+        }
+    ]
+}

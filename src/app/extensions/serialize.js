@@ -70,6 +70,21 @@ function serializeComponents(entity) {
                     material: component.material.id,
                 });
                 break;
+
+            case 'script':
+                Object.assign(cData, {
+                    scripts: component.scripts.map((v) => {
+                        console.log('IOPIOP', v, v.attributes);
+                        
+                        return {
+                            enabled: v.enabled,
+                            name: v.__scriptType.__name,
+                            _attributes: v.__attributesRaw,
+                            attributes: v.__attributes,
+                        };
+                    })
+                });
+                break;
         }
     }
 

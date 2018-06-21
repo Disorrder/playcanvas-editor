@@ -4,6 +4,7 @@ import './components';
 const fs = window.require('fs');
 const path = window.require('path');
 
+import ScriptType from 'app/extensions/ScriptType';
 import {serializeScene, deserializeScene} from 'app/extensions/serialize';
 import MouseController from './modules/MouseController';
 import Gizmo from './modules/Gizmo';
@@ -20,6 +21,7 @@ export default {
                 opened: false,
             },
             app: {},
+            scripts: [],
 
             // scene
             needUpdate: false,
@@ -190,11 +192,31 @@ export default {
                     }
                 };
             }
+            this.updateScripts();
             this.app.applySceneSettings(data.settings);
-
             var sceneRoot = deserializeScene(this.app, data);
             this.app.root.addChild(sceneRoot);
             console.log('initScene', data, sceneRoot);
+        },
+
+        mapScripts(items) {
+            return items.map((v) => {
+                return {
+                    path: v,
+                    fullPath: path.join(this.project.path, v),
+                    // fileName: path
+                };
+            });
+        },
+        updateScripts() {
+            var data = this.sceneJson;
+            if (data.settings.priority_scripts) {
+                this.scripts = this.mapScripts(data.settings.priority_scripts);
+                console.log('UPD PRIOR SCRIPTS', data.settings.priority_scripts, this.scripts);
+                this.scripts.forEach((v) => {
+                    window.require(v.fullPath);
+                });
+            }
         },
 
         // Events

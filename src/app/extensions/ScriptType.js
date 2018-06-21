@@ -67,3 +67,21 @@ class ScriptService {
         }
     }
 }
+
+
+{
+    let _super = {};
+    _super.initializeComponentData = pc.ScriptComponentSystem.prototype.initializeComponentData;
+    pc.ScriptComponentSystem.prototype.initializeComponentData = function(component, data, properties) {
+        console.log('ASDZXCVBN', this, ...arguments);
+        _super.initializeComponentData.apply(this, arguments);
+        if (data.scripts) {
+            data.scripts.forEach((v) => {
+                console.log('script', v);
+                component.create(v.name, v);
+                // TODO: add scripts to entity
+            })
+        }
+    }
+}
+

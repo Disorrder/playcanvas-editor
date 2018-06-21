@@ -2,7 +2,7 @@
   "name": "Main scene",
   "settings": {
     "priority_scripts": [
-      "scenes/main/scripts/scenario.js"
+      "scenes/main/scripts/scenarioStart.js"
     ],
     "physics": {
       "gravity": [
@@ -105,6 +105,19 @@
           ],
           "batchGroupId": -1,
           "material": 0
+        },
+        "script": {
+          "enabled": true,
+          "scripts": [
+            {
+              "enabled": false,
+              "name": "scenarioStart",
+              "_attributes": null,
+              "attributes": {
+                "autoplay": true
+              }
+            }
+          ]
         }
       }
     },
@@ -160,7 +173,7 @@
       "rotation": [
         60,
         30,
-        1.836294076594091e-14
+        3.856217781076157e-14
       ],
       "scale": [
         1,
@@ -249,7 +262,7 @@
             4,
             3
           ],
-          "aspectRatio": 0.6601941747572816,
+          "aspectRatio": 0.7295162882527148,
           "aspectRatioMode": 0,
           "isRendering": false,
           "clearColor": [
