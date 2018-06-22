@@ -11,6 +11,8 @@ ScenarioStart.extend({
         var timeline = require('../scenarios/1.scenario.json');
         console.log('ScenarioStart init', timeline);
         timeline.frames.forEach((frame) => {
+            if (frame.easing) frame.easing = pc.Animated.easing[frame.easing];
+
             // check for tweaked targets
             frame.animate.forEach((anim) => {
                 if (anim.entity) anim.entity = this.app.root.findByGuid(anim.entity);

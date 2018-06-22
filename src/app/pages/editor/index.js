@@ -163,7 +163,7 @@ export default {
 
         initCamera() {
             var camera = new Camera(this.app);
-            camera.setPosition(0, 0, 3); // TODO: read pos and rot from LS
+            camera.setPosition(0, 0, 12); // TODO: read pos and rot from LS
             this.editorRoot.addChild(camera);
             this.cameras.perspective = camera;
 
@@ -218,10 +218,9 @@ export default {
                     v.script._scriptsData = data.entities[v._guid].components.script.scripts;
                     v.script._scriptsData.forEach((script) => {
                         if (script.useInEditor) v.script.create(script.name, script);
-                    })
+                    });
                 }
-            })
-            
+            });
         },
 
         // Events

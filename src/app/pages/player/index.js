@@ -105,11 +105,10 @@ export default {
                 if (v.script) {
                     v.script._scriptsData = data.entities[v._guid].components.script.scripts;
                     v.script._scriptsData.forEach((script) => {
-                        if (script.useInEditor) v.script.create(script.name, script);
-                    })
+                        v.script.create(script.name, script);
+                    });
                 }
-            })
-            
+            });
         },
     },
     created() {

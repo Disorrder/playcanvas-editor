@@ -59,106 +59,15 @@
       ],
       "tags": [],
       "children": [
-        "ce889a12-94ad-4c0a-aa9f-5ade9dbc09b9",
         "5c51ea90-8412-4a27-bca6-60ce813da68c",
-        "d74199d7-9e17-44ae-82d8-3f29de1ad3ee"
+        "d74199d7-9e17-44ae-82d8-3f29de1ad3ee",
+        "05b6223e-9a39-4bc7-ae1d-7327410b08c5"
       ],
       "parent": null,
-      "components": {}
-    },
-    "ce889a12-94ad-4c0a-aa9f-5ade9dbc09b9": {
-      "resource_id": "ce889a12-94ad-4c0a-aa9f-5ade9dbc09b9",
-      "enabled": true,
-      "name": "Box",
-      "position": [
-        0,
-        0,
-        0
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ],
-      "tags": [],
-      "children": [
-        "6f8ac7a0-99b2-4ad9-a1da-391a14036943"
-      ],
-      "parent": "656e778c-5a4b-4ca0-a20a-6311c8bf3b50",
       "components": {
-        "model": {
-          "enabled": true,
-          "type": "box",
-          "castShadows": true,
-          "receiveShadows": true,
-          "castShadowsLightmap": true,
-          "lightmapped": false,
-          "lightmapSizeMultiplier": 1,
-          "isStatic": false,
-          "layers": [
-            0
-          ],
-          "batchGroupId": -1,
-          "material": 0
-        },
         "script": {
           "enabled": true,
-          "scripts": [
-            {
-              "enabled": true,
-              "name": "scenarioStart",
-              "_attributes": null,
-              "attributes": {
-                "autoplay": true
-              },
-              "useInEditor": true
-            }
-          ]
-        }
-      }
-    },
-    "6f8ac7a0-99b2-4ad9-a1da-391a14036943": {
-      "resource_id": "6f8ac7a0-99b2-4ad9-a1da-391a14036943",
-      "enabled": true,
-      "name": "Sphere",
-      "position": [
-        0.40103578567504883,
-        0.41064149141311646,
-        0.22012439370155334
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ],
-      "tags": [],
-      "children": [],
-      "parent": "ce889a12-94ad-4c0a-aa9f-5ade9dbc09b9",
-      "components": {
-        "model": {
-          "enabled": true,
-          "type": "sphere",
-          "castShadows": true,
-          "receiveShadows": true,
-          "castShadowsLightmap": true,
-          "lightmapped": false,
-          "lightmapSizeMultiplier": 1,
-          "isStatic": false,
-          "layers": [
-            0
-          ],
-          "batchGroupId": -1,
-          "material": 0
+          "scripts": []
         }
       }
     },
@@ -174,7 +83,7 @@
       "rotation": [
         60,
         30,
-        3.856217781076157e-14
+        5.508882738002041e-14
       ],
       "scale": [
         1,
@@ -226,7 +135,7 @@
       "position": [
         0,
         0.3026668429374695,
-        4.203176498413086
+        12
       ],
       "rotation": [
         0,
@@ -263,7 +172,7 @@
             4,
             3
           ],
-          "aspectRatio": 0.7295162882527148,
+          "aspectRatio": 1.4007897334649555,
           "aspectRatioMode": 0,
           "isRendering": false,
           "clearColor": [
@@ -278,6 +187,169 @@
             1,
             1
           ]
+        }
+      }
+    },
+    "05b6223e-9a39-4bc7-ae1d-7327410b08c5": {
+      "resource_id": "05b6223e-9a39-4bc7-ae1d-7327410b08c5",
+      "enabled": true,
+      "name": "Demo boxes",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "tags": [],
+      "children": [
+        "08fcd7db-e530-494b-a116-905824391f6a",
+        "484a370f-5411-4255-ace3-435cef4f83f0",
+        "2dcb950d-d618-4b62-b554-cbf80a2337eb"
+      ],
+      "parent": "656e778c-5a4b-4ca0-a20a-6311c8bf3b50",
+      "components": {
+        "script": {
+          "enabled": true,
+          "scripts": [
+            {
+              "useInEditor": true,
+              "enabled": true,
+              "name": "scenarioStart",
+              "_attributes": null,
+              "attributes": {
+                "autoplay": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    "08fcd7db-e530-494b-a116-905824391f6a": {
+      "resource_id": "08fcd7db-e530-494b-a116-905824391f6a",
+      "enabled": true,
+      "name": "Box",
+      "position": [
+        -2,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "tags": [],
+      "children": [],
+      "parent": "05b6223e-9a39-4bc7-ae1d-7327410b08c5",
+      "components": {
+        "model": {
+          "enabled": true,
+          "type": "box",
+          "castShadows": true,
+          "receiveShadows": true,
+          "castShadowsLightmap": true,
+          "lightmapped": false,
+          "lightmapSizeMultiplier": 1,
+          "isStatic": false,
+          "layers": [
+            0
+          ],
+          "batchGroupId": -1,
+          "material": 0
+        }
+      }
+    },
+    "484a370f-5411-4255-ace3-435cef4f83f0": {
+      "resource_id": "484a370f-5411-4255-ace3-435cef4f83f0",
+      "enabled": true,
+      "name": "Box",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        -7.01670955022206e-15,
+        0,
+        -7.01670955022206e-15
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "tags": [],
+      "children": [],
+      "parent": "05b6223e-9a39-4bc7-ae1d-7327410b08c5",
+      "components": {
+        "model": {
+          "enabled": true,
+          "type": "box",
+          "castShadows": true,
+          "receiveShadows": true,
+          "castShadowsLightmap": true,
+          "lightmapped": false,
+          "lightmapSizeMultiplier": 1,
+          "isStatic": false,
+          "layers": [
+            0
+          ],
+          "batchGroupId": -1,
+          "material": 0
+        }
+      }
+    },
+    "2dcb950d-d618-4b62-b554-cbf80a2337eb": {
+      "resource_id": "2dcb950d-d618-4b62-b554-cbf80a2337eb",
+      "enabled": true,
+      "name": "Box",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "tags": [],
+      "children": [],
+      "parent": "05b6223e-9a39-4bc7-ae1d-7327410b08c5",
+      "components": {
+        "model": {
+          "enabled": true,
+          "type": "box",
+          "castShadows": true,
+          "receiveShadows": true,
+          "castShadowsLightmap": true,
+          "lightmapped": false,
+          "lightmapSizeMultiplier": 1,
+          "isStatic": false,
+          "layers": [
+            0
+          ],
+          "batchGroupId": -1,
+          "material": 0
         }
       }
     }

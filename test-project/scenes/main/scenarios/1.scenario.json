@@ -3,14 +3,66 @@
     "//TODO": "think about `entity.getLocalPosition` in target, mb parse entity and script methods",
     "frames": [
         {
+            "//comment": "Изменяет позицию первого куба",
             "delay": 1000,
             "duration": 3000,
             "animate": [
                 {
-                    "entity": "ce889a12-94ad-4c0a-aa9f-5ade9dbc09b9",
+                    "entity": "08fcd7db-e530-494b-a116-905824391f6a",
                     "target": "getLocalPosition",
                     "setter": "setLocalPosition",
-                    "by": {"x": 2}
+                    "by": {"y": 2}
+                }
+            ]
+        },
+        {
+            "//comment": "Изменяет вращение второго куба",
+            "delay": 500,
+            "duration": 2000,
+            "animate": [
+                {
+                    "entity": "484a370f-5411-4255-ace3-435cef4f83f0",
+                    "target": "getLocalEulerAngles",
+                    "setter": "setLocalEulerAngles",
+                    "by": {"y": 100}
+                }
+            ]
+        },
+        {
+            "//comment": "Изменяет масштаб третьего куба",
+            "delay": 500,
+            "duration": 1000,
+            "animate": [
+                {
+                    "entity": "2dcb950d-d618-4b62-b554-cbf80a2337eb",
+                    "target": "getLocalScale",
+                    "setter": "setLocalScale",
+                    "by": {"x": 2, "y": 2}
+                }
+            ]
+        },
+
+        {
+            "//comment": "Возвращает всё в исходное состояние",
+            "easing": "BounceOut",
+            "animate": [
+                {
+                    "entity": "08fcd7db-e530-494b-a116-905824391f6a",
+                    "target": "getLocalPosition",
+                    "setter": "setLocalPosition",
+                    "to": {"y": 0}
+                },
+                {
+                    "entity": "484a370f-5411-4255-ace3-435cef4f83f0",
+                    "target": "getLocalEulerAngles",
+                    "setter": "setLocalEulerAngles",
+                    "to": {"y": 0}
+                },
+                {
+                    "entity": "2dcb950d-d618-4b62-b554-cbf80a2337eb",
+                    "target": "getLocalScale",
+                    "setter": "setLocalScale",
+                    "to": {"x": 1, "y": 1}
                 }
             ]
         }
