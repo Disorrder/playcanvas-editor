@@ -5,6 +5,9 @@
             label.attr-name Enabled
             .attr-value: input(:value="entity.enabled" type="checkbox")
         .entity-attr.entity-attr-string
+            label.attr-name _guid
+            .attr-value: input.animated(v-model="entity._guid" type="text" disabled :title="entity._guid")
+        .entity-attr.entity-attr-string
             label.attr-name Name
             .attr-value: input.animated(v-model="entity.name" type="text")
                 
@@ -23,5 +26,3 @@
             .attr-value: input.animated(v-model="scale.x" @blur="setScale" type="text")
             .attr-value: input.animated(v-model="scale.y" @blur="setScale" type="text")
             .attr-value: input.animated(v-model="scale.z" @blur="setScale" type="text")
-
-            

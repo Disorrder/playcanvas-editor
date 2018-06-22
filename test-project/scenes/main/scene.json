@@ -110,12 +110,13 @@
           "enabled": true,
           "scripts": [
             {
-              "enabled": false,
+              "enabled": true,
               "name": "scenarioStart",
               "_attributes": null,
               "attributes": {
                 "autoplay": true
-              }
+              },
+              "useInEditor": true
             }
           ]
         }

@@ -1,12 +1,15 @@
 {
     "name": "1",
+    "//TODO": "think about `entity.getLocalPosition` in target, mb parse entity and script methods",
     "frames": [
         {
             "delay": 1000,
             "duration": 3000,
             "animate": [
                 {
-                    "target": "position",
+                    "entity": "ce889a12-94ad-4c0a-aa9f-5ade9dbc09b9",
+                    "target": "getLocalPosition",
+                    "setter": "setLocalPosition",
                     "by": {"x": 2}
                 }
             ]

@@ -95,13 +95,13 @@ export default {
             var data = this.sceneJson;
             if (!data.settings.priority_scripts) return;
             this.scripts = this.mapScripts(data.settings.priority_scripts);
-            this.scripts.forEach((v) => {
-                $('.scripts').append(`<script src="${v.fullPath}"></script>`);
-            });
+            // this.scripts.forEach((v) => {
+            //     $('.scripts').append(`<script src="${v.fullPath}"></script>`);
+            // });
             this.scripts.forEach((v) => {
                 window.require(v.fullPath);
             });
-            this.sceneRoot.find((v) => {
+            this.app.root.find((v) => {
                 if (v.script) {
                     v.script._scriptsData = data.entities[v._guid].components.script.scripts;
                     v.script._scriptsData.forEach((script) => {
