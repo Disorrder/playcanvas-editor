@@ -18,7 +18,7 @@ Vue.component('pc-entity-inspector', {
     },
     watch: {
         entity(val) {
-            console.log('w ent', val);
+            
         }
     },
     methods: {

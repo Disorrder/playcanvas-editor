@@ -34,9 +34,7 @@ Vue.component('ctx-entity', {
             var clickedItem = this.findItem(e);
             if (!this.items.includes(clickedItem)) {
                 this.clickedItem = clickedItem;
-                console.log('clicked on', clickedItem);
             }
-            console.log('ctx open', this.items);
 
             var $target = $(e.currentTarget);
             var pos = $target.position();
@@ -67,7 +65,6 @@ Vue.component('ctx-entity', {
             var entity = new pc.Entity();
             entity.name = 'New Entity';
             this.items[0].addChild(entity);
-            console.log('create entity!', this.items[0]);
             return entity;
         },
         createModel(type) {
@@ -123,7 +120,6 @@ Vue.component('ctx-entity', {
         delete_hover(bool) {
             this.items.forEach((v) => {
                 this.$set(v, '__deleting', bool); // make reactive
-                console.log('hov', v, bool);
             });
         },
     },
@@ -132,9 +128,6 @@ Vue.component('ctx-entity', {
             .on(`contextmenu.ctx-entity`, `.pc-entity-item`, this.onContextmenu.bind(this))
             .on(`click.ctx-entity`, this.onClick.bind(this))
         ;
-
-        // this.simpleMat = new pc.Material();
-
     },
     beforeDestroy() {
         $(document).off(`.ctx-entity`);

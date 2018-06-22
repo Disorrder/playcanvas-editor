@@ -74,13 +74,12 @@ function serializeComponents(entity) {
             case 'script':
                 Object.assign(cData, {
                     scripts: component.scripts.map((v) => {
-                        console.log('IOPIOP', v, v.attributes);
-                        
                         return {
                             enabled: v.enabled,
                             name: v.__scriptType.__name,
                             _attributes: v.__attributesRaw,
                             attributes: v.__attributes,
+                            runInEditor: v._runInEditor
                         };
                     })
                 });
@@ -95,7 +94,7 @@ function serializeComponents(entity) {
 export function deserializeScene(app, data) {
     var parser = new pc.SceneParser(app);
     try {
-        var parent = parser.parse(data);
+        var parent = parser.parse(data);        
     } catch(e) {}
     if (!parent) parent = new pc.Entity('Root');
     return parent;

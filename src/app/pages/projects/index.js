@@ -47,7 +47,6 @@ export default {
             this.$router.push({name: 'project', params: {id: item.id}});
         },
         deleteProject(item) {
-            console.log('DEL');
             this.$store.commit('deleteProject', item);
         }
     },

@@ -46,8 +46,6 @@ export default class Camera extends pc.Entity {
     onMouseDown(e) {
         if (!e.onCanvas) return;
         if (this.picker.busy || this.moving) return;
-        // console.log('Cam: MD', e);
-
         this.moving = true;
         this._startEvent = e;
         $(document).on('mousemove.camera', this.onMouseMove.bind(this));
@@ -55,16 +53,13 @@ export default class Camera extends pc.Entity {
 
     onMouseUp(e) {
         if (!this.moving) return;
-        // console.log('Cam: MU', e);
         this.moving = false;
-
         this._startEvent = null;
         this._prevEvent = null;
         $(document).off('mousemove.camera');
     }
 
     onMouseMove(e) {
-        // console.log('MM', e);
         if (!this._prevEvent) {
             this._prevEvent = e;
             return;
@@ -87,7 +82,6 @@ export default class Camera extends pc.Entity {
     }
 
     onMouseWheel(e) {
-        // console.log('MW', e);
         this.zoom(e.wheel);
     }
 
@@ -114,14 +108,9 @@ export default class Camera extends pc.Entity {
     }
 
     translate(dx, dy) {
-        // console.log('translate', dx, dy);
         vec3.copy(this.up).scale(dy * this.sensitivity * 0.1);
         vec3A.copy(this.right).scale(-dx * this.sensitivity * 0.1);
         vec3.add(vec3A);
         super.translate(vec3);
     }
-
-    // update() {
-    //
-    // }
 }

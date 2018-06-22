@@ -4,8 +4,10 @@ import VueRouter from 'vue-router';
 import $ from 'jquery';
 import _ from 'lodash';
 import pc from '../lib/playcanvas-latest';
+
 // import moment from 'moment';
 _.each({jQuery: $, $, _, pc}, (v, k) => window[k] = v);
+require("@disorrder/animated");
 
 // import 'bootstrap'; // load all scripts
 // import 'bootstrap/dist/css/bootstrap.css';

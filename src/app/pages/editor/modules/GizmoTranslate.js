@@ -66,7 +66,6 @@ export default class GizmoTranslate extends GizmoBase {
             this.movingNorm = this.movingAxis;
             this.movingAxis = "xyz".replace(this.movingAxis, '');
         }
-        console.log('Giz: MD', e);
         this._startEvent = e;
 
         let point = this.getMousePosition(e.x, e.y);
@@ -78,7 +77,6 @@ export default class GizmoTranslate extends GizmoBase {
         if (!this.moving) return;
         this.moving = false;
         this._prevEvent = this._startEvent = null;
-        console.log('Giz: MU', e);
         $(document).off('mousemove.gizmo');
     }
 
@@ -114,8 +112,6 @@ export default class GizmoTranslate extends GizmoBase {
         this.editor.selected.forEach((v) => {
             v.translate(projection);
         });
-
-        // console.log('Giz: MM', dv.data, e._point.data, this.movingAxis);
     }
 
     getMousePosition(x, y) {

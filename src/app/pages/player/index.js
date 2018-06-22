@@ -38,16 +38,6 @@ export default {
             this.$router.push({name: 'editor', projectId, sceneId});
         },
 
-        mapScripts(items) {
-            return items.map((v) => {
-                return path.join(this.project.path, v);
-                // return {
-                //     path: v,
-                //     fullPath: path.join(this.project.path, v),
-                //     // fileName: path
-                // };
-            });
-        },
 
         // --- 3D ---
         // --- initialization ---
@@ -71,6 +61,7 @@ export default {
 
         initScene() {
             var data = window.require(this.sceneFilePath);
+            this.sceneJson = data;
 
             if (!data.settings || Object.keys(data.settings).length === 0) {
                 data.settings = {
@@ -83,19 +74,42 @@ export default {
                     }
                 };
             }
-            if (data.settings.priority_scripts) {
-                this.scripts = this.mapScripts(data.settings.priority_scripts);
-                console.log('PRIOR', data.settings.priority_scripts, this.scripts);
-                this.scripts.forEach((v) => {
-                    $('.scripts').append(`<script src="${v}"></script>`);
-                });
-            }
-
             this.app.applySceneSettings(data.settings);
 
             var sceneRoot = deserializeScene(this.app, data);
             this.app.root.addChild(sceneRoot);
-            console.log('initScene', data, sceneRoot);
+            this.updateScripts();
+        },
+
+        mapScripts(items) {
+            return items.map((v) => {
+                // return path.join(this.project.path, v);
+                return {
+                    path: v,
+                    fullPath: path.join(this.project.path, v),
+                    // fileName: path
+                };
+            });
+        },
+        updateScripts() {
+            var data = this.sceneJson;
+            if (!data.settings.priority_scripts) return;
+            this.scripts = this.mapScripts(data.settings.priority_scripts);
+            this.scripts.forEach((v) => {
+                $('.scripts').append(`<script src="${v.fullPath}"></script>`);
+            });
+            this.scripts.forEach((v) => {
+                window.require(v.fullPath);
+            });
+            this.sceneRoot.find((v) => {
+                if (v.script) {
+                    v.script._scriptsData = data.entities[v._guid].components.script.scripts;
+                    v.script._scriptsData.forEach((script) => {
+                        if (script.useInEditor) v.script.create(script.name, script);
+                    })
+                }
+            })
+            
         },
     },
     created() {

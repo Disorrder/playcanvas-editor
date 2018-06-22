@@ -37,10 +37,7 @@ Vue.component('ui-dock', {
         }
     },
     mounted() {
-        console.log(this.$el, this.$el.classList.contains('opened'), this.ariaOpened);
-        // this.opened = this.ariaOpened || this.$el.classList.contains('opened');
-
-        if (this.$el.classList.contains('ui-dock-left')) console.log('left!'), this.position = 'left';
-        if (this.$el.classList.contains('ui-dock-right')) console.log('left!'), this.position = 'right';
+        if (this.$el.classList.contains('ui-dock-left')) this.position = 'left';
+        if (this.$el.classList.contains('ui-dock-right')) this.position = 'right';
     }
 });

@@ -47,9 +47,9 @@ export default {
         },
 
         // --- 3D ---
-        rootNode() { return console.log('com root'), this.app.root; },
-        editorRoot() { return console.log('com root 1'), this.app.root.findByPath('Editor Root'); },
-        sceneRoot() { return console.log('com root 2'), this.app.root.findByPath('Root'); },
+        rootNode() { return this.app.root; },
+        editorRoot() { return this.app.root.findByPath('Editor Root'); },
+        sceneRoot() { return this.app.root.findByPath('Root'); },
 
         selected() {
             return this.$store.state.editor.selected;
@@ -74,7 +74,6 @@ export default {
             // temp
             data.name = this.sceneJson.name;
             data.settings = this.sceneJson.settings;
-            // console.log(data);
             // end temp
             this.writeSceneFile(data);
         },
@@ -192,11 +191,10 @@ export default {
                     }
                 };
             }
-            this.updateScripts();
             this.app.applySceneSettings(data.settings);
             var sceneRoot = deserializeScene(this.app, data);
             this.app.root.addChild(sceneRoot);
-            console.log('initScene', data, sceneRoot);
+            this.updateScripts();
         },
 
         mapScripts(items) {
@@ -210,13 +208,20 @@ export default {
         },
         updateScripts() {
             var data = this.sceneJson;
-            if (data.settings.priority_scripts) {
-                this.scripts = this.mapScripts(data.settings.priority_scripts);
-                console.log('UPD PRIOR SCRIPTS', data.settings.priority_scripts, this.scripts);
-                this.scripts.forEach((v) => {
-                    window.require(v.fullPath);
-                });
-            }
+            if (!data.settings.priority_scripts) return;
+            this.scripts = this.mapScripts(data.settings.priority_scripts);
+            this.scripts.forEach((v) => {
+                window.require(v.fullPath);
+            });
+            this.sceneRoot.find((v) => {
+                if (v.script) {
+                    v.script._scriptsData = data.entities[v._guid].components.script.scripts;
+                    v.script._scriptsData.forEach((script) => {
+                        if (script.useInEditor) v.script.create(script.name, script);
+                    })
+                }
+            })
+            
         },
 
         // Events
@@ -234,7 +239,6 @@ export default {
         update() {
             if (this.needUpdate) {
                 this.needUpdate = false;
-                console.log('emit editor:postUpdate');
                 this.app.emit('editor:postUpdate');
             }
         }
@@ -256,13 +260,10 @@ export default {
         this.initScene();
         this.attachEvents();
 
-        console.log('ref rd', this.$refs.rightDock);
         $(this.$refs.leftDock.$el).on('click', '.pc-entity-item', (e) => {
             var el = e.currentTarget.parentNode;
             var entity = el.__vue__.entity;
             this.selectEntity(entity);
-
-            console.log('lmb', el, entity);
         });
     }
 };

@@ -8,6 +8,6 @@ export default {
         }
     },
     created() {
-        console.log('QEWQWE');
+
     }
 };

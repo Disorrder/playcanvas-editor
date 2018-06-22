@@ -16,7 +16,6 @@ export default class MouseController {
     set camera(val) {
         if (!val) return;
         this._camera = val;
-        console.log('qwe', val);
         this._app = val._app;
         this.editor = this._app._editor;
         this.picker = new pc.Picker(this._app, this.canvas.width, this.canvas.height);
@@ -35,13 +34,10 @@ export default class MouseController {
     }
 
     mapEvent(e) {
-        // console.log('map', e);
         e.onCanvas = e.target === this.canvas;
         e.x = e.clientX;
         e.y = e.clientY;
         e.pointNear = this.camera.camera.screenToWorld(e.x, e.y, 0.1);
-        // let fwFar = this.camera.forward.clone().scale(100);
-        // e.pointFar = e.pointNear.clone().add(fwFar);
         e.mouseCtrl = this;
 
         this.point = e.pointNear;
@@ -67,29 +63,23 @@ export default class MouseController {
             var isEditorNode = this.target.findParents((v) => v.name === 'Editor Root');
             if (isEditorNode) return;
             this._app.emit('picker:select', this.target);
-            console.log('picker:select', this.target.name, this.target);
         }
         this.state = 'ready';
     }
 
     onMouseMove(e) {
-        // if (e.target !== this.canvas) return;
         this.mapEvent(e);
-        // console.log('mm', e);
-        // this.point = this.camera.camera.screenToWorld()
         if (this.ready) {
             let entity = this.pickEntity(e.x, e.y);
             if (entity === this.target) return;
 
             this._app.emit('picker:leave', this.target);
-            console.log('picker:leave', this.target, this.target?this.target.name:'');
             if (!entity) {
                 this.state = 'ready';
             }
             if (entity) {
                 this.state = 'hover';
                 this._app.emit('picker:hover', entity);
-                console.log('picker:hover', entity, entity.name);
             }
             this.target = entity;
         }
