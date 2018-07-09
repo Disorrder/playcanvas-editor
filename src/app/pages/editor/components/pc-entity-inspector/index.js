@@ -17,9 +17,9 @@ Vue.component('pc-entity-inspector', {
         scale() { return this.entity.getLocalScale(); },
     },
     watch: {
-        entity(val) {
+        // entity(val) {
             
-        }
+        // }
     },
     methods: {
         setPosition() {

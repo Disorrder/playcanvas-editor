@@ -23,3 +23,16 @@ Array.prototype.delete = function(v) {
 	if (~i) this.splice(i, 1);
 	return this;
 }
+
+// global
+export function debounce (cb, limit) {
+	var to;
+    return function () {
+		if (to) {
+			clearTimeout(to);
+		}
+		to = setTimeout(function() {
+			cb();
+		}, limit);
+    }
+}

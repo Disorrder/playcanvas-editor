@@ -1,3 +1,5 @@
+import './i-number';
+
 import './ui-dock';
 
 import './pc-entity';

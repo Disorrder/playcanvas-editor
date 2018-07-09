@@ -13,16 +13,17 @@
                 
         .entity-attr.entity-attr-vec
             label.attr-name Position
-            .attr-value: input.animated(v-model="position.x" @blur="setPosition" type="text")
-            .attr-value: input.animated(v-model="position.y" @blur="setPosition" type="text")
-            .attr-value: input.animated(v-model="position.z" @blur="setPosition" type="text")
+            .attr-value: i-number.animated(v-model.number="position.x" @input="setPosition")
+            .attr-value: i-number.animated(v-model.number="position.y" @input="setPosition")
+            .attr-value: i-number.animated(v-model.number="position.z" @input="setPosition")
+            //- .attr-value: input.animated(v-model.number="position.z" @input="setPosition" type="text")
         .entity-attr.entity-attr-vec
             label.attr-name Rotation
-            .attr-value: input.animated(v-model="rotation.x" @blur="setRotation" type="text")
-            .attr-value: input.animated(v-model="rotation.y" @blur="setRotation" type="text")
-            .attr-value: input.animated(v-model="rotation.z" @blur="setRotation" type="text")
+            .attr-value: input.animated(v-model.number="rotation.x" @input="setRotation" type="text")
+            .attr-value: input.animated(v-model.number="rotation.y" @input="setRotation" type="text")
+            .attr-value: input.animated(v-model.number="rotation.z" @input="setRotation" type="text")
         .entity-attr.entity-attr-vec
             label.attr-name Scale
-            .attr-value: input.animated(v-model="scale.x" @blur="setScale" type="text")
-            .attr-value: input.animated(v-model="scale.y" @blur="setScale" type="text")
-            .attr-value: input.animated(v-model="scale.z" @blur="setScale" type="text")
+            .attr-value: input.animated(v-model.number="scale.x" @input="setScale" type="text")
+            .attr-value: input.animated(v-model.number="scale.y" @input="setScale" type="text")
+            .attr-value: input.animated(v-model.number="scale.z" @input="setScale" type="text")
