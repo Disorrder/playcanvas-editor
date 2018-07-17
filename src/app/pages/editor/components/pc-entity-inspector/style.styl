@@ -4,7 +4,8 @@
         display flex
         // justify-content
         align-items center
-        height 2em
+        min-height 2em
+        height fit-content
         line-height 1.5em
 
         .attr-name
@@ -35,3 +36,42 @@
                 outline 0
                 background #20292b
                 border-bottom-color orange
+
+    .entity-attr-vec
+        .attr-value
+            display flex
+            margin 0
+
+            & > input
+                flex 1 1 auto
+                margin 0 2px
+
+
+    .entity-component
+        //
+        .expansion-panel
+            &__header
+                padding 0 1rem
+                line-height 2.5em
+                background #293538
+
+    .ui-panel
+        // color white
+        margin 0.25rem 0
+        border 1px solid #293538
+
+        .ui-panel-header
+            padding 0.25rem
+            background #364346
+
+        .ui-panel-body
+            padding 0.25rem
+
+    // Model
+
+    // Script
+    .component-script
+        // li.script-type
+        //     margin 0.25rem 0
+            
+

@@ -8,7 +8,22 @@ Vue.component('pc-entity-inspector', {
     template: require('./template.pug')(),
     data() {
         return {
-
+            componentMeta: {
+                model: {
+                    header: 'Model',
+                    // type: ['//asset', 'plane', 'box', 'sphere', 'capsule', 'cylinder', 'cone'],
+                    type: [
+                        // {value: 'asset',    text: 'Asset'},
+                        {value: 'plane',    text: 'Plane'},
+                        {value: 'box',      text: 'Box'},
+                        {value: 'sphere',   text: 'Sphere'},
+                        {value: 'capsule',  text: 'Capsule'},
+                        {value: 'cylinder', text: 'Cylinder'},
+                        {value: 'cone',     text: 'Cone'},
+                    ],
+                    // material: 
+                }
+            }
         }
     },
     computed: {

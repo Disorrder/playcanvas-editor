@@ -11,19 +11,54 @@
             label.attr-name Name
             .attr-value: input.animated(v-model="entity.name" type="text")
                 
+    // Transform
+    .px-2
         .entity-attr.entity-attr-vec
             label.attr-name Position
-            .attr-value: i-number.animated(v-model.number="position.x" @input="setPosition")
-            .attr-value: i-number.animated(v-model.number="position.y" @input="setPosition")
-            .attr-value: i-number.animated(v-model.number="position.z" @input="setPosition")
+            .attr-value
+                i-number.animated(v-model.number="position.x" @input="setPosition")
+                i-number.animated(v-model.number="position.y" @input="setPosition")
+                i-number.animated(v-model.number="position.z" @input="setPosition")
             //- .attr-value: input.animated(v-model.number="position.z" @input="setPosition" type="text")
         .entity-attr.entity-attr-vec
             label.attr-name Rotation
-            .attr-value: input.animated(v-model.number="rotation.x" @input="setRotation" type="text")
-            .attr-value: input.animated(v-model.number="rotation.y" @input="setRotation" type="text")
-            .attr-value: input.animated(v-model.number="rotation.z" @input="setRotation" type="text")
+            .attr-value
+                i-number.animated(v-model.number="rotation.x" @input="setRotation")
+                i-number.animated(v-model.number="rotation.y" @input="setRotation")
+                i-number.animated(v-model.number="rotation.z" @input="setRotation")
         .entity-attr.entity-attr-vec
             label.attr-name Scale
-            .attr-value: input.animated(v-model.number="scale.x" @input="setScale" type="text")
-            .attr-value: input.animated(v-model.number="scale.y" @input="setScale" type="text")
-            .attr-value: input.animated(v-model.number="scale.z" @input="setScale" type="text")
+            .attr-value
+                i-number.animated(v-model.number="scale.x" @input="setScale")
+                i-number.animated(v-model.number="scale.y" @input="setScale")
+                i-number.animated(v-model.number="scale.z" @input="setScale")
+
+    // Components
+    v-expansion-panel
+        v-expansion-panel-content.entity-component.mt-2(v-if="entity.model" :value="true")
+            .component-header(slot="header") Model
+            .px-2
+                .entity-attr
+                    label.attr-name Type
+                    .attr-value: v-select.animated.pt-0(v-model="entity.model.type" :items="componentMeta.model.type" hide-details)
+                    //- .attr-value: input.animated(v-model="entity.model.type" type="text")
+                .entity-attr
+                    label.attr-name Material
+                    .attr-value: input.animated.pt-0(v-model="entity.model.material.name" :title="entity.model.material.id" type="text")
+
+        v-expansion-panel-content.entity-component.mt-2(v-if="entity.script" :value="true")
+            .component-header(slot="header") Scripts
+            .px-2.component-script
+                ul.ui-list.my-2(sortable)
+                    li.ui-list-item.script-type.ui-panel(v-for="script in entity.script.scripts")
+                        header.ui-panel-header {{script.__scriptType.__name}}
+                        .ui-panel-body
+                            .entity-attr(v-for="attr, attrName in script.__scriptType.attributes.index" :class="'entity-attr-'+attr.type")
+                                label.attr-name {{attrName}}
+                                .attr-value(v-if="attr.type === 'boolean'"): input.animated.pt-0(v-model="script[attrName]" type="checkbox")
+                                .attr-value(v-if="attr.type === 'string'"): input.animated.pt-0(v-model="script[attrName]" type="text")
+                                //- .attr-value(v-if="attr.type === 'vec2'")
+                                    input.animated.pt-0(v-model="script[attrName]" type="text")
+
+
+
