@@ -9,9 +9,15 @@ Vue.component('pc-entity-inspector', {
     data() {
         return {
             componentMeta: {
+                camera: {
+                    header: 'Camera',
+                    projection: [
+                        {value: pc.PROJECTION_PERSPECTIVE, text: 'Perspective'},
+                        {value: pc.PROJECTION_ORTHOGRAPHIC, text: 'Orthographic'},
+                    ]
+                },
                 model: {
                     header: 'Model',
-                    // type: ['//asset', 'plane', 'box', 'sphere', 'capsule', 'cylinder', 'cone'],
                     type: [
                         // {value: 'asset',    text: 'Asset'},
                         {value: 'plane',    text: 'Plane'},
@@ -21,7 +27,6 @@ Vue.component('pc-entity-inspector', {
                         {value: 'cylinder', text: 'Cylinder'},
                         {value: 'cone',     text: 'Cone'},
                     ],
-                    // material: 
                 }
             }
         }
