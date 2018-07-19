@@ -4,11 +4,11 @@ var vec3A = new pc.Vec3();
 export default class Camera extends pc.Entity {
     constructor(app) {
         super('Perspective', app);
-        this.priority = -1000; //?
-
+        
         this.addComponent('camera', {
             clearColor: new pc.Color(0.1, 0.1, 0.1)
         });
+        // this.camera.priority = -1000; //? not working?
 
         this.picker = this.editor.picker;
         this.attachEvents();

@@ -59,7 +59,7 @@ export default class Gizmo extends pc.Entity {
         if (!this.enabled) return;
 
         var pos = this.getPosition();
-        var camera = this.editor.activeCamera;
+        var camera = this.editor.viewportCamera;
         if (!camera) return;
         var cameraPos = camera.getPosition();
 

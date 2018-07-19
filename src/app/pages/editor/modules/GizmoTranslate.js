@@ -117,9 +117,9 @@ export default class GizmoTranslate extends GizmoBase {
     getMousePosition(x, y) {
         // поскольку координаты мыши не совпадают с центром гизмо, вычисляем глубину клика
         // как проекцию расстояния от камеры до гизмо на направление взгляда камеры.
-        vecA.copy(this.editor.selectedCenter).sub( this.editor.activeCamera.getPosition() );
-        let dot = vecA.dot(this.editor.activeCamera.forward);
-        return this.editor.activeCamera.camera.screenToWorld(x, y, dot);
+        vecA.copy(this.editor.selectedCenter).sub( this.editor.viewportCamera.getPosition() );
+        let dot = vecA.dot(this.editor.viewportCamera.forward);
+        return this.editor.viewportCamera.camera.screenToWorld(x, y, dot);
     }
 
     createEntity() {

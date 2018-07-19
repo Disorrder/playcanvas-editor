@@ -26,7 +26,7 @@ export default {
             // scene
             needUpdate: false,
 
-            activeCamera: null,
+            viewportCamera: null,
             cameras: {},
             gizmo: null,
         }
@@ -59,6 +59,23 @@ export default {
             if (!this._selectedCenter) this._selectedCenter = new pc.Vec3();
             this._selectedCenter.copy( this.selected[0].getPosition() );
             return this._selectedCenter;
+        },
+
+        // -- cameras --
+        enabledCameras() {
+            // console.log(this.app, this.app.scene);
+            if (!this.app.scene) return [];
+            return this.app.scene._layers.cameras;
+        }
+    },
+    watch: {
+        enabledCameras() {
+            this.app.scene._layers.layerList.forEach((layer) => {
+                layer.cameras = layer.cameras.filter((cam) => {
+                    return cam._viewport;
+                    // return cam === this.viewportCamera;
+                });
+            });
         }
     },
     methods: {
@@ -168,8 +185,9 @@ export default {
             this.cameras.perspective = camera;
 
             // set active
-            this.activeCamera = this.cameras.perspective;
-            this.picker.camera = this.activeCamera; // потом при переключении камеры нужно устанавливать её в пикер
+            this.viewportCamera = this.cameras.perspective;
+            this.viewportCamera.camera._viewport = true; // TODO: add real viewport
+            this.picker.camera = this.viewportCamera; // потом при переключении камеры нужно устанавливать её в пикер
         },
 
         initPicker() {
