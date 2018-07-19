@@ -29,6 +29,15 @@ Vue.component('pc-entity', {
             if (!this.isFolder) return;
             this.opened = !this.opened;
         },
+        open() {
+            // if (!this.isFolder) return;
+            this.opened = true;
+            if (this.$parent.isFolder) this.$parent.open();
+        },
+        close() {
+            if (!this.isFolder) return;
+            this.opened = false;
+        }
     },
     mounted() {
 

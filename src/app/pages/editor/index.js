@@ -264,5 +264,13 @@ export default {
             var entity = el.__vue__.entity;
             this.selectEntity(entity);
         });
+
+        this.app.on('picker:select', (entity) => {
+            var entityEl = $(`.ui-dock-left [data-guid="${entity._guid}"]`);
+            if (entityEl[0]) {
+                entityEl[0].__vue__.open();
+            }
+            console.log('pick', entity, entityEl, `.ui-dock-left [data-guid="${entity._guid}"]`)
+        });
     }
 };

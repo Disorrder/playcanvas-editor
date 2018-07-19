@@ -4,6 +4,6 @@ div.pc-entity(:class="{opened: opened, disabled: !entity.enabled, deleting: enti
             v-icon(v-if="isFolder && !opened") keyboard_arrow_right
             v-icon(v-if="isFolder && opened") keyboard_arrow_down
         div.pc-entity-name.pr-2 {{entity.name}}
-    div.pc-entity-children.pl-3(v-if="opened")
+    div.pc-entity-children.pl-3(v-show="opened")
         pc-entity(v-for="item in children" :key="item._guid" :entity="item")
         

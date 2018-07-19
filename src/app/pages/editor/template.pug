@@ -6,7 +6,7 @@
 
     ui-dock.ui-dock-left(ref="leftDock" :aria-opened="true")
         div.text-center.px-4.mb-2 {{project.name}}
-        pc-entity(:entity="rootNode" v-if="rootNode")
+        pc-entity(:entity="rootNode" v-if="rootNode" ref="entitiesTree")
 
     v-content: .absolute-full
         canvas#canvas-3d
