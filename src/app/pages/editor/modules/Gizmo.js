@@ -2,6 +2,7 @@ import GizmoTranslate from './GizmoTranslate';
 
 const gizmoSize = .4;
 var vecA = new pc.Vec3();
+var selected;
 
 export default class Gizmo extends pc.Entity {
     constructor(app) {
@@ -15,6 +16,9 @@ export default class Gizmo extends pc.Entity {
 
         this.attachEvents();
         this.editor.needUpdate = true;
+
+        this.watchPosition = true;
+        this.watchRotation = true;
     }
 
     get editor() { return this._app._editor; }
@@ -34,12 +38,14 @@ export default class Gizmo extends pc.Entity {
     setPosition(...vec) {
         super.setPosition(...vec);
         this.editor.needUpdate = true;
-        // this.render(); // or set needUpdate
+    }
+    setRotation(...vec) {
+        super.setRotation(...vec);
+        this.editor.needUpdate = true;
     }
     setEulerAngles(...vec) {
         super.setEulerAngles(...vec);
         this.editor.needUpdate = true;
-        // this.render(); // or set needUpdate
     }
 
     activate(name) {
@@ -52,6 +58,15 @@ export default class Gizmo extends pc.Entity {
     }
 
     update() {
+        if (!this.enabled) return;
+        selected = this.editor.selected;
+        
+        if (this.editor.selected.length === 1) {
+            selected = selected[0];
+            if (this.watchPosition) this.setPosition(selected.getPosition());
+            if (this.watchRotation) this.setRotation(selected.getRotation());
+        }
+
         this.render();
     }
 
