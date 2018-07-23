@@ -37,43 +37,43 @@
 
     // Components
     v-expansion-panel
-        v-expansion-panel-content.entity-component.mt-2(v-if="entity.camera" :value="true")
+        v-expansion-panel-content.entity-component.mt-2(v-if="camera" :value="true")
             .component-header(slot="header") Camera
             .px-2.component-camera
                 .entity-attr
                     label.attr-name Projection
-                    .attr-value: v-select.animated.pt-0(v-model="entity.camera.projection" :items="componentMeta.camera.projection" hide-details)
+                    .attr-value: v-select.animated.pt-0(v-model="camera.projection" :items="componentMeta.camera.projection" hide-details)
 
                 .entity-attr(xs6)
                     label.attr-name Near
-                    .attr-value: i-number.animated(v-model.number="entity.camera.nearClip")
+                    .attr-value: i-number.animated(v-model.number="camera.nearClip")
                 .entity-attr(xs6)
                     label.attr-name Far
-                    .attr-value: i-number.animated(v-model.number="entity.camera.farClip")
+                    .attr-value: i-number.animated(v-model.number="camera.farClip")
 
                 .entity-attr
                     label.attr-name FOV
-                    .attr-value: i-number.animated(v-model.number="entity.camera.fov")
+                    .attr-value: i-number.animated(v-model.number="camera.fov")
 
 
 
-        v-expansion-panel-content.entity-component.mt-2(v-if="entity.model" :value="true")
+        v-expansion-panel-content.entity-component.mt-2(v-if="model" :value="true")
             .component-header(slot="header") Model
             .px-2.component-model
                 .entity-attr
                     label.attr-name Type
-                    .attr-value: v-select.animated.pt-0(v-model="entity.model.type" :items="componentMeta.model.type" hide-details)
-                    //- .attr-value: input.animated(v-model="entity.model.type" type="text")
+                    .attr-value: v-select.animated.pt-0(v-model="model.type" :items="componentMeta.model.type" hide-details)
+                    //- .attr-value: input.animated(v-model="model.type" type="text")
                 .entity-attr
                     label.attr-name Material
-                    .attr-value: input.animated.pt-0(v-model="entity.model.material.name" :title="entity.model.material.id" type="text")
+                    .attr-value: input.animated.pt-0(v-model="model.material.name" :title="model.material.id" type="text")
 
 
-        v-expansion-panel-content.entity-component.mt-2(v-if="entity.script" :value="true")
+        v-expansion-panel-content.entity-component.mt-2(v-if="script" :value="true")
             .component-header(slot="header") Scripts
             .px-2.component-script
                 ul.ui-list.my-2(sortable)
-                    li.ui-list-item.script-type.ui-panel(v-for="script in entity.script.scripts")
+                    li.ui-list-item.script-type.ui-panel(v-for="script in script.scripts")
                         header.ui-panel-header {{script.__scriptType.__name}}
                         .ui-panel-body
                             .entity-attr(v-for="attr, attrName in script.__scriptType.attributes.index" :class="'entity-attr-'+attr.type")

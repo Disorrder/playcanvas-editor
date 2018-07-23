@@ -35,6 +35,10 @@ Vue.component('pc-entity-inspector', {
         position() { return this.entity.getLocalPosition(); },
         rotation() { return this.entity.getEulerAngles(); },
         scale() { return this.entity.getLocalScale(); },
+        // components
+        model() { return this.entity.model; },
+        camera() { return this.entity.camera; },
+        script() { return this.entity.script; },
     },
     watch: {
         // entity(val) {
