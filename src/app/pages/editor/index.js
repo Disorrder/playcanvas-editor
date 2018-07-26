@@ -14,12 +14,6 @@ export default {
     template: require('./template.pug')(),
     data() {
         return {
-            leftPanel: {
-                opened: true,
-            },
-            rightPanel: {
-                opened: false,
-            },
             app: {},
             scripts: [],
 
@@ -44,6 +38,16 @@ export default {
         },
         sceneFilePath() {
             return path.join(this.project.path, this.scene.path);
+        },
+
+        openedDocks() {
+            console.log('opd', this.$refs.leftDock);
+            if (!this.app.scene) return;
+            return {
+                openedLeftDock: this.$refs.leftDock.opened,
+                openedRightDock: this.$refs.rightDock.opened,
+                // openedBottomDock: this.$refs.bottomDock.opened,
+            };
         },
 
         // --- 3D ---

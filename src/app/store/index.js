@@ -5,7 +5,19 @@ Vue.use(Vuex);
 var editor = {
     namespaced: true,
     state: {
-        selected: []
+        selected: [],
+        leftDock: {
+            opened: true,
+            size: 300,
+        },
+        rightDock: {
+            opened: true,
+            size: 300,
+        },
+        bottomDock: {
+            opened: true,
+            size: 200,
+        },
     },
     mutations: {
         selectOne(state, entity) {
@@ -31,7 +43,21 @@ var editor = {
             } else {
                 state.selected.push(entity);
             }
-        }
+        },
+
+        // UI Dock
+        openDock(state, name) {
+            state[name].opened = true;
+        },
+        closeDock(state, name) {
+            state[name].opened = false;
+        },
+
+        resizeDock(state, {name, value}) {
+            console.log('ressss', name, value);
+            
+            state[name].size = value;
+        },
     },
     actions: {
 

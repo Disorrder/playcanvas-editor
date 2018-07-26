@@ -1,19 +1,23 @@
-#editor.theme--dark
+#editor.theme--dark(:class="openedDocks")
     v-toolbar(app clipped-left height="36")
         v-btn(:to="{name: 'projects'}" exact) Home
         v-btn(@click="saveScene") Save
         v-btn(@click="playScene") Play
 
-    ui-dock.ui-dock-left(ref="leftDock" :aria-opened="true")
+    ui-dock-left(ref="leftDock" :data-opened="true")
         div.text-center.px-4.mb-2 {{project.name}}
         pc-entity(:entity="rootNode" v-if="rootNode" ref="entitiesTree")
 
     v-content: .absolute-full
         canvas#canvas-3d
             
-    ui-dock.ui-dock-right(ref="rightDock" :aria-opened="false")
+    ui-dock-right(ref="rightDock" :data-opened="false")
         pc-entity-inspector(v-if="selected.length" :entity="selected[0]")
         //- div(v-if="selected.length") {{selected[0].name}}
+           
+    ui-dock-bottom(ref="bottomDock" :data-opened="false")
+        h1 hehe
+        //- pc-entity-inspector(v-if="selected.length" :entity="selected[0]")
         
     v-footer(app)
     

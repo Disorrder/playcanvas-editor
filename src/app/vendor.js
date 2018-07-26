@@ -16,3 +16,6 @@ require("@disorrder/animated");
 import Vuetify from 'vuetify';
 import 'vuetify/dist/vuetify.min.css';
 Vue.use(Vuetify);
+
+import VDragged from 'v-dragged';
+Vue.use(VDragged);

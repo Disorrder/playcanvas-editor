@@ -42,7 +42,7 @@
             .px-2.component-camera
                 .entity-attr
                     label.attr-name Projection
-                    .attr-value: v-select.animated.pt-0(v-model="camera.projection" :items="componentMeta.camera.projection" hide-details)
+                    .attr-value: v-select.animated.pt-0.mt-0(v-model="camera.projection" :items="componentMeta.camera.projection" hide-details)
 
                 .entity-attr(xs6)
                     label.attr-name Near
@@ -62,7 +62,7 @@
             .px-2.component-model
                 .entity-attr
                     label.attr-name Type
-                    .attr-value: v-select.animated.pt-0(v-model="model.type" :items="componentMeta.model.type" hide-details)
+                    .attr-value: v-select.animated.pt-0.mt-0(v-model="model.type" :items="componentMeta.model.type" hide-details)
                     //- .attr-value: input.animated(v-model="model.type" type="text")
                 .entity-attr
                     label.attr-name Material

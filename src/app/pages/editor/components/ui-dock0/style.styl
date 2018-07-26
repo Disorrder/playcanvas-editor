@@ -3,8 +3,12 @@ $borderColor = #111
 
 .ui-dock
     position absolute
+    top 36px
+    bottom 0
+    width 300px
+    min-width 100px
+    max-width 50%
     z-index 10
-    transition-property transform, bottom, right
 
     .ui-dock-inner
         width 100%
@@ -15,20 +19,23 @@ $borderColor = #111
     .ui-dock-resize
         position absolute
         top 0
-        width 4px
+        width 3px
         height 100%
-
-        &:hover
-            background rgba(orange, 0.5)
-            cursor ew-resize
 
     .ui-dock-toggle
         position absolute
+        top 50%
+        width $toggleSize
+        height 2*$toggleSize
+        margin-top -1*$toggleSize
         overflow hidden
         z-index -1
 
     .ui-dock-toggle-btn
         position absolute
+        top 0
+        width $toggleSize
+        height 2*$toggleSize
         background #3d3d3d
         border 1px solid $borderColor
         cursor pointer
@@ -46,49 +53,7 @@ $borderColor = #111
     //     background #fff
     //     z-index -2
 
-    // --- vertical ---
-    &.ui-dock-left, &.ui-dock-right
-        top 36px
-        bottom 0
-        width 350px
-        // min-width 100px
-        // max-width 50%
-
-        .ui-dock-toggle
-            top 50%
-            margin-top -1*$toggleSize
-            width $toggleSize
-            height 8*$toggleSize
-
-        .ui-dock-toggle-btn
-            top 0
-            width $toggleSize
-            height 2*$toggleSize
-
-
-
-    // --- horizontal ---
-    &.ui-dock-bottom
-        left 0
-        right 0
-        bottom 0
-        height 350px
-        // min-height 100px
-        // max-height 50%
-
-        .ui-dock-toggle
-            left 50%
-            margin-left -1*$toggleSize
-            width 8*$toggleSize
-            height $toggleSize
-
-        .ui-dock-toggle-btn
-            width 2*$toggleSize
-            height $toggleSize
-
-
-
-    // --- variants ---
+    // variants
     &.ui-dock-left
         left 0
         border-right 1px solid $borderColor
@@ -110,12 +75,12 @@ $borderColor = #111
             & > i.icon
                 margin-left -5px
 
-        &.opened
-            transform translateX(0)
-
         &:hover, &.ui-dock-hover
             .ui-dock-toggle-btn
                 left 0
+
+        &.opened
+            transform translateX(0)
 
 
     &.ui-dock-right
@@ -124,7 +89,7 @@ $borderColor = #111
         transform translateX(100%)
 
         .ui-dock-resize
-            left 0
+            right 0
 
         .ui-dock-toggle
             right 100%
@@ -139,48 +104,18 @@ $borderColor = #111
             & > i.icon
                 margin-right -5px
 
-        &.opened
-            transform translateX(0)
-
         &:hover, &.ui-dock-hover
             .ui-dock-toggle-btn
                 right 0
 
+        &.opened
+            transform translateX(0)
+
     
     &.ui-dock-bottom
+        left 0
+        right 0
         bottom 0
-        border-top 1px solid $borderColor
-        transform translateY(100%)
-
-        .ui-dock-toggle
-            bottom 100%
-        .ui-dock-toggle-btn
-            bottom -100%
-            border-radius $toggleSize $toggleSize 0 0
-            border-bottom 0
-            // text-align center
-            line-height 1.9*$toggleSize
-            padding 0 10%
-
-            & > i.icon
-                margin-bottom -5px
-
-        .ui-dock-resize
-            top 0
-            left 0
-            height 3px
-            width 100%
-
-            &:hover
-                cursor ns-resize
-
-        &.opened
-            transform translateY(0)
-
-        &:hover, &.ui-dock-hover
-            .ui-dock-toggle-btn
-                bottom 0
-            
 
     // states
     &.opened
