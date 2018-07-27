@@ -7,7 +7,7 @@ import pc from '../lib/playcanvas-latest';
 
 // import moment from 'moment';
 _.each({jQuery: $, $, _, pc}, (v, k) => window[k] = v);
-require("@disorrder/animated");
+require("@disorrder/timeline");
 
 // import 'bootstrap'; // load all scripts
 // import 'bootstrap/dist/css/bootstrap.css';

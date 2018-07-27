@@ -3,7 +3,7 @@
     "//TODO": "think about `entity.getLocalPosition` in target, mb parse entity and script methods",
     "frames": [
         {
-            "//comment": "Изменяет позицию первого куба",
+            "description": "Изменяет позицию первого куба",
             "delay": 1000,
             "duration": 3000,
             "animate": [
@@ -16,7 +16,7 @@
             ]
         },
         {
-            "//comment": "Изменяет вращение второго куба",
+            "description": "Изменяет вращение второго куба",
             "delay": 500,
             "duration": 2000,
             "animate": [
@@ -29,7 +29,7 @@
             ]
         },
         {
-            "//comment": "Изменяет масштаб третьего куба",
+            "description": "Изменяет масштаб третьего куба",
             "delay": 500,
             "duration": 1000,
             "animate": [
@@ -43,7 +43,7 @@
         },
 
         {
-            "//comment": "Возвращает всё в исходное состояние",
+            "description": "Возвращает всё в исходное состояние",
             "easing": "BounceOut",
             "animate": [
                 {

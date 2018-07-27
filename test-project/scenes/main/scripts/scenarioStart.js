@@ -6,12 +6,12 @@ ScenarioStart.attributes.add('autoplay', {type: 'boolean'});
 
 ScenarioStart.extend({
     initialize() {
-        this.scenario = new pc.Animated();
+        this.scenario = new pc.Timeline();
 
         var timeline = require('../scenarios/1.scenario.json');
         console.log('ScenarioStart init', timeline);
         timeline.frames.forEach((frame) => {
-            if (frame.easing) frame.easing = pc.Animated.easing[frame.easing];
+            if (frame.easing) frame.easing = pc.Timeline.easing[frame.easing];
 
             // check for tweaked targets
             frame.animate.forEach((anim) => {

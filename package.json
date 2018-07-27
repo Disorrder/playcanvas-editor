@@ -44,7 +44,7 @@
     "webpack-notifier": "^1.6.0"
   },
   "dependencies": {
-    "@disorrder/animated": "^0.2.5",
+    "@disorrder/timeline": "^0.3.0",
     "jquery": "^3.3.1",
     "lodash": "^4.17.10",
     "moment": "^2.22.2",
