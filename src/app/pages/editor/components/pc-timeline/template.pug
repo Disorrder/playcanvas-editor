@@ -1,0 +1,6 @@
+div.pc-timeline(v-if="data")
+    h3.tl-name {{data.name}}
+    .tl-inner
+        .tl-frame(v-for="frame in data.frames"
+            :style="{left: frame._offset, width: frame._duration, }"
+        )

@@ -10,7 +10,7 @@ ScenarioStart.extend({
 
         var timeline = require('../scenarios/1.scenario.json');
         console.log('ScenarioStart init', timeline);
-        timeline.frames.forEach((frame) => {
+        timeline.keyframes.forEach((frame) => {
             if (frame.easing) frame.easing = pc.Timeline.easing[frame.easing];
 
             // check for tweaked targets

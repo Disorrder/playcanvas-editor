@@ -16,11 +16,9 @@
         //- div(v-if="selected.length") {{selected[0].name}}
            
     ui-dock-bottom(ref="bottomDock" :data-opened="false")
-        h3 Timeline
         pc-timeline
-        //- pc-entity-inspector(v-if="selected.length" :entity="selected[0]")
         
-    v-footer(app)
+    //- v-footer(app)
     
     //- context Entity
     ctx-entity(:items="selected")

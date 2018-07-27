@@ -22,7 +22,7 @@
   "license": "CC0-1.0",
   "devDependencies": {
     "clean-webpack-plugin": "^0.1.19",
-    "colors": "^1.3.0",
+    "colors": "^1.3.1",
     "copy-webpack-plugin": "^4.5.2",
     "css-loader": "^1.0.0",
     "electron": "^2.0.5",
@@ -37,21 +37,21 @@
     "style-loader": "^0.21.0",
     "stylus": "^0.54.5",
     "stylus-loader": "^3.0.2",
-    "webpack": "^4.16.1",
+    "webpack": "^4.16.3",
     "webpack-cli": "^3.1.0",
-    "webpack-dev-server": "^3.1.4",
+    "webpack-dev-server": "^3.1.5",
     "webpack-glsl-loader": "^1.0.1",
     "webpack-notifier": "^1.6.0"
   },
   "dependencies": {
-    "@disorrder/timeline": "^0.3.0",
+    "@disorrder/timeline": "^0.3.1",
     "jquery": "^3.3.1",
     "lodash": "^4.17.10",
     "moment": "^2.22.2",
     "v-dragged": "0.0.5",
     "vue": "^2.5.16",
     "vue-router": "^3.0.1",
-    "vuetify": "^1.1.7",
+    "vuetify": "^1.1.8",
     "vuex": "^3.0.1"
   }
 }
