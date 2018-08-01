@@ -41,13 +41,18 @@ export default {
         },
 
         openedDocks() {
-            console.log('opd', this.$refs.leftDock);
             if (!this.app.scene) return;
             return {
                 openedLeftDock: this.$refs.leftDock.opened,
                 openedRightDock: this.$refs.rightDock.opened,
                 // openedBottomDock: this.$refs.bottomDock.opened,
             };
+        },
+
+        testTimelineFile() {
+            console.log(this.project);
+            
+            return path.join('scenes/main/scenarios/1.scenario.json');
         },
 
         // --- 3D ---
@@ -82,6 +87,7 @@ export default {
             });
         }
     },
+
     methods: {
         // --- UI ---
         readSceneFile() {

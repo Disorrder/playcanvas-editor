@@ -37,6 +37,9 @@
       "exposure": 0.7
     }
   },
+  "timelines": [
+    {"name": "Test cubes", "path": "scenes/main/scenarios/1.scenario.json"}
+  ],
   "entities": {
     "656e778c-5a4b-4ca0-a20a-6311c8bf3b50": {
       "resource_id": "656e778c-5a4b-4ca0-a20a-6311c8bf3b50",

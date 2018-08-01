@@ -1,6 +1,7 @@
 import './style.styl';
-
 import Vue from 'vue';
+
+const path = window.require('path');
 
 Vue.component('pc-timeline', {
     template: require('./template.pug')(),
@@ -15,6 +16,7 @@ Vue.component('pc-timeline', {
     computed: {
         data() {
             if (!this.file) return;
+            let filePath = 0;
             return window.require(this.file);
         },
         // timeline() {

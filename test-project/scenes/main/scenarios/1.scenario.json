@@ -1,5 +1,5 @@
 {
-    "name": "1",
+    "name": "Test cubes",
     "//TODO": "think about `entity.getLocalPosition` in target, mb parse entity and script methods",
     "keyframes": [
         {
