@@ -1,5 +1,5 @@
 String.prototype.hashCode = function() {
-	var hash = 0;
+	var char, hash = 0;
 	if (this.length == 0) return hash;
 	for (let i = 0, len = this.length; i < len; i++) {
 		char = this.charCodeAt(i);

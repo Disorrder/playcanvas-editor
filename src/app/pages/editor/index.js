@@ -6,9 +6,9 @@ const path = window.require('path');
 
 import ScriptType from 'app/extensions/ScriptType';
 import {serializeScene, deserializeScene} from 'app/extensions/serialize';
-import MouseController from './modules/MouseController';
-import Gizmo from './modules/Gizmo';
-import Camera from './modules/Camera';
+import MouseController from './components_3d/MouseController';
+import Gizmo from './components_3d/Gizmo';
+import Camera from './components_3d/Camera';
 
 export default {
     template: require('./template.pug')(),
